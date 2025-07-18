@@ -954,6 +954,7 @@ import { usezoomhome} from './composables/leaflet/useZoomHome';
 import { useImageOverlay } from "./composables/leaflet/useImageOverlay";
 import { useFieldOfRegard} from "./composables/leaflet/useFieldOfRegard";
 import { useLocationMarker } from "./composables/leaflet/useMarker";
+import { useRectangleSelection } from "./composables/leaflet/useRectangleSelection";
 const zoomScale = 1; 
 
 // const zoomScale = 0.5; // for matplibre-gl
@@ -1356,14 +1357,15 @@ const showingExtendedRange = computed(() => {
 });
 
 
-
-
 const onMapReady = (map) => {
   map.on('moveend', updateURL);
   map.on('zoomend', updateURL);
 };
 const showRoads = ref(true);
 const { map, createMap, setView } = useMap("map", initState.value, showRoads, onMapReady);
+const { active, selectionInfo } = useRectangleSelection(map, "red");
+
+watch(selectionInfo, (info) => console.log(info));
 
 const { 
   addFieldOfRegard,
@@ -1383,6 +1385,8 @@ onMounted(() => {
   window.addEventListener("hashchange", updateHash);
   showSplashScreen.value = false;
   createMap();
+
+  active.value = true;
 
   usezoomhome(map, homeState.value.loc, homeState.value.zoom, (_e: Event) => {
     sublocationRadio.value = null;
