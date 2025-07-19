@@ -1,4 +1,4 @@
-import { ref, watch, type Ref } from "vue";
+import { onMounted, ref, watch, type Ref } from "vue";
 import { type LatLng, LatLngBounds, type LeafletMouseEvent, Map, Rectangle } from "leaflet";
 
 export interface RectangleSelectionInfo {
@@ -11,11 +11,19 @@ export interface RectangleSelectionInfo {
 export function useRectangleSelection(
   map: Ref<Map | null>, 
   interactColor: string = "yellow",
+  startActive: boolean = false,
 ) {
   let rect: Rectangle | null = null;
   let startCoords: LatLng | null = null;
   const selectionInfo = ref<RectangleSelectionInfo | null>(null);
-  const active = ref(false);
+  const active = ref(startActive);
+
+  onMounted(() => {
+    const lMap = map.value;
+    if (active.value && lMap) {
+      updateListeners(lMap, active.value);
+    }
+  });
 
   function onMousedown(event: LeafletMouseEvent) {
     startCoords = event.latlng;
@@ -55,23 +63,34 @@ export function useRectangleSelection(
     rect.setBounds(new LatLngBounds(startCoords, event.latlng));
   }
 
+  function updateListeners(map: Map, active: boolean) {
+    if (active) {
+      map.dragging.disable();
+      map.scrollWheelZoom.disable();
+      map.addEventListener("mousedown", onMousedown);
+      map.addEventListener("mouseup", onMouseup);
+      map.addEventListener("mousemove", onMousemove);
+    } else {
+      map.dragging.enable();
+      map.scrollWheelZoom.enable();
+      map.removeEventListener("mousedown", onMousedown);
+      map.removeEventListener("mouseup", onMouseup);
+      map.removeEventListener("mousemove", onMousemove);
+    }
+  }
+
   watch(active, (nowActive: boolean) => {
     const lMap = map.value;
-    if (lMap === null) {
-      return;
+    if (lMap !== null) {
+      updateListeners(lMap, nowActive);
     }
-    if (nowActive) {
-      lMap.dragging.disable();
-      lMap.scrollWheelZoom.disable();
-      lMap.addEventListener("mousedown", onMousedown);
-      lMap.addEventListener("mouseup", onMouseup);
-      lMap.addEventListener("mousemove", onMousemove);
-    } else {
-      lMap.dragging.enable();
-      lMap.scrollWheelZoom.enable();
-      lMap.removeEventListener("mousedown", onMousedown);
-      lMap.removeEventListener("mouseup", onMouseup);
-      lMap.removeEventListener("mousemove", onMousemove);
+  });
+
+  // If we're going to take in the map as a ref,
+  // we might as well update if its value does
+  watch(map, (newMap: Map | null) => {
+    if (newMap !== null) {
+      updateListeners(newMap, active.value);
     }
   });
 
