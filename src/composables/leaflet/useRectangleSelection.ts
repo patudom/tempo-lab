@@ -54,6 +54,7 @@ export function useRectangleSelection(
       map.value?.removeLayer(rect);
       rect = null;
     }
+    startCoords = null;
   }
 
   function onMousemove(event: LeafletMouseEvent) {
