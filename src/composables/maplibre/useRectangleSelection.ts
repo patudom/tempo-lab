@@ -1,4 +1,4 @@
-import { onMounted, ref, watch, type Ref } from "vue";
+import { onMounted, onUnmounted, ref, watch, type Ref } from "vue";
 import { GeoJSONSource, LngLat, Map, MapMouseEvent } from "maplibre-gl";
 import { v4 } from "uuid";
 
@@ -165,6 +165,15 @@ export function useRectangleSelection(
   watch(map, (newMap: Map | null) => {
     if (newMap !== null) {
       updateListeners(newMap, active.value);
+    }
+  });
+
+  onUnmounted(() => {
+    // The map will probably be destroyed along with the component using this composable
+    // But if not, we should remove handlers
+    const mMap = map.value;
+    if (mMap !== null && active.value) {
+      updateListeners(mMap, false);
     }
   });
 

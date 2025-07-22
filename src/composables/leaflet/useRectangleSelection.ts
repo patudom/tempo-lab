@@ -1,4 +1,4 @@
-import { onMounted, ref, watch, type Ref } from "vue";
+import { onMounted, onUnmounted, ref, watch, type Ref } from "vue";
 import { type LatLng, LatLngBounds, type LeafletMouseEvent, Map, Rectangle } from "leaflet";
 
 export interface RectangleSelectionInfo {
@@ -92,6 +92,15 @@ export function useRectangleSelection(
   watch(map, (newMap: Map | null) => {
     if (newMap !== null) {
       updateListeners(newMap, active.value);
+    }
+  });
+
+  onUnmounted(() => {
+    // The map will probably be destroyed along with the component using this composable
+    // But if not, we should remove handlers
+    const lMap = map.value;
+    if (lMap !== null && active.value) {
+      updateListeners(lMap, false);
     }
   });
 
