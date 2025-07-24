@@ -1356,8 +1356,6 @@ const showingExtendedRange = computed(() => {
 });
 
 
-
-
 const onMapReady = (map) => {
   map.on('moveend', updateURL);
   map.on('zoomend', updateURL);
