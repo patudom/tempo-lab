@@ -181,6 +181,17 @@
       </a>
 
       <h1 id="title">What is in the Air You Breathe?</h1>
+      <cds-dialog
+        title="Samples"
+        v-model="samplesGraph"
+        :color="accentColor2"
+      >
+        <timeseries-graph
+          v-if="sampleResults"
+          :data="sampleResults"
+        />
+      </cds-dialog>
+
       <!-- </div> -->
       <cds-dialog title="What's new" v-model="showChanges" :color="accentColor2">
         <ul class="snackbar-alert-ul">
@@ -1028,6 +1039,8 @@ import { useRectangleSelection } from "./composables/leaflet/useRectangleSelecti
 import { getAggregatedSamples } from "./esri/imageServer/esriGetSamples";
 const zoomScale = 1; 
 
+const samplesGraph = ref(false);
+
 // const zoomScale = 0.5; // for matplibre-gl
 
 
@@ -1475,6 +1488,7 @@ function fetchRectangleSamples() {
   ).then((samples) => {
     sampleResults.value = samples;
     loadingSamples.value = "finished";
+    samplesGraph.value = true;
   }).catch((error) => {
     sampleError.value = error?.message || String(error);
     loadingSamples.value = "error";
