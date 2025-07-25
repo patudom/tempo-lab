@@ -191,6 +191,7 @@
         <timeseries-graph
           v-if="sampleResults"
           :data="sampleResults"
+          :errors="testErrors"
         />
       </cds-dialog>
 
@@ -1469,6 +1470,16 @@ const {
 const { active: rectangleActive, selectionInfo } = useRectangleSelection(map, "red");
 const loadingSamples = ref<string | false>(false);
 const sampleResults = ref<Record<number, { value: number | null; date: Date }> | null>(null);
+const testErrors = computed(() => {
+  if (sampleResults.value) {
+    const results: Record<number, { lower: number, upper: number }> = {};
+    Object.entries(sampleResults.value).forEach(([key, value]) => {
+      results[key] = { lower: 0.5e15, upper: 0.5e15 };
+    });
+    return results;
+  }
+  return null;
+});
 const sampleError = ref<string | null>(null);
 const sampleDialog = ref(false);
 const pointSampleResult = ref<Record<number, { value: number | null; date: Date }> | null>(null);

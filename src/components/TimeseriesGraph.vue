@@ -16,7 +16,7 @@ import { AggValue } from "../esri/imageServer/esriGetSamples";
 
 interface TimeseriesProps {
   data: Record<number, AggValue>;
-  errors?: [number, number][];
+  errors?: Record<number, { lower: number, higher: number }>;
 }
 
 const props = defineProps<TimeseriesProps>();
@@ -48,12 +48,14 @@ onMounted(() => {
   }];
 
   if (props.errors) {
-    const upperY: number[] = [];
-    const lowerY: number[] = [];
+    const upperY: (number | null)[] = [];
+    const lowerY: (number | null)[] = [];
 
     props.errors.forEach(([lower, upper], index) => {
       const value = dataV[index];
       if (value === null) {
+        lowerY.push(null);
+        upperY.push(null);
         return;
       }
       const valueLower = value - lower;
