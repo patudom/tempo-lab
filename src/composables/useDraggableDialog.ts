@@ -47,17 +47,19 @@ export function useDraggableDialog(
           d.oldTransition = dragInfo.el.style.transition;
         }
         if (d.el) {
-          d.el.style.position = "fixed";
           d.el.style.margin = "0";
           d.el.style.transition = "none";
-          d.el.style.left = Math.min(
-            Math.max(d.elStartX + event.clientX - d.mouseStartX, 0),
-            window.innerWidth - boundingRect.width
-          ) + "px";
-          d.el.style.top = Math.min(
-            Math.max(d.elStartY + event.clientY - d.mouseStartY , 0),
-            window.innerHeight - boundingRect.height
-          ) - 0.5 * window.innerHeight + "px";
+          if (d.el.style.position !== "fixed") {
+            d.el.style.position = "fixed";
+            d.el.style.left = Math.min(
+              Math.max(d.elStartX + event.clientX - d.mouseStartX, 0),
+              window.innerWidth - boundingRect.width
+            ) + "px";
+            d.el.style.top = Math.min(
+              Math.max(d.elStartY + event.clientY - d.mouseStartY , 0),
+              window.innerHeight - boundingRect.height
+            ) - 0.5 * window.innerHeight + "px";
+          }
         }
         d.title.classList.add("dragging");
         d.overlays.forEach(overlay => (overlay as HTMLElement).style.display = "none");
