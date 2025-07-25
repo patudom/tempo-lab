@@ -84,3 +84,14 @@ export interface BoundingBox {
 }
 
 export type BoundsSelector = (date: Date) => BoundingBox;
+
+export interface DragInfo {
+  el: HTMLElement | undefined;
+  title: HTMLElement;
+  mouseStartX: number;
+  mouseStartY: number;
+  elStartX: number;
+  elStartY: number;
+  oldTransition?: string;
+  overlays: NodeList;
+}

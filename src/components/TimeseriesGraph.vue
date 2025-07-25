@@ -10,7 +10,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import { v4 } from "uuid";
-import { PlotlyHTMLElement, newPlot, type Data } from "plotly.js-dist-min";
+import { PlotlyHTMLElement, newPlot, type Data, type Datum, type PlotMouseEvent } from "plotly.js-dist-min";
 
 import { AggValue } from "../esri/imageServer/esriGetSamples";
 
@@ -25,6 +25,16 @@ const id = `timeseries-${v4()}`;
 
 const plot = ref<PlotlyHTMLElement | null>(null);
 const graph = ref<HTMLDivElement | null>(null);
+
+const emit = defineEmits<{
+  (event: "click", value: AggValue): void;
+}>();
+
+function datumToDate(datum: Datum): Date | null {
+  if (datum === null) { return null; }
+  if (datum instanceof Date) { return datum; }
+  return new Date(datum);
+}
 
 onMounted(() => {
   const dataT = Object.values(props.data).map(aggValue => aggValue.date);
@@ -77,7 +87,22 @@ onMounted(() => {
     height: 400,
   };
 
-  newPlot(graph.value ?? id, plotlyData, layout).then(el => plot.value = el);
+  newPlot(graph.value ?? id, plotlyData, layout).then((el: PlotlyHTMLElement) => {
+    plot.value = el;
+    el.on("plotly_click", (data: PlotMouseEvent) => {
+      data.points.forEach(point => {
+        const traceIndex = point.curveNumber;
+        if (traceIndex !== 0 || point.x == null || point.y == null) {
+          return;
+        }
+        const date = datumToDate(point.x);
+        if (date !== null) {
+          emit("click", { date, value: point.y as number });
+        }
+      });
+    });
+  });
+
 });
 </script>
 

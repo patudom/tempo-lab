@@ -182,9 +182,11 @@
 
       <h1 id="title">What is in the Air You Breathe?</h1>
       <cds-dialog
-        title="Samples"
+        title="Timeseries"
         v-model="samplesGraph"
         :color="accentColor2"
+        draggable
+        :scrim="false"
       >
         <timeseries-graph
           v-if="sampleResults"
@@ -785,6 +787,9 @@
           </v-btn>
           <v-btn size="small" color="primary" @click="fetchCenterPointSample" :loading="loadingPointSample === 'loading'" :disabled="loadingPointSample === 'loading'">
             Get Center Point NO₂ Sample
+          </v-btn>
+          <v-btn size="small" color="primary" @click="samplesGraph = true" :disabled="!sampleResults">
+            Show Timeseries
           </v-btn>
         </div>
         <cds-dialog 
@@ -1488,7 +1493,6 @@ function fetchRectangleSamples() {
   ).then((samples) => {
     sampleResults.value = samples;
     loadingSamples.value = "finished";
-    samplesGraph.value = true;
   }).catch((error) => {
     sampleError.value = error?.message || String(error);
     loadingSamples.value = "error";

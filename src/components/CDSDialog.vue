@@ -1,20 +1,23 @@
 <template>
   <v-dialog 
-    :class="`cds-dialog ${shortTitleComputed.toLowerCase().replace(/ /g, '-')}-cds-dialog`" 
+    :class="`cds-dialog ${displayedShortTitle.toLowerCase().replace(/ /g, '-')}-cds-dialog`" 
     v-model="showDialog" 
     >
     <!-- add the activator slot, but only use it if the appropriate value is given for activator -->
-     <template v-slot:activator="props">
-      <slot name="activator" v-bind="props"></slot>
+     <template v-slot:activator="$attrs">
+      <slot name="activator" v-bind="$attrs"></slot>
     </template>
      
-    <v-card class="cds-dialog-card">
+    <v-card
+      ref="card"
+      class="cds-dialog-card"
+    >
       <font-awesome-icon 
         class="cds-dialog-close-icon cds-touch-pad"
         icon="square-xmark" 
         size="xl" 
         @click="showDialog = false" 
-        @keyup.enter="showDialog = false"
+        @keyup.enter="showDialog = false" 
         :color="color" 
         tabindex="0"
         ></font-awesome-icon>
@@ -37,63 +40,64 @@
 
 </template>
 
+<script setup lang="ts">
+import { computed, ref, onMounted, nextTick, watch, useTemplateRef } from "vue";
+import { VCard } from "vuetify/components";
+import { useDraggableDialog } from "../composables/useDraggableDialog";
 
-<script lang="ts">
-import { defineComponent } from 'vue';
+interface CDSDialogProps {
+  title: string;
+  modelValue?: boolean;
+  color?: string;
+  shortTitle?: string;
+  draggable?: boolean;
+}
 
-export default defineComponent({
-  name: "CDSDialog",
-  // any undeclared props are passed through to the v-dialog
-  props: {
-    title: {
-      type: String,
-      required: true,
-    },
-    modelValue: {
-      type: Boolean,
-      required: false,
-      default: false,
-    },
-    color: {
-      type: String,
-      required: false,
-      default: "red",
-    },
-    shortTitle: {
-      type: String,
-      required: false,
-      default: "",
-    },
-  },
-  
-  data() {
-    return {
-      showDialog: this.modelValue,
-    };
-  },
-  
-  computed: {
-    shortTitleComputed() {
-      return this.shortTitle || this.title;
-    }
-  },
-  
-  watch: {
-    modelValue: {
-      immediate: true,
-      handler(val) {
-        this.showDialog = val;
-      }
-    },
-    showDialog: {
-      immediate: true,
-      handler(val) {
-        this.$emit('update:modelValue', val);
-      }
-    }
-  },
-  
+const props = withDefaults(defineProps<CDSDialogProps>(), {
+  modelValue: false,
+  color: "red",
+  shortTitle: "",
+  draggable: false,
 });
+
+const emit = defineEmits<{
+  (event: "update:modelValue", value: boolean): void;
+}>();
+
+const card = useTemplateRef<InstanceType<typeof VCard>>("card");
+const showDialog = ref(props.modelValue);
+const displayedShortTitle = computed(() => props.shortTitle || props.title);
+const cardRoot = ref<HTMLElement | null>(null);
+
+if (props.draggable) {
+  useDraggableDialog(cardRoot, ".cds-dialog-card");
+}
+
+function updateRoot() {
+  nextTick(() => {
+    if (card.value) {
+      cardRoot.value = card.value.$el;
+    }
+  });
+}
+
+onMounted(() => {
+  if (props.draggable && props.modelValue) {
+    updateRoot();
+  }
+});
+
+watch(showDialog, value => {
+  emit("update:modelValue", value);
+});
+
+watch(() => props.modelValue, value => {
+  showDialog.value = value;
+  if (value && props.draggable) {
+    updateRoot();
+  }
+});
+
 </script>
 
 <style>
