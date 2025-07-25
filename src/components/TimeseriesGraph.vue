@@ -37,8 +37,14 @@ function datumToDate(datum: Datum): Date | null {
 }
 
 onMounted(() => {
-  const dataT = Object.values(props.data).map(aggValue => aggValue.date);
-  const dataV = Object.values(props.data).map(aggValue => aggValue.value);
+  const ts = Object.keys(props.data).sort();
+  const dataT: Date[] = [];
+  const dataV: (number | null)[] = [];
+  ts.forEach(t => {
+    const point: AggValue = props.data[t];
+    dataT.push(point.date);
+    dataV.push(point.value);
+  });
   const legendGroup = v4();
   const plotlyData: Data[] = [{
     x: dataT,
@@ -47,17 +53,21 @@ onMounted(() => {
     legendgroup: legendGroup,
   }];
 
-  if (props.errors) {
+  const errors = props.errors;
+  if (errors != null) {
     const upperY: (number | null)[] = [];
     const lowerY: (number | null)[] = [];
 
-    props.errors.forEach(([lower, upper], index) => {
-      const value = dataV[index];
-      if (value === null) {
+    ts.forEach(t => {
+      const point: AggValue = props.data[t];
+      const value = point.value;
+      const errs = errors[t];
+      if (value === null || errs == null) {
         lowerY.push(null);
         upperY.push(null);
         return;
       }
+      const { lower, upper } = errs;
       const valueLower = value - lower;
       const valueHigher = value + upper;
       lowerY.push(Math.min(valueLower, valueHigher));

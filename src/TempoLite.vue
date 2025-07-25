@@ -1470,11 +1470,13 @@ const {
 const { active: rectangleActive, selectionInfo } = useRectangleSelection(map, "red");
 const loadingSamples = ref<string | false>(false);
 const sampleResults = ref<Record<number, { value: number | null; date: Date }> | null>(null);
+
+const testErrorAmount = 0.25e15;
 const testErrors = computed(() => {
   if (sampleResults.value) {
     const results: Record<number, { lower: number, upper: number }> = {};
-    Object.entries(sampleResults.value).forEach(([key, value]) => {
-      results[key] = { lower: 0.5e15, upper: 0.5e15 };
+    Object.keys(sampleResults.value).forEach(key => {
+      results[key] = { lower: testErrorAmount, upper: testErrorAmount };
     });
     return results;
   }
