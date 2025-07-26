@@ -2,10 +2,18 @@ import { onBeforeUnmount, Ref, watch } from "vue";
 
 import { DragInfo } from "../types";
 
-export function useDraggableDialog(
-  root: Ref<HTMLElement | null>,
-  dialogSelector: string = ".v-dialog.v-overlay--active",
-) {
+export interface UseDraggableDialogOptions {
+  root: Ref<HTMLElement | null>;
+  dragPredicate?: (element: HTMLElement) => boolean;
+  dialogSelector?: string;
+  scrimSelector?: string;
+}
+
+export function useDraggableDialog(options: UseDraggableDialogOptions) {
+
+  const root = options.root;
+  const dialogSelector = options.dialogSelector ?? ".v-dialog.v-overlay--active";
+  const scrimSelector = options.scrimSelector ?? ".v-overlay__scrim";
 
   let dragInfo: DragInfo | null = null;
   type MouseEventHandler = (event: MouseEvent) => void;
@@ -28,9 +36,16 @@ export function useDraggableDialog(
   function setupDraggable(element: HTMLElement) {
     removeListeners(element);
 
-    console.log(element);
+    let dragging = false;
 
     mousedown = (event: MouseEvent) => {
+      if (options.dragPredicate && !options.dragPredicate(event.target as HTMLElement)) {
+        element.style.cursor = "";
+        return;
+      }
+      dragging = true;
+
+      element.style.cursor = "grabbing";
       const closestDialog = element.closest(dialogSelector);
       if (event.button === 0 && closestDialog != null) {
         const boundingRect = closestDialog.getBoundingClientRect();
@@ -41,7 +56,7 @@ export function useDraggableDialog(
           mouseStartY: event.clientY,
           elStartX: boundingRect.left,
           elStartY: boundingRect.top,
-          overlays: document.querySelectorAll(".v-overlay__scrim"),
+          overlays: document.querySelectorAll(scrimSelector),
         };
         if (dragInfo && dragInfo.el) {
           d.oldTransition = dragInfo.el.style.transition;
@@ -70,6 +85,11 @@ export function useDraggableDialog(
     element.addEventListener("mousedown", mousedown);
 
     mousemove = (event: MouseEvent) => {
+      if (options.dragPredicate && !options.dragPredicate(event.target as HTMLElement)) {
+        element.style.cursor = "";
+        return;
+      }
+      element.style.cursor = dragging ? "grabbing" : "grab";
       if (dragInfo === null || dragInfo.el == null) {
         return;
       }
@@ -85,7 +105,15 @@ export function useDraggableDialog(
     };
     document.addEventListener("mousemove", mousemove);
 
-    mouseup = (_event: MouseEvent) => {
+    mouseup = (event: MouseEvent) => {
+      if (options.dragPredicate && !options.dragPredicate(event.target as HTMLElement)) {
+        element.style.cursor = "";
+        return;
+      }
+
+      dragging = false;
+
+      element.style.cursor = "grab";
       if (dragInfo === null) {
         return;
       }
@@ -128,6 +156,7 @@ export function useDraggableDialog(
     const element = root.value;
     if (element) {
       removeListeners(element);
+      element.style.cursor = "";
     }
   });
 

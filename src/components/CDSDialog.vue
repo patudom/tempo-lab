@@ -41,9 +41,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, nextTick, watch, useTemplateRef } from "vue";
+import { computed, ref, onMounted, nextTick, watch, useAttrs, useTemplateRef } from "vue";
 import { VCard } from "vuetify/components";
-import { useDraggableDialog } from "../composables/useDraggableDialog";
+import { UseDraggableDialogOptions, useDraggableDialog } from "../composables/useDraggableDialog";
 
 interface CDSDialogProps {
   title: string;
@@ -69,8 +69,17 @@ const showDialog = ref(props.modelValue);
 const displayedShortTitle = computed(() => props.shortTitle || props.title);
 const cardRoot = ref<HTMLElement | null>(null);
 
+const attrs = useAttrs();
+
 if (props.draggable) {
-  useDraggableDialog(cardRoot, ".cds-dialog-card");
+  const options: UseDraggableDialogOptions = {
+    root: cardRoot,
+    dialogSelector: ".cds-dialog-card",
+  };
+  if (attrs["drag-predicate"]) {
+    options.dragPredicate = attrs["drag-predicate"] as (element: HTMLElement) => boolean;
+  }
+  useDraggableDialog(options);
 }
 
 function updateRoot() {
@@ -134,6 +143,7 @@ watch(() => props.modelValue, value => {
 }
 
 .cds-dialog .v-card-text {
-  height: 40vh;
+  height: fit-content;
+  max-height: 60vh;
 }
 </style>

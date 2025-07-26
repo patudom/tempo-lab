@@ -187,6 +187,7 @@
         :color="accentColor2"
         draggable
         :scrim="false"
+        :drag-predicate="(element: HTMLElement) => element.closest('.plotly') == null"
       >
         <timeseries-graph
           v-if="sampleResults"
