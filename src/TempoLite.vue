@@ -181,6 +181,21 @@
       </a>
 
       <h1 id="title">What is in the Air You Breathe?</h1>
+      <cds-dialog
+        title="Timeseries"
+        v-model="samplesGraph"
+        :color="accentColor2"
+        draggable
+        :scrim="false"
+        :drag-predicate="(element: HTMLElement) => element.closest('.plotly') == null"
+      >
+        <timeseries-graph
+          v-if="sampleResults"
+          :data="sampleResults"
+          :errors="testErrors"
+        />
+      </cds-dialog>
+
       <!-- </div> -->
       <cds-dialog title="What's new" v-model="showChanges" :color="accentColor2">
         <ul class="snackbar-alert-ul">
@@ -775,6 +790,10 @@
           <v-btn size="small" color="primary" @click="fetchCenterPointSample" :loading="loadingPointSample === 'loading'" :disabled="loadingPointSample === 'loading'">
             Get Center Point NO₂ Sample
           </v-btn>
+          <v-btn size="small" color="primary" @click="samplesGraph = true" :disabled="!sampleResults">
+            Show Timeseries
+          </v-btn>
+
         </div>
         <cds-dialog 
           title="NO₂ Samples" 
@@ -1027,6 +1046,8 @@ import { useLocationMarker } from "./composables/leaflet/useMarker";
 import { useRectangleSelection } from "./composables/leaflet/useRectangleSelection";
 import { getAggregatedSamples } from "./esri/imageServer/esriGetSamples";
 const zoomScale = 1; 
+
+const samplesGraph = ref(false);
 
 // const zoomScale = 0.5; // for matplibre-gl
 
@@ -1451,6 +1472,19 @@ const {
 const { active: rectangleActive, selectionInfo } = useRectangleSelection(map, "red");
 const loadingSamples = ref<string | false>(false);
 const sampleResults = ref<Record<number, { value: number | null; date: Date }> | null>(null);
+
+const testErrorAmount = 0.25e15;
+const testErrors = computed(() => {
+  if (sampleResults.value) {
+    const results: Record<number, { lower: number, upper: number }> = {};
+    Object.keys(sampleResults.value).forEach(key => {
+      results[key] = { lower: testErrorAmount, upper: testErrorAmount };
+    });
+    return results;
+  }
+  return null;
+});
+
 const sampleError = ref<string | null>(null);
 const sampleDialog = ref(false);
 const pointSampleResult = ref<Record<number, { value: number | null; date: Date }> | null>(null);

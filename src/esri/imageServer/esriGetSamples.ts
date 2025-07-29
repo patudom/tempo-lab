@@ -198,7 +198,7 @@ function nullMean(samples: (number | null)[]): number | null {
   return sum / validSamples.length;
 }
 
-type AggValue = {
+export type AggValue = {
   value: number | null;
   date: Date;
 };
