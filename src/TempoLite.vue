@@ -793,6 +793,7 @@
           <v-btn size="small" color="primary" @click="samplesGraph = true" :disabled="!sampleResults">
             Show Timeseries
           </v-btn>
+
         </div>
         <cds-dialog 
           title="NO₂ Samples" 
@@ -1483,6 +1484,7 @@ const testErrors = computed(() => {
   }
   return null;
 });
+
 const sampleError = ref<string | null>(null);
 const sampleDialog = ref(false);
 const pointSampleResult = ref<Record<number, { value: number | null; date: Date }> | null>(null);
