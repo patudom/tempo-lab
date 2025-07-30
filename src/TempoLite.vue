@@ -701,55 +701,31 @@
 
         <hr style="border-color: grey">
 
-
-          <div id="date-radio">
-            <!-- make a v-radio-group with 3 options -->
-          <h2>Notable Dates</h2>
-          <v-radio-group
-            v-model="radio"
-            row
+        <div id="sample-info" v-if="selections" style="margin-top: 1em;">
+          <v-select
+            v-model="selection as SelectionOption"
+            :items="selectionOptions"
+            label="Selection"
+            return-object
           >
-            <div v-for = "(event, index) in interestingEvents" :key="index" class="d-flex flex-row align-center">
-              <v-radio
-                :class="event.highlighted ? 'highlighted' : ''"
-                :label="event.label"
-                :value="index"
-                @keyup.enter="radio = index"
-              >
-              </v-radio>
-              <info-button>
-                <div style="display: inline-block; margin: 0; padding: 0;" v-html="event.info"></div>
-              </info-button>
-            </div>
-            
-          </v-radio-group>
-        </div>
-        
-        <hr style="border-color: grey;"  v-if="radio !== null ">
-        
-        <div id="locations-of-interest" v-if="radio !== null">
-          <h3 class="mb-1">Featured Events for {{ dateStrings[radio] }}</h3>
-          <v-radio-group
-            v-if="radio !== null"
-            v-model="sublocationRadio"
-            row
-          >
-          <div
-            v-for="(loi, index) in locationsOfInterest[radio]" 
-            v-bind:key="index" 
-            class="sublocation-radio-wrapper d-flex flex-row align-center space-between">
-            <v-radio
-              class="sublocation-radio"
-              :label="loi.text"
-              :value="index"
-              @keyup.enter="sublocationRadio = index"
-            ></v-radio>
-            <info-button>
-              <p v-html="locationsOfInterestText[radio][index]"></p>
-            </info-button>
+            <template #selection="{ item }">
+              {{ item.value == null ? "None" : item.value.name }}
+            </template>
+            <template #item="{ item, props }">
+              <v-list-item :title="item.value == null ? 'None' : item.value.name" @click="props.onClick"></v-list-item>
+            </template>
+          </v-select>
+            <v-btn size="small" color="primary" @click="fetchRectangleSamples" :loading="loadingSamples === 'loading'" :disabled="loadingSamples === 'loading' || selection?.samples">
+              Get NO₂ Samples
+            </v-btn>
+            <v-btn size="small" color="primary" @click="fetchCenterPointSample" :loading="loadingPointSample === 'loading'" :disabled="loadingPointSample === 'loading'">
+              Get Center Point NO₂ Sample
+            </v-btn>
+            <v-btn size="small" color="primary" @click="samplesGraph = true" :disabled="!haveSamples">
+              Show Timeseries
+            </v-btn>
+  
           </div>
-          </v-radio-group>
-        </div>
 
         <hr style="border-color: grey;">
         <div id="bottom-options">
@@ -782,31 +758,7 @@
         </div>
       </div>
       
-      <div id="sample-info" v-if="selections" style="margin-top: 1em;">
-        <v-select
-          v-model="selection as SelectionOption"
-          :items="selectionOptions"
-          label="Selection"
-          return-object
-        >
-          <template #selection="{ item }">
-            {{ item.value == null ? "None" : item.value.name }}
-          </template>
-          <template #item="{ item, props }">
-            <v-list-item :title="item.value == null ? 'None' : item.value.name" @click="props.onClick"></v-list-item>
-          </template>
-        </v-select>
-          <v-btn size="small" color="primary" @click="fetchRectangleSamples" :loading="loadingSamples === 'loading'" :disabled="loadingSamples === 'loading' || selection?.samples">
-            Get NO₂ Samples
-          </v-btn>
-          <v-btn size="small" color="primary" @click="fetchCenterPointSample" :loading="loadingPointSample === 'loading'" :disabled="loadingPointSample === 'loading'">
-            Get Center Point NO₂ Sample
-          </v-btn>
-          <v-btn size="small" color="primary" @click="samplesGraph = true" :disabled="!haveSamples">
-            Show Timeseries
-          </v-btn>
 
-        </div>
         <cds-dialog 
           title="NO₂ Samples" 
           v-model="sampleDialog" 
@@ -1623,25 +1575,6 @@ onMounted(() => {
 
 const datesOfInterest = computed(() => {
   return interestingEvents.map(event => event.date);
-});
-
-const dateStrings = computed(() => {
-  return interestingEvents.map(event => event.dateString);
-});
-
-const locationsOfInterest = computed(() => {
-  return interestingEvents.map(event =>
-    event.locations.map(loc => ({
-      ...loc,
-      index: nearestDateIndex(new Date(loc.time)),
-    }))
-  );
-});
-
-const locationsOfInterestText = computed(() => {
-  return interestingEvents.map(event =>
-    event.locations.map(loc => loc.description)
-  );
 });
 
 const dateIsDST = computed(() => {
