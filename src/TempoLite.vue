@@ -1043,8 +1043,9 @@ import { usezoomhome} from './composables/leaflet/useZoomHome';
 import { useImageOverlay } from "./composables/leaflet/useImageOverlay";
 import { useFieldOfRegard} from "./composables/leaflet/useFieldOfRegard";
 import { useLocationMarker } from "./composables/leaflet/useMarker";
-import { useRectangleSelection } from "./composables/leaflet/useRectangleSelection";
-import { getAggregatedSamples } from "./esri/imageServer/esriGetSamples";
+import { useRectangleSelection, type RectangleSelectionInfo } from "./composables/leaflet/useRectangleSelection";
+import { getAggregatedSamples, AggValue } from "./esri/imageServer/esriGetSamples";
+import { Rectangle } from "leaflet";
 const zoomScale = 1; 
 
 const samplesGraph = ref(false);
@@ -1468,21 +1469,42 @@ const {
   locationMarker
 } = useLocationMarker(map,  showLocationMarker.value);
 
+interface Error {
+  lower: number;
+  higher: number;
+}
+
+interface Selection {
+  id: string;
+  name: string;
+  rectangle: RectangleSelectionInfo;
+  layer?: Rectangle;
+  samples?: Record<number, AggValue>;
+  errors?: Record<number, Error>;
+}
+
+const selections = ref<Selection[]>([]);
+const selectedIndex = ref<number | null>(null);
+let selectionCount = 0;
+const selectionOptions = computed(() => {
+  return ["None"].concat(selections.value.map(s => s.name));
+});
+
 // implement rectangle and point
 const { active: rectangleActive, selectionInfo } = useRectangleSelection(map, "red");
 const loadingSamples = ref<string | false>(false);
-const sampleResults = ref<Record<number, { value: number | null; date: Date }> | null>(null);
+const sampleResults = ref<Record<number, AggValue> | null>(null);
 
 const testErrorAmount = 0.25e15;
 const testErrors = computed(() => {
   if (sampleResults.value) {
-    const results: Record<number, { lower: number, upper: number }> = {};
+    const results: Record<number, Error> = {};
     Object.keys(sampleResults.value).forEach(key => {
       results[key] = { lower: testErrorAmount, upper: testErrorAmount };
     });
     return results;
   }
-  return null;
+  return undefined;
 });
 
 const sampleError = ref<string | null>(null);
@@ -1543,10 +1565,6 @@ function fetchCenterPointSample() {
     loadingPointSample.value = "error";
   });
 }
-
-watch(selectionInfo, (info) => console.log(info));
-
-
 
 
 onMounted(() => {
@@ -2224,6 +2242,26 @@ watch(selectedTimezone, (timezone: string) => {
 watch(singleDateSelected, (date: Date) => {
   if (!timestampsLoaded.value ) return;
   userSelectedCalendarDates.push(date.getTime());
+});
+
+watch(selectionInfo, (info: RectangleSelectionInfo | null) => {
+  if (info === null) {
+    return;
+  }
+  if (selectedIndex.value === null) {
+    selectionCount += 1;
+    selections.value.push({
+      id: v4(),
+      name: `Selection ${selectionCount}`,
+      rectangle: info,
+      errors: testErrors.value,
+    });
+  } else {
+    const selection = selections.value[selectedIndex.value];
+    selection.rectangle = info;
+    selection.samples = undefined;
+    selection.errors = testErrors.value;
+  }
 });
 </script>
   

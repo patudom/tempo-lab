@@ -95,3 +95,10 @@ export interface DragInfo {
   oldTransition?: string;
   overlays: NodeList;
 }
+
+export interface RectangleSelectionInfo {
+  xmin: number;
+  xmax: number;
+  ymin: number;
+  ymax: number;
+}
