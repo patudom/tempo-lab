@@ -198,10 +198,7 @@ function nullMean(samples: (number | null)[]): number | null {
   return sum / validSamples.length;
 }
 
-export type AggValue = {
-  value: number | null;
-  date: Date;
-};
+
 export function aggregate(
   grouped: Map<number, CEsriTimeseries[]>,
   aggFunction: (samples: CEsriTimeseries[]) => number | null,

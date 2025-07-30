@@ -1032,7 +1032,7 @@ import changes from "./changes";
 import { useBounds } from './composables/useBounds';
 import { interestingEvents } from "./interestingEvents";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { LatLngPair, LngLatPair, InitMapOptions } from "./types";
+import { AggValue, LatLngPair, LngLatPair, InitMapOptions, RectangleSelectionInfo, RectangleSelection, DataPointError } from "./types";
 
 import { useUniqueTimeSelection } from "./composables/useUniqueTimeSelection";
 
@@ -1043,9 +1043,9 @@ import { usezoomhome} from './composables/leaflet/useZoomHome';
 import { useImageOverlay } from "./composables/leaflet/useImageOverlay";
 import { useFieldOfRegard} from "./composables/leaflet/useFieldOfRegard";
 import { useLocationMarker } from "./composables/leaflet/useMarker";
-import { useRectangleSelection, type RectangleSelectionInfo } from "./composables/leaflet/useRectangleSelection";
-import { getAggregatedSamples, AggValue } from "./esri/imageServer/esriGetSamples";
-import { Rectangle } from "leaflet";
+import { useRectangleSelection } from "./composables/leaflet/useRectangleSelection";
+import { addRectangleLayer } from "./composables/leaflet/utils";
+import { getAggregatedSamples } from "./esri/imageServer/esriGetSamples";
 const zoomScale = 1; 
 
 const samplesGraph = ref(false);
@@ -1469,26 +1469,19 @@ const {
   locationMarker
 } = useLocationMarker(map,  showLocationMarker.value);
 
-interface Error {
-  lower: number;
-  higher: number;
-}
 
-interface Selection {
-  id: string;
-  name: string;
-  rectangle: RectangleSelectionInfo;
-  layer?: Rectangle;
-  samples?: Record<number, AggValue>;
-  errors?: Record<number, Error>;
-}
-
-const selections = ref<Selection[]>([]);
+const selections = ref<RectangleSelection[]>([]);
 const selectedIndex = ref<number | null>(null);
 let selectionCount = 0;
 const selectionOptions = computed(() => {
   return ["None"].concat(selections.value.map(s => s.name));
 });
+const COLORS = [
+  "#ff0000",
+  "#00ff00",
+  "#0000ff",
+  "#ffff00",
+];
 
 // implement rectangle and point
 const { active: rectangleActive, selectionInfo } = useRectangleSelection(map, "red");
@@ -1498,7 +1491,7 @@ const sampleResults = ref<Record<number, AggValue> | null>(null);
 const testErrorAmount = 0.25e15;
 const testErrors = computed(() => {
   if (sampleResults.value) {
-    const results: Record<number, Error> = {};
+    const results: Record<number, DataPointError> = {};
     Object.keys(sampleResults.value).forEach(key => {
       results[key] = { lower: testErrorAmount, upper: testErrorAmount };
     });
@@ -2245,16 +2238,20 @@ watch(singleDateSelected, (date: Date) => {
 });
 
 watch(selectionInfo, (info: RectangleSelectionInfo | null) => {
-  if (info === null) {
+  if (info === null || map.value === null) {
     return;
   }
   if (selectedIndex.value === null) {
     selectionCount += 1;
+    const color = COLORS[selectionCount % COLORS.length];
+    const { layer } = addRectangleLayer(map.value, info, color);
     selections.value.push({
       id: v4(),
       name: `Selection ${selectionCount}`,
       rectangle: info,
+      layer,
       errors: testErrors.value,
+      color,
     });
   } else {
     const selection = selections.value[selectedIndex.value];
