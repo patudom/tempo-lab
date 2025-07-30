@@ -784,14 +784,19 @@
       
       <div id="sample-info" v-if="selections" style="margin-top: 1em;">
         <v-select
-          v-model="selectedIndex"
-          :items="['None'].concat(Object.keys(selections).map(t => Number(t)))"
+          v-model="selection as SelectionOption"
+          :items="selectionOptions"
           label="Selection"
-          :item-text="(index: number | string) => typeof index === 'number' ? selections[index].name : 'None'"
-          :item-value="(index: number | string) => typeof index === 'number' ? index : null"
+          return-object
         >
+          <template #selection="{ item }">
+            {{ item.value == null ? "None" : item.value.name }}
+          </template>
+          <template #item="{ item, props }">
+            <v-list-item :title="item.value == null ? 'None' : item.value.name" @click="props.onClick"></v-list-item>
+          </template>
         </v-select>
-          <v-btn size="small" color="primary" @click="fetchRectangleSamples" :loading="loadingSamples === 'loading'" :disabled="loadingSamples === 'loading'">
+          <v-btn size="small" color="primary" @click="fetchRectangleSamples" :loading="loadingSamples === 'loading'" :disabled="loadingSamples === 'loading' || selection?.samples">
             Get NO₂ Samples
           </v-btn>
           <v-btn size="small" color="primary" @click="fetchCenterPointSample" :loading="loadingPointSample === 'loading'" :disabled="loadingPointSample === 'loading'">
@@ -817,7 +822,7 @@
           </div>
           
           <div v-if="sampleError" class="text-red">Error: {{ sampleError }}</div>
-          <div v-if="selection.samples && Object.keys(selection.samples).length > 0" class="mt-2">
+          <div v-if="selection && selection.samples && Object.keys(selection.samples).length > 0" class="mt-2">
             Sample Mean NO<sub>2</sub>
             <table style="width: 100%; max-height: 120px; overflow-y: auto; border-collapse: collapse;">
               <thead>
@@ -1478,9 +1483,24 @@ const {
 } = useLocationMarker(map,  showLocationMarker.value);
 
 
+type SelectionOption = RectangleSelection | null;
 const selections = ref<RectangleSelection[]>([]);
-const selectedIndex = ref<number | null>(null);
-const selection = computed(() => selections.value[selectedIndex.value ?? 0]);
+const selection = ref<SelectionOption>(null);
+const selectedIndex = computed({
+  get() {
+    const idx = selections.value.findIndex(s => s.id == selection.value?.id);
+    return idx >= 0 ? idx : null;
+  },
+  set(index: number | null) {
+    if (typeof index === "number") {
+      selection.value = selections.value[index] ?? null;
+    } else {
+      selection.value = null;
+    }
+  }
+});
+
+const selectionOptions = computed<SelectionOption[]>(() => ([null] as SelectionOption[]).concat(selections.value as SelectionOption[]));
 let selectionCount = 0;
 const samplesGraph = ref(false);
 const haveSamples = computed(() => selections.value.some(s => s.samples));
@@ -1505,8 +1525,8 @@ const pointSampleError = ref<string | null>(null);
 const loadingPointSample = ref<string | false>(false);
 
 function fetchRectangleSamples() {
-  const index = selectedIndex.value;
-  if (index === null) return;
+  const sel = selection.value;
+  if (sel === null) return;
   loadingSamples.value = "loading";
   sampleError.value = null;
   sampleDialog.value = true;
@@ -1516,16 +1536,16 @@ function fetchRectangleSamples() {
   getAggregatedSamples(
     'https://gis.earthdata.nasa.gov/image/rest/services/C2930763263-LARC_CLOUD/TEMPO_NO2_L3_V03_HOURLY_TROPOSPHERIC_VERTICAL_COLUMN/ImageServer',
     "NO2_Troposphere",
-    selection.value.rectangle,
+    sel.rectangle,
     start,
     end
   ).then((samples) => {
-    selections.value[index].samples = samples;
+    sel.samples = samples;
     const errors = {};
     for (const key in samples) {
       errors[key] = testError;
     }
-    selections.value[index].errors = errors;
+    sel.errors = errors;
     loadingSamples.value = "finished";
   }).catch((error) => {
     sampleError.value = error?.message || String(error);
