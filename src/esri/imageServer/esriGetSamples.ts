@@ -2,6 +2,7 @@
 import { rectangleToGeometry, pointToGeometry } from '../geometry';
 import type { RectBounds, PointBounds, EsriGeometryType } from '../geometry';
 import type { EsriGetSamplesReturn, EsriGetSamplesReturnError, EsriGetSamplesSample, Variables, EsriInterpolationMethod, CEsriTimeseries } from '../types';
+import type { AggValue } from "../../types";
 
 function safeParseNumber(value: string | null | undefined): number | null {
   if (value === null || value === '' || value === undefined) return null;

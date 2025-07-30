@@ -49,6 +49,7 @@ export function addRectangleLayer(
     paint: {
       "fill-color": color,
       "fill-opacity": 0.7,
+      "line-width": 0,
     }
   });
   const layer = map.getLayer(uuid);

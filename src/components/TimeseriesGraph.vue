@@ -39,25 +39,32 @@ const legendGroups: Record<string, string> = {};
 
 onMounted(() => {
 
+  const plotlyData: Data[] = [];
+
   props.data.forEach(data => {
-    const ts = Object.keys(data).sort();
+    const samples = data.samples;
+    if (!samples) { return; }
+    const ts = Object.keys(samples).sort();
     const dataT: Date[] = [];
     const dataV: (number | null)[] = [];
     ts.forEach(t => {
-      const point: AggValue = data[t];
+      const point: AggValue = samples[t];
       dataT.push(point.date);
       dataV.push(point.value);
     });
 
     const legendGroup = v4();
     legendGroups[data.id] = legendGroup;
-    const plotlyData: Data[] = [{
+    plotlyData.push({
       x: dataT,
       y: dataV,
       mode: "lines+markers",
       legendgroup: legendGroup,
       name: data.name,
-    }];
+      marker: {
+        color: data.color,
+      },
+    });
 
     const errors = data.errors;
     if (errors != null) {
@@ -87,6 +94,9 @@ onMounted(() => {
         line: { width: 0 },
         showlegend: false,
         legendgroup: legendGroup,
+        marker: {
+          color: data.color,
+        },
       });
 
       plotlyData.push({
@@ -97,6 +107,9 @@ onMounted(() => {
         fill: "tonexty",
         showlegend: false,
         legendgroup: legendGroup,
+        marker: {
+          color: data.color,
+        },
       });
     }
   });

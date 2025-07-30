@@ -18,6 +18,7 @@ export function addRectangleLayer(
   rect.setStyle({
     fill: true,
     fillOpacity: 0.7,
+    weight: 0,
     color,
   });
   map.addLayer(rect);

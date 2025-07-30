@@ -190,9 +190,8 @@
         :drag-predicate="(element: HTMLElement) => element.closest('.plotly') == null"
       >
         <timeseries-graph
-          v-if="sampleResults"
-          :data="sampleResults"
-          :errors="testErrors"
+          v-if="selections.length > 0"
+          :data="selections"
         />
       </cds-dialog>
 
@@ -783,14 +782,22 @@
         </div>
       </div>
       
-      <div id="sample-info" v-if="selectionInfo" style="margin-top: 1em;">
+      <div id="sample-info" v-if="selections" style="margin-top: 1em;">
+        <v-select
+          v-model="selectedIndex"
+          :items="['None'].concat(Object.keys(selections).map(t => Number(t)))"
+          label="Selection"
+          :item-text="(index: number | string) => typeof index === 'number' ? selections[index].name : 'None'"
+          :item-value="(index: number | string) => typeof index === 'number' ? index : null"
+        >
+        </v-select>
           <v-btn size="small" color="primary" @click="fetchRectangleSamples" :loading="loadingSamples === 'loading'" :disabled="loadingSamples === 'loading'">
             Get NO₂ Samples
           </v-btn>
           <v-btn size="small" color="primary" @click="fetchCenterPointSample" :loading="loadingPointSample === 'loading'" :disabled="loadingPointSample === 'loading'">
             Get Center Point NO₂ Sample
           </v-btn>
-          <v-btn size="small" color="primary" @click="samplesGraph = true" :disabled="!sampleResults">
+          <v-btn size="small" color="primary" @click="samplesGraph = true" :disabled="!haveSamples">
             Show Timeseries
           </v-btn>
 
@@ -810,7 +817,7 @@
           </div>
           
           <div v-if="sampleError" class="text-red">Error: {{ sampleError }}</div>
-          <div v-if="sampleResults && Object.keys(sampleResults).length > 0" class="mt-2">
+          <div v-if="selection.samples && Object.keys(selection.samples).length > 0" class="mt-2">
             Sample Mean NO<sub>2</sub>
             <table style="width: 100%; max-height: 120px; overflow-y: auto; border-collapse: collapse;">
               <thead>
@@ -1032,7 +1039,7 @@ import changes from "./changes";
 import { useBounds } from './composables/useBounds';
 import { interestingEvents } from "./interestingEvents";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { AggValue, LatLngPair, LngLatPair, InitMapOptions, RectangleSelectionInfo, RectangleSelection, DataPointError } from "./types";
+import { AggValue, LatLngPair, InitMapOptions, RectangleSelectionInfo, RectangleSelection, DataPointError } from "./types";
 
 import { useUniqueTimeSelection } from "./composables/useUniqueTimeSelection";
 
@@ -1044,11 +1051,12 @@ import { useImageOverlay } from "./composables/leaflet/useImageOverlay";
 import { useFieldOfRegard} from "./composables/leaflet/useFieldOfRegard";
 import { useLocationMarker } from "./composables/leaflet/useMarker";
 import { useRectangleSelection } from "./composables/leaflet/useRectangleSelection";
-import { addRectangleLayer } from "./composables/leaflet/utils";
+import { addRectangleLayer, updateRectangleBounds } from "./composables/leaflet/utils";
 import { getAggregatedSamples } from "./esri/imageServer/esriGetSamples";
+
+import { Rectangle } from "leaflet";
 const zoomScale = 1; 
 
-const samplesGraph = ref(false);
 
 // const zoomScale = 0.5; // for matplibre-gl
 
@@ -1472,10 +1480,10 @@ const {
 
 const selections = ref<RectangleSelection[]>([]);
 const selectedIndex = ref<number | null>(null);
+const selection = computed(() => selections.value[selectedIndex.value ?? 0]);
 let selectionCount = 0;
-const selectionOptions = computed(() => {
-  return ["None"].concat(selections.value.map(s => s.name));
-});
+const samplesGraph = ref(false);
+const haveSamples = computed(() => selections.value.some(s => s.samples));
 const COLORS = [
   "#ff0000",
   "#00ff00",
@@ -1507,10 +1515,10 @@ const pointSampleError = ref<string | null>(null);
 const loadingPointSample = ref<string | false>(false);
 
 function fetchRectangleSamples() {
-  if (!selectionInfo.value) return;
+  const index = selectedIndex.value;
+  if (index === null) return;
   loadingSamples.value = "loading";
   sampleError.value = null;
-  sampleResults.value = null;
   sampleDialog.value = true;
   // Use current selected day for start/end
   const start = singleDateSelected.value.setHours(0, 0, 0, 0);
@@ -1518,11 +1526,12 @@ function fetchRectangleSamples() {
   getAggregatedSamples(
     'https://gis.earthdata.nasa.gov/image/rest/services/C2930763263-LARC_CLOUD/TEMPO_NO2_L3_V03_HOURLY_TROPOSPHERIC_VERTICAL_COLUMN/ImageServer',
     "NO2_Troposphere",
-    selectionInfo.value,
+    selection.value.rectangle,
     start,
     end
   ).then((samples) => {
-    sampleResults.value = samples;
+    
+    selections.value[index].samples = samples;
     loadingSamples.value = "finished";
   }).catch((error) => {
     sampleError.value = error?.message || String(error);
@@ -2253,11 +2262,16 @@ watch(selectionInfo, (info: RectangleSelectionInfo | null) => {
       errors: testErrors.value,
       color,
     });
+    selectedIndex.value = selections.value.length - 1;
   } else {
     const selection = selections.value[selectedIndex.value];
     selection.rectangle = info;
     selection.samples = undefined;
     selection.errors = testErrors.value;
+    const rect = selection.layer as Rectangle | null;
+    if (rect) {
+      updateRectangleBounds(rect, info);
+    }
   }
 });
 </script>
