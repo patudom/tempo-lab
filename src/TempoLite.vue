@@ -1521,7 +1521,11 @@ function fetchRectangleSamples() {
     end
   ).then((samples) => {
     selections.value[index].samples = samples;
-    selections.value[index].errors = Array(Object.keys(samples).length).fill(testError);
+    const errors = {};
+    for (const key in samples) {
+      errors[key] = testError;
+    }
+    selections.value[index].errors = errors;
     loadingSamples.value = "finished";
   }).catch((error) => {
     sampleError.value = error?.message || String(error);
@@ -2241,8 +2245,8 @@ watch(selectionInfo, (info: RectangleSelectionInfo | null) => {
     return;
   }
   if (selectedIndex.value === null) {
-    selectionCount += 1;
     const color = COLORS[selectionCount % COLORS.length];
+    selectionCount += 1;
     const { layer } = addRectangleLayer(map.value, info, color);
     selections.value.push({
       id: v4(),

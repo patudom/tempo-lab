@@ -72,7 +72,7 @@ onMounted(() => {
       const lowerY: (number | null)[] = [];
 
       ts.forEach(t => {
-        const point: AggValue = data[t];
+        const point: AggValue = samples[t];
         const value = point.value;
         const errs = errors[t];
         if (value === null || errs == null) {
