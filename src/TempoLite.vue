@@ -715,17 +715,27 @@
               <v-list-item :title="item.value == null ? 'None' : item.value.name" @click="props.onClick"></v-list-item>
             </template>
           </v-select>
-            <v-btn size="small" color="primary" @click="fetchRectangleSamples" :loading="loadingSamples === 'loading'" :disabled="loadingSamples === 'loading' || selection?.samples">
-              Get NO₂ Samples
-            </v-btn>
-            <v-btn size="small" color="primary" @click="fetchCenterPointSample" :loading="loadingPointSample === 'loading'" :disabled="loadingPointSample === 'loading'">
-              Get Center Point NO₂ Sample
-            </v-btn>
-            <v-btn size="small" color="primary" @click="samplesGraph = true" :disabled="!haveSamples">
-              Show Timeseries
-            </v-btn>
+
+          <v-list>
+            <v-list-item
+              v-for="(sel, index) in selections"
+              :title="sel.name"
+              :key="index"
+              :color="sel.color"
+            >
+              <template #append>
+                <v-btn :icon="loadingSamples === 'loading' ? 'mdi-loading' : 'mdi-download'" @click="() => fetchRectangleSamples(sel as RectangleSelection)"></v-btn>
+                <v-btn :icon="loadingPointSample === 'loading' ? 'mdi-loading' : 'mdi-image-filter-center-focus'" @click="() => fetchCenterPointSample(sel as RectangleSelection)"></v-btn>
+                <v-btn icon="mdi-trash-can" @click="() => deleteSelection(sel as RectangleSelection)"></v-btn>
+              </template>
+            </v-list-item>
+          </v-list>
+
+          <v-btn size="small" color="primary" @click="samplesGraph = true" :disabled="!haveSamples">
+            Show Timeseries
+          </v-btn>
   
-          </div>
+        </div>
 
         <hr style="border-color: grey;">
         <div id="bottom-options">
@@ -1476,9 +1486,7 @@ const pointSampleResult = ref<Record<number, { value: number | null; date: Date 
 const pointSampleError = ref<string | null>(null);
 const loadingPointSample = ref<string | false>(false);
 
-function fetchRectangleSamples() {
-  const sel = selection.value;
-  if (sel === null) return;
+function fetchRectangleSamples(sel: RectangleSelection) {
   loadingSamples.value = "loading";
   sampleError.value = null;
   sampleDialog.value = true;
@@ -1505,15 +1513,27 @@ function fetchRectangleSamples() {
   });
 }
 
+function deleteSelection(sel: RectangleSelection) {
+  const index = selections.value.findIndex(s => s.id == sel.id);
+  selections.value.splice(index, 1);
+  if (selectedIndex.value === index) {
+    if (index > 0) {
+      selectedIndex.value = index - 1;
+    } else if (selections.value.length > 0) { 
+      selectedIndex.value = 0;
+    } else {
+      selectedIndex.value = null;
+    }
+  }
+}
 
-function fetchCenterPointSample() {
-  if (!selectionInfo.value) return;
+function fetchCenterPointSample(sel: RectangleSelection) {
   loadingPointSample.value = "loading";
   pointSampleError.value = null;
   pointSampleResult.value = null;
   sampleDialog.value = true;
   // Calculate center point
-  const { xmin, xmax, ymin, ymax } = selectionInfo.value;
+  const { xmin, xmax, ymin, ymax } = sel.rectangle;
   const x = (xmin + xmax) / 2;
   const y = (ymin + ymax) / 2;
   const center = { x, y };
