@@ -827,7 +827,7 @@
               </tr>
               </thead>
               <tbody>
-              <tr v-for="(result, time) in sampleResults" :key="time">
+              <tr v-for="(result, time) in selection.samples" :key="time">
                 <td class="pa-2" style="border-bottom: 1px solid #eee;">
                   {{ new Date(Number(time)) }}
                 </td>
@@ -1494,19 +1494,9 @@ const COLORS = [
 // implement rectangle and point
 const { active: rectangleActive, selectionInfo } = useRectangleSelection(map, "red");
 const loadingSamples = ref<string | false>(false);
-const sampleResults = ref<Record<number, AggValue> | null>(null);
 
 const testErrorAmount = 0.25e15;
-const testErrors = computed(() => {
-  if (sampleResults.value) {
-    const results: Record<number, DataPointError> = {};
-    Object.keys(sampleResults.value).forEach(key => {
-      results[key] = { lower: testErrorAmount, upper: testErrorAmount };
-    });
-    return results;
-  }
-  return undefined;
-});
+const testError = { lower: testErrorAmount, upper: testErrorAmount };
 
 const sampleError = ref<string | null>(null);
 const sampleDialog = ref(false);
@@ -1530,8 +1520,8 @@ function fetchRectangleSamples() {
     start,
     end
   ).then((samples) => {
-    
     selections.value[index].samples = samples;
+    selections.value[index].errors = Array(Object.keys(samples).length).fill(testError);
     loadingSamples.value = "finished";
   }).catch((error) => {
     sampleError.value = error?.message || String(error);
@@ -2259,7 +2249,6 @@ watch(selectionInfo, (info: RectangleSelectionInfo | null) => {
       name: `Selection ${selectionCount}`,
       rectangle: info,
       layer,
-      errors: testErrors.value,
       color,
     });
     selectedIndex.value = selections.value.length - 1;
@@ -2267,7 +2256,6 @@ watch(selectionInfo, (info: RectangleSelectionInfo | null) => {
     const selection = selections.value[selectedIndex.value];
     selection.rectangle = info;
     selection.samples = undefined;
-    selection.errors = testErrors.value;
     const rect = selection.layer as Rectangle | null;
     if (rect) {
       updateRectangleBounds(rect, info);
