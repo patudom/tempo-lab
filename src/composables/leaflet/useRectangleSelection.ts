@@ -1,12 +1,8 @@
 import { onMounted, onUnmounted, ref, watch, type Ref } from "vue";
 import { type LatLng, LatLngBounds, type LeafletMouseEvent, Map, Rectangle } from "leaflet";
 
-export interface RectangleSelectionInfo {
-  xmin: number;
-  xmax: number;
-  ymin: number;
-  ymax: number;
-}
+import { RectangleSelectionInfo } from "../../types";
+
 
 export function useRectangleSelection(
   map: Ref<Map | null>, 

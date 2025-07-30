@@ -2,12 +2,8 @@ import { onMounted, onUnmounted, ref, watch, type Ref } from "vue";
 import { GeoJSONSource, LngLat, Map, MapMouseEvent } from "maplibre-gl";
 import { v4 } from "uuid";
 
-export interface RectangleSelectionInfo {
-  xmin: number;
-  xmax: number;
-  ymin: number;
-  ymax: number;
-}
+import { RectangleSelectionInfo } from "../../types";
+
 
 export function useRectangleSelection(
   map: Ref<Map | null>,
