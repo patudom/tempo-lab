@@ -724,9 +724,21 @@
               :color="sel.color"
             >
               <template #append>
-                <v-btn :icon="loadingSamples === 'loading' ? 'mdi-loading' : 'mdi-download'" @click="() => fetchRectangleSamples(sel as RectangleSelection)"></v-btn>
-                <v-btn :icon="loadingPointSample === 'loading' ? 'mdi-loading' : 'mdi-image-filter-center-focus'" @click="() => fetchCenterPointSample(sel as RectangleSelection)"></v-btn>
-                <v-btn icon="mdi-trash-can" @click="() => deleteSelection(sel as RectangleSelection)"></v-btn>
+                <v-btn
+                  :loading="loadingSamples === 'loading'"
+                  :disabled="sel.samples != null"
+                  icon="mdi-download"
+                  @click="() => fetchRectangleSamples(sel as RectangleSelection)"
+                ></v-btn>
+                <v-btn
+                  :loading="loadingPointSample === 'loading'"
+                  icon="mdi-image-filter-center-focus"
+                  @click="() => fetchCenterPointSample(sel as RectangleSelection)"
+                ></v-btn>
+                <v-btn
+                  icon="mdi-trash-can"
+                  @click="() => deleteSelection(sel as RectangleSelection)"
+                ></v-btn>
               </template>
             </v-list-item>
           </v-list>
@@ -993,7 +1005,7 @@
 </template>
   
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, nextTick, ComputedRef } from "vue";
+import { ref, computed, watch, onMounted, nextTick } from "vue";
 import { API_BASE_URL, blurActiveElement } from "@cosmicds/vue-toolkit";
 import { useDisplay } from 'vuetify';
 import { DatePickerInstance } from "@vuepic/vue-datepicker";
@@ -1018,7 +1030,7 @@ import { useImageOverlay } from "./composables/leaflet/useImageOverlay";
 import { useFieldOfRegard} from "./composables/leaflet/useFieldOfRegard";
 import { useLocationMarker } from "./composables/leaflet/useMarker";
 import { useRectangleSelection } from "./composables/leaflet/useRectangleSelection";
-import { addRectangleLayer, updateRectangleBounds } from "./composables/leaflet/utils";
+import { addRectangleLayer, updateRectangleBounds, removeRectangleLayer } from "./composables/leaflet/utils";
 import { getAggregatedSamples } from "./esri/imageServer/esriGetSamples";
 
 import { Rectangle } from "leaflet";
@@ -1450,7 +1462,8 @@ const selections = ref<RectangleSelection[]>([]);
 const selection = ref<SelectionOption>(null);
 const selectedIndex = computed({
   get() {
-    const idx = selections.value.findIndex(s => s.id == selection.value?.id);
+    const selectedID = selection.value?.id;
+    const idx = selections.value.findIndex(s => s.id == selectedID);
     return idx >= 0 ? idx : null;
   },
   set(index: number | null) {
@@ -1515,14 +1528,21 @@ function fetchRectangleSamples(sel: RectangleSelection) {
 
 function deleteSelection(sel: RectangleSelection) {
   const index = selections.value.findIndex(s => s.id == sel.id);
+  if (index < 0) {
+    return;
+  }
+  const isSelected = selectedIndex.value === index;
+  if (sel.layer) {
+    removeRectangleLayer(sel.layer);
+  }
   selections.value.splice(index, 1);
-  if (selectedIndex.value === index) {
+  if (isSelected) {
     if (index > 0) {
-      selectedIndex.value = index - 1;
+      selection.value = selections.value[index - 1];
     } else if (selections.value.length > 0) { 
-      selectedIndex.value = 0;
+      selection.value = selections.value[0];
     } else {
-      selectedIndex.value = null;
+      selection.value = null;
     }
   }
 }
@@ -2192,18 +2212,6 @@ watch(userGuideOpen, (open: boolean) => {
   }
 });
 
-const radioSubloc: ComputedRef<[number | null, number | null]> = computed(() => [radio.value, sublocationRadio.value]); 
-watch(radioSubloc, (item: [number | null, number | null]) => {
-  const radio = item[0];
-  const subRadio = item[1];
-  if (radio === null || subRadio === null) {
-    return [];
-  }
-  const eventText = interestingEvents[radio].label ?? "";
-  const subEventText = locationsOfInterest.value[radio][subRadio].text;
-  userSelectedNotableEvents.push([eventText, subEventText]);
-});
-
 watch(selectedTimezone, (timezone: string) => {
   userSelectedTimezones.push(timezone);
 });
@@ -2217,18 +2225,19 @@ watch(selectionInfo, (info: RectangleSelectionInfo | null) => {
   if (info === null || map.value === null) {
     return;
   }
-  if (selectedIndex.value === null) {
+  if (selection.value === null) {
     const color = COLORS[selectionCount % COLORS.length];
     selectionCount += 1;
     const { layer } = addRectangleLayer(map.value, info, color);
-    selections.value.push({
+    const newSelection = {
       id: v4(),
       name: `Selection ${selectionCount}`,
       rectangle: info,
       layer,
       color,
-    });
-    selectedIndex.value = selections.value.length - 1;
+    };
+    selections.value.push(newSelection);
+    selection.value = newSelection;
   } else {
     const selection = selections.value[selectedIndex.value];
     selection.rectangle = info;

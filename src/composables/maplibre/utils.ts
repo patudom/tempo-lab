@@ -74,3 +74,11 @@ export function updateRectangleBounds(
     source.setData(geoJson);
   });
 }
+
+export function removeRectangleLayer(
+  map: Map,
+  source: GeoJSONSource,
+) {
+  map.removeLayer(source.id);
+  map.removeSource(source.id);
+}

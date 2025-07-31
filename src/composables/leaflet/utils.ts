@@ -31,3 +31,10 @@ export function updateRectangleBounds(
 ) {
   rectangle.setBounds(createBounds(info)); 
 }
+
+export function removeRectangleLayer(
+  map: Map,
+  rect: Rectangle
+) {
+  map.removeLayer(rect);
+}
