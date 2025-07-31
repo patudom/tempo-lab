@@ -2,7 +2,9 @@ import { GeoJSONSource, Map } from "maplibre-gl";
 import { v4 } from "uuid";
 
 import { RectangleSelectionInfo } from "../../types";
-import { geoJson } from "leaflet";
+
+const layerGetter = (m: Map, id: string) => m.getLayer(id);
+export type LayerType = Exclude<ReturnType<typeof layerGetter>, undefined>;
 
 function createBounds(info: RectangleSelectionInfo) {
   return [
@@ -49,12 +51,10 @@ export function addRectangleLayer(
     paint: {
       "fill-color": color,
       "fill-opacity": 0.7,
-      "line-width": 0,
     }
   });
-  const layer = map.getLayer(uuid);
 
-  return { layer, source };
+  return { layer: source };
 }
 
 export function updateRectangleBounds(
@@ -77,8 +77,8 @@ export function updateRectangleBounds(
 
 export function removeRectangleLayer(
   map: Map,
-  source: GeoJSONSource,
+  layer: LayerType,
 ) {
-  map.removeLayer(source.id);
-  map.removeSource(source.id);
+  map.removeLayer(layer.id);
+  map.removeSource(layer.id);
 }

@@ -315,7 +315,24 @@
               <div style="text-align: center;">Amount of NO&#x2082;&nbsp;<span class="unit-label">(10&sup1;&#x2074; mol/cm&sup2;)</span></div>
         </template>
         </colorbar-horizontal>
-        <div id="map-contents" style="width:100%; height: 100%;">
+        <v-card id="map-contents" style="width:100%; height: 100%;">
+          <v-toolbar
+            :color="infoColor"
+            density="compact"
+          >
+            <v-toolbar-title text="TEMPO Data Viewer"></v-toolbar-title>
+            <v-spacer></v-spacer>
+            <v-tooltip text="Select a region">
+              <template #activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  icon="mdi-select"
+                  :active="selectionActive"
+                  @click="selectionActive = !selectionActive"
+                ></v-btn>
+              </template>
+            </v-tooltip>
+          </v-toolbar>
           <div id="map">
             <v-overlay
               :modelValue="loadedImagesProgress < 100"
@@ -527,7 +544,7 @@
           </cds-dialog>
         </div>
         
-        </div>
+        </v-card>
         <colorbar 
           v-if="display.width.value > 750"
           label="Amount of NO2"
@@ -724,21 +741,45 @@
               :color="sel.color"
             >
               <template #append>
-                <v-btn
-                  :loading="loadingSamples === 'loading'"
-                  :disabled="sel.samples != null"
-                  icon="mdi-download"
-                  @click="() => fetchRectangleSamples(sel as RectangleSelection)"
-                ></v-btn>
-                <v-btn
-                  :loading="loadingPointSample === 'loading'"
-                  icon="mdi-image-filter-center-focus"
-                  @click="() => fetchCenterPointSample(sel as RectangleSelection)"
-                ></v-btn>
-                <v-btn
-                  icon="mdi-trash-can"
-                  @click="() => deleteSelection(sel as RectangleSelection)"
-                ></v-btn>
+                <v-tooltip
+                  text="Get NO₂ Samples"
+                  location="top"
+                >
+                  <template #activator="{ props }">
+                    <v-btn
+                      v-bind="props"
+                      :loading="loadingSamples === 'loading'"
+                      :disabled="sel.samples != null"
+                      icon="mdi-download"
+                      @click="() => fetchRectangleSamples(sel as RectangleSelectionType)"
+                    ></v-btn>
+                  </template>
+                </v-tooltip>
+                <v-tooltip
+                  text="Get Center Point NO₂ Sample"
+                  location="top"
+                >
+                  <template #activator="{ props }">
+                    <v-btn
+                      v-bind="props"
+                      :loading="loadingPointSample === 'loading'"
+                      icon="mdi-image-filter-center-focus"
+                      @click="() => fetchCenterPointSample(sel as RectangleSelectionType)"
+                    ></v-btn>
+                  </template>
+                </v-tooltip>
+                <v-tooltip
+                  text="Remove selection"
+                  location="top"
+                >
+                  <template #activator="{ props }">
+                    <v-btn
+                      v-bind="props"
+                      icon="mdi-trash-can"
+                      @click="() => deleteSelection(sel as RectangleSelectionType)"
+                    ></v-btn>
+                  </template>
+                </v-tooltip>
               </template>
             </v-list-item>
           </v-list>
@@ -1018,26 +1059,41 @@ import changes from "./changes";
 import { useBounds } from './composables/useBounds';
 import { interestingEvents } from "./interestingEvents";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { AggValue, LatLngPair, InitMapOptions, RectangleSelectionInfo, RectangleSelection, DataPointError } from "./types";
+import { AggValue, LatLngPair, InitMapOptions, RectangleSelectionInfo, RectangleSelection, RectangleType, MappingBackends } from "./types";
 
 import { useUniqueTimeSelection } from "./composables/useUniqueTimeSelection";
 
 
 // Import Leaflet Composables
 import { useMap } from "./composables/leaflet/useMap";
-import { usezoomhome} from './composables/leaflet/useZoomHome';
+import { usezoomhome } from './composables/leaflet/useZoomHome';
 import { useImageOverlay } from "./composables/leaflet/useImageOverlay";
 import { useFieldOfRegard} from "./composables/leaflet/useFieldOfRegard";
 import { useLocationMarker } from "./composables/leaflet/useMarker";
 import { useRectangleSelection } from "./composables/leaflet/useRectangleSelection";
 import { addRectangleLayer, updateRectangleBounds, removeRectangleLayer } from "./composables/leaflet/utils";
+
+// Import Maplibre Composables
+// import { useMap } from "./composables/maplibre/useMap";
+// import { usezoomhome } from './composables/maplibre/useZoomHome';
+// import { useImageOverlay } from "./composables/maplibre/useImageOverlay";
+// import { useFieldOfRegard} from "./composables/maplibre/useFieldOfRegard";
+// import { useLocationMarker } from "./composables/maplibre/useMarker";
+// import { useRectangleSelection } from "./composables/maplibre/useRectangleSelection";
+// import { addRectangleLayer, updateRectangleBounds, removeRectangleLayer } from "./composables/maplibre/utils";
+
+const BACKEND: MappingBackends = "leaflet" as const;
+
+type RectangleSelectionType = RectangleSelection<typeof BACKEND>;
+
+
 import { getAggregatedSamples } from "./esri/imageServer/esriGetSamples";
 
-import { Rectangle } from "leaflet";
+
 const zoomScale = 1; 
 
 
-// const zoomScale = 0.5; // for matplibre-gl
+// const zoomScale = 0.5; // for maplibre-gl
 
 
 const display = useDisplay();
@@ -1184,11 +1240,13 @@ const showTextSheet = computed({
   }
 });
 
+const infoColor = "#092088";
 const cssVars = computed(() => {
   return {
     '--accent-color': accentColor.value,
     '--accent-color-2': accentColor2.value,
     '--app-content-height': showTextSheet.value ? '66%' : '100%',
+    '--info-background': infoColor,
   };
 });
 
@@ -1457,8 +1515,8 @@ const {
 } = useLocationMarker(map,  showLocationMarker.value);
 
 
-type SelectionOption = RectangleSelection | null;
-const selections = ref<RectangleSelection[]>([]);
+type SelectionOption = RectangleSelectionType | null;
+const selections = ref<RectangleSelectionType[]>([]);
 const selection = ref<SelectionOption>(null);
 const selectedIndex = computed({
   get() {
@@ -1487,7 +1545,7 @@ const COLORS = [
 ];
 
 // implement rectangle and point
-const { active: rectangleActive, selectionInfo } = useRectangleSelection(map, "red");
+const { active: selectionActive, selectionInfo } = useRectangleSelection(map, "red");
 const loadingSamples = ref<string | false>(false);
 
 const testErrorAmount = 0.25e15;
@@ -1499,7 +1557,7 @@ const pointSampleResult = ref<Record<number, { value: number | null; date: Date 
 const pointSampleError = ref<string | null>(null);
 const loadingPointSample = ref<string | false>(false);
 
-function fetchRectangleSamples(sel: RectangleSelection) {
+function fetchRectangleSamples(sel: RectangleSelectionType) {
   loadingSamples.value = "loading";
   sampleError.value = null;
   sampleDialog.value = true;
@@ -1526,14 +1584,14 @@ function fetchRectangleSamples(sel: RectangleSelection) {
   });
 }
 
-function deleteSelection(sel: RectangleSelection) {
+function deleteSelection(sel: RectangleSelectionType) {
   const index = selections.value.findIndex(s => s.id == sel.id);
   if (index < 0) {
     return;
   }
   const isSelected = selectedIndex.value === index;
-  if (sel.layer) {
-    removeRectangleLayer(sel.layer);
+  if (map.value && sel.layer) {
+    removeRectangleLayer(map.value, sel.layer);
   }
   selections.value.splice(index, 1);
   if (isSelected) {
@@ -1547,7 +1605,7 @@ function deleteSelection(sel: RectangleSelection) {
   }
 }
 
-function fetchCenterPointSample(sel: RectangleSelection) {
+function fetchCenterPointSample(sel: RectangleSelectionType) {
   loadingPointSample.value = "loading";
   pointSampleError.value = null;
   pointSampleResult.value = null;
@@ -1580,8 +1638,6 @@ onMounted(() => {
   showSplashScreen.value = false;
   createMap();
   
-  rectangleActive.value = true;
-
   usezoomhome(map, homeState.value.loc, homeState.value.zoom, (_e: Event) => {
     sublocationRadio.value = null;
     // check if location marker is not null and on map. if so remove it
@@ -2225,11 +2281,11 @@ watch(selectionInfo, (info: RectangleSelectionInfo | null) => {
   if (info === null || map.value === null) {
     return;
   }
-  if (selection.value === null) {
+  if (selection.value === null || selectedIndex.value === null) {
     const color = COLORS[selectionCount % COLORS.length];
     selectionCount += 1;
     const { layer } = addRectangleLayer(map.value, info, color);
-    const newSelection = {
+    const newSelection: RectangleSelectionType = {
       id: v4(),
       name: `Selection ${selectionCount}`,
       rectangle: info,
@@ -2242,11 +2298,12 @@ watch(selectionInfo, (info: RectangleSelectionInfo | null) => {
     const selection = selections.value[selectedIndex.value];
     selection.rectangle = info;
     selection.samples = undefined;
-    const rect = selection.layer as Rectangle | null;
+    const rect = selection.layer as RectangleType<typeof BACKEND>;
     if (rect) {
       updateRectangleBounds(rect, info);
     }
   }
+  selectionActive.value = false;
 });
 </script>
   
@@ -2547,7 +2604,7 @@ ul {
 
 #map {
   width: 100%;
-  height: var(--map-height)
+  height: calc(100% - 48px);
 }
 
 // define the layout
@@ -2766,13 +2823,13 @@ a {
   #map-show-hide-controls {
     z-index: 1000;
     position: absolute;
-    top: 1rem;
+    top: calc(48px + 1rem);
     right: 80px;
   }
 
   #map-legend {
     position: absolute;
-    top: 0;
+    top: 48px;
     right: 80px;
     width: fit-content;
     z-index: 1000;

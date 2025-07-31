@@ -2,7 +2,8 @@ import { onMounted, onUnmounted, ref, watch, type Ref } from "vue";
 import { GeoJSONSource, LngLat, Map, MapMouseEvent } from "maplibre-gl";
 import { v4 } from "uuid";
 
-import { RectangleSelectionInfo } from "../../types";
+import type { RectangleSelectionInfo } from "../../types";
+import type { LayerType } from "./utils";
 
 
 export function useRectangleSelection(
@@ -11,12 +12,8 @@ export function useRectangleSelection(
   startActive: boolean = false,
 ) {
 
-  // StyleLayer isn't exported
-  const layerGetter = (m: Map, id: string) => m.getLayer(id);
-  type LayerType = ReturnType<typeof layerGetter>;
-
   let rectangleSource: GeoJSONSource | null = null;
-  let rectangleLayer: LayerType = undefined;
+  let rectangleLayer: LayerType | undefined = undefined;
   let startCoords: LngLat | null = null;
   let geoJson: GeoJSON.FeatureCollection;
   const selectionInfo = ref<RectangleSelectionInfo | null>(null);

@@ -50,7 +50,7 @@ export type MapType<T extends MappingBackends> =
 
 export type RectangleType<T extends MappingBackends> =
   T extends 'leaflet' ? Rectangle :
-  T extends 'maplibre' ? Rect :
+  T extends 'maplibre' ? GeoJSONSource:
   never;
 
 export function isLeaflet<T extends MappingBackends>(backend: Ref<T> | T, map: unknown): map is MapType<'leaflet'> {
@@ -119,12 +119,12 @@ export interface DataPointError {
   higher: number;
 }
 
-export interface RectangleSelection {
+export interface RectangleSelection<T extends MappingBackends> {
   id: string;
   name: string;
   rectangle: RectangleSelectionInfo;
   color: string;
-  layer?: Rectangle;
+  layer?: RectangleType<T>;
   source?: GeoJSONSource;
   samples?: Record<number, AggValue>;
   errors?: Record<number, DataPointError>;
