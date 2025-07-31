@@ -41,6 +41,7 @@ onMounted(() => {
 
   const plotlyData: Data[] = [];
 
+  let max = 0;
   props.data.forEach(data => {
     const samples = data.samples;
     if (!samples) { return; }
@@ -52,6 +53,7 @@ onMounted(() => {
       dataT.push(point.date);
       dataV.push(point.value);
     });
+    max = Math.max(max, Math.max(...dataV));
 
     const legendGroup = v4();
     legendGroups[data.id] = legendGroup;
@@ -117,6 +119,9 @@ onMounted(() => {
   const layout = {
     width: 600,
     height: 400,
+    yaxis: {
+      range: [0, 1.2 * max],
+    }
   };
 
   newPlot(graph.value ?? id, plotlyData, layout).then((el: PlotlyHTMLElement) => {
