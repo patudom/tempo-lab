@@ -1,7 +1,7 @@
 // Types
 
 import L, { Rectangle } from 'leaflet';
-import M, { GeoJSONSource, Rect } from 'maplibre-gl';
+import M, { GeoJSONSource } from 'maplibre-gl';
 import { Ref, toValue } from 'vue';
 
 // eslint-disable-next-line @typescript-eslint/ban-types
