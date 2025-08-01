@@ -12,11 +12,10 @@ import { onMounted, ref } from "vue";
 import { v4 } from "uuid";
 import { PlotlyHTMLElement, newPlot, type Data, type Datum, type PlotMouseEvent } from "plotly.js-dist-min";
 
-import { AggValue } from "../esri/imageServer/esriGetSamples";
+import { AggValue, RectangleSelection } from "../types";
 
 interface TimeseriesProps {
-  data: Record<number, AggValue>;
-  errors?: Record<number, { lower: number, higher: number }>;
+  data: RectangleSelection[];
 }
 
 const props = defineProps<TimeseriesProps>();
@@ -36,67 +35,93 @@ function datumToDate(datum: Datum): Date | null {
   return new Date(datum);
 }
 
+const legendGroups: Record<string, string> = {};
+
 onMounted(() => {
-  const ts = Object.keys(props.data).sort();
-  const dataT: Date[] = [];
-  const dataV: (number | null)[] = [];
-  ts.forEach(t => {
-    const point: AggValue = props.data[t];
-    dataT.push(point.date);
-    dataV.push(point.value);
-  });
-  const legendGroup = v4();
-  const plotlyData: Data[] = [{
-    x: dataT,
-    y: dataV,
-    mode: "lines+markers",
-    legendgroup: legendGroup,
-  }];
 
-  const errors = props.errors;
-  if (errors != null) {
-    const upperY: (number | null)[] = [];
-    const lowerY: (number | null)[] = [];
+  const plotlyData: Data[] = [];
 
+  let max = 0;
+  props.data.forEach(data => {
+    const samples = data.samples;
+    if (!samples) { return; }
+    const ts = Object.keys(samples).sort();
+    const dataT: Date[] = [];
+    const dataV: (number | null)[] = [];
     ts.forEach(t => {
-      const point: AggValue = props.data[t];
-      const value = point.value;
-      const errs = errors[t];
-      if (value === null || errs == null) {
-        lowerY.push(null);
-        upperY.push(null);
-        return;
-      }
-      const { lower, upper } = errs;
-      const valueLower = value - lower;
-      const valueHigher = value + upper;
-      lowerY.push(Math.min(valueLower, valueHigher));
-      upperY.push(Math.max(valueLower, valueHigher));
+      const point: AggValue = samples[t];
+      dataT.push(point.date);
+      dataV.push(point.value);
     });
+    max = Math.max(max, Math.max(...dataV));
 
+    const legendGroup = v4();
+    legendGroups[data.id] = legendGroup;
     plotlyData.push({
       x: dataT,
-      y: lowerY,
-      mode: "lines",
-      line: { width: 0 },
-      showlegend: false,
+      y: dataV,
+      mode: "lines+markers",
       legendgroup: legendGroup,
+      name: data.name,
+      marker: {
+        color: data.color,
+      },
     });
 
-    plotlyData.push({
-      x: dataT,
-      y: upperY,
-      mode: "lines",
-      line: { width: 0 },
-      fill: "tonexty",
-      showlegend: false,
-      legendgroup: legendGroup,
-    });
-  }
+    const errors = data.errors;
+    if (errors != null) {
+      const upperY: (number | null)[] = [];
+      const lowerY: (number | null)[] = [];
+
+      ts.forEach(t => {
+        const point: AggValue = samples[t];
+        const value = point.value;
+        const errs = errors[t];
+        if (value === null || errs == null) {
+          lowerY.push(null);
+          upperY.push(null);
+          return;
+        }
+        const { lower, upper } = errs;
+        const valueLower = value - lower;
+        const valueHigher = value + upper;
+        lowerY.push(Math.min(valueLower, valueHigher));
+        upperY.push(Math.max(valueLower, valueHigher));
+      });
+
+      plotlyData.push({
+        x: dataT,
+        y: lowerY,
+        mode: "lines",
+        line: { width: 0 },
+        showlegend: false,
+        legendgroup: legendGroup,
+        marker: {
+          color: data.color,
+        },
+      });
+
+      plotlyData.push({
+        x: dataT,
+        y: upperY,
+        mode: "lines",
+        line: { width: 0 },
+        fill: "tonexty",
+        showlegend: false,
+        legendgroup: legendGroup,
+        marker: {
+          color: data.color,
+        },
+      });
+    }
+  });
 
   const layout = {
     width: 600,
     height: 400,
+    yaxis: {
+      range: [0, 1.2 * max],
+    }
   };
 
   newPlot(graph.value ?? id, plotlyData, layout).then((el: PlotlyHTMLElement) => {

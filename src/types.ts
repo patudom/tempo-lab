@@ -1,5 +1,8 @@
-
 // Types
+
+import L, { Rectangle } from 'leaflet';
+import M, { GeoJSONSource } from 'maplibre-gl';
+import { Ref, toValue } from 'vue';
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 export type Prettify<T> = { [K in keyof T]: T[K]; } & {};
@@ -19,32 +22,35 @@ export interface InitMapOptions {
   zoom: number,
   t?: number | null,
 }
+
 export interface LocationOfInterest {
-    latlng: LatLngPair;
-    zoom: number;
-    text: string;
-    description: string;
-    time: string;
-    index?: number;
-  }
+  latlng: LatLngPair;
+  zoom: number;
+  text: string;
+  description: string;
+  time: string;
+  index?: number;
+}
+
 export interface InterestingEvent {
-    date: Date;
-    endDate?: Date;
-    dateString: string;
-    locations: LocationOfInterest[];
-    label?: string;
-    info?: string;
-    highlighted?: boolean;
-    hasFeature?: boolean;
-  }
-  
-import L from 'leaflet';
-import M from 'maplibre-gl';
-import { Ref, toValue } from 'vue';
+  date: Date;
+  endDate?: Date;
+  dateString: string;
+  locations: LocationOfInterest[];
+  label?: string;
+  info?: string;
+  highlighted?: boolean;
+  hasFeature?: boolean;
+}
 
 export type MapType<T extends MappingBackends> = 
   T extends 'leaflet' ? L.Map :
   T extends 'maplibre' ? M.Map :
+  never;
+
+export type RectangleType<T extends MappingBackends> =
+  T extends 'leaflet' ? Rectangle :
+  T extends 'maplibre' ? GeoJSONSource:
   never;
 
 export function isLeaflet<T extends MappingBackends>(backend: Ref<T> | T, map: unknown): map is MapType<'leaflet'> {
@@ -94,4 +100,32 @@ export interface DragInfo {
   elStartY: number;
   oldTransition?: string;
   overlays: NodeList;
+}
+
+export interface RectangleSelectionInfo {
+  xmin: number;
+  xmax: number;
+  ymin: number;
+  ymax: number;
+}
+
+export type AggValue = {
+  value: number | null;
+  date: Date;
+};
+
+export interface DataPointError {
+  lower: number;
+  higher: number;
+}
+
+export interface RectangleSelection<T extends MappingBackends> {
+  id: string;
+  name: string;
+  rectangle: RectangleSelectionInfo;
+  color: string;
+  layer?: RectangleType<T>;
+  source?: GeoJSONSource;
+  samples?: Record<number, AggValue>;
+  errors?: Record<number, DataPointError>;
 }

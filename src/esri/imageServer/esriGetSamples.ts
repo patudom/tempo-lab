@@ -2,6 +2,7 @@
 import { rectangleToGeometry, pointToGeometry } from '../geometry';
 import type { RectBounds, PointBounds, EsriGeometryType } from '../geometry';
 import type { EsriGetSamplesReturn, EsriGetSamplesReturnError, EsriGetSamplesSample, Variables, EsriInterpolationMethod, CEsriTimeseries } from '../types';
+import type { AggValue } from "../../types";
 
 function safeParseNumber(value: string | null | undefined): number | null {
   if (value === null || value === '' || value === undefined) return null;
@@ -198,10 +199,7 @@ function nullMean(samples: (number | null)[]): number | null {
   return sum / validSamples.length;
 }
 
-export type AggValue = {
-  value: number | null;
-  date: Date;
-};
+
 export function aggregate(
   grouped: Map<number, CEsriTimeseries[]>,
   aggFunction: (samples: CEsriTimeseries[]) => number | null,

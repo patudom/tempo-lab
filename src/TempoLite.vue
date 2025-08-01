@@ -190,9 +190,8 @@
         :drag-predicate="(element: HTMLElement) => element.closest('.plotly') == null"
       >
         <timeseries-graph
-          v-if="sampleResults"
-          :data="sampleResults"
-          :errors="testErrors"
+          v-if="selections.length > 0"
+          :data="selections"
         />
       </cds-dialog>
 
@@ -316,7 +315,24 @@
               <div style="text-align: center;">Amount of NO&#x2082;&nbsp;<span class="unit-label">(10&sup1;&#x2074; mol/cm&sup2;)</span></div>
         </template>
         </colorbar-horizontal>
-        <div id="map-contents" style="width:100%; height: 100%;">
+        <v-card id="map-contents" style="width:100%; height: 100%;">
+          <v-toolbar
+            :color="infoColor"
+            density="compact"
+          >
+            <v-toolbar-title text="TEMPO Data Viewer"></v-toolbar-title>
+            <v-spacer></v-spacer>
+            <v-tooltip text="Select a region">
+              <template #activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  icon="mdi-select"
+                  :active="selectionActive"
+                  @click="selectionActive = !selectionActive"
+                ></v-btn>
+              </template>
+            </v-tooltip>
+          </v-toolbar>
           <div id="map">
             <v-overlay
               :modelValue="loadedImagesProgress < 100"
@@ -528,7 +544,7 @@
           </cds-dialog>
         </div>
         
-        </div>
+        </v-card>
         <colorbar 
           v-if="display.width.value > 750"
           label="Amount of NO2"
@@ -702,54 +718,76 @@
 
         <hr style="border-color: grey">
 
+        <div id="sample-info" v-if="selections" style="margin-top: 1em;">
+          <v-select
+            v-model="selection as SelectionOption"
+            :items="selectionOptions"
+            label="Selection"
+            return-object
+          >
+            <template #selection="{ item }">
+              {{ item.value == null ? "None" : item.value.name }}
+            </template>
+            <template #item="{ item, props }">
+              <v-list-item :title="item.value == null ? 'None' : item.value.name" @click="props.onClick"></v-list-item>
+            </template>
+          </v-select>
 
-          <div id="date-radio">
-            <!-- make a v-radio-group with 3 options -->
-          <h2>Notable Dates</h2>
-          <v-radio-group
-            v-model="radio"
-            row
-          >
-            <div v-for = "(event, index) in interestingEvents" :key="index" class="d-flex flex-row align-center">
-              <v-radio
-                :class="event.highlighted ? 'highlighted' : ''"
-                :label="event.label"
-                :value="index"
-                @keyup.enter="radio = index"
-              >
-              </v-radio>
-              <info-button>
-                <div style="display: inline-block; margin: 0; padding: 0;" v-html="event.info"></div>
-              </info-button>
-            </div>
-            
-          </v-radio-group>
-        </div>
-        
-        <hr style="border-color: grey;"  v-if="radio !== null ">
-        
-        <div id="locations-of-interest" v-if="radio !== null">
-          <h3 class="mb-1">Featured Events for {{ dateStrings[radio] }}</h3>
-          <v-radio-group
-            v-if="radio !== null"
-            v-model="sublocationRadio"
-            row
-          >
-          <div
-            v-for="(loi, index) in locationsOfInterest[radio]" 
-            v-bind:key="index" 
-            class="sublocation-radio-wrapper d-flex flex-row align-center space-between">
-            <v-radio
-              class="sublocation-radio"
-              :label="loi.text"
-              :value="index"
-              @keyup.enter="sublocationRadio = index"
-            ></v-radio>
-            <info-button>
-              <p v-html="locationsOfInterestText[radio][index]"></p>
-            </info-button>
-          </div>
-          </v-radio-group>
+          <v-list>
+            <v-list-item
+              v-for="(sel, index) in selections"
+              :title="sel.name"
+              :key="index"
+              :color="sel.color"
+            >
+              <template #append>
+                <v-tooltip
+                  text="Get NO₂ Samples"
+                  location="top"
+                >
+                  <template #activator="{ props }">
+                    <v-btn
+                      v-bind="props"
+                      :loading="loadingSamples === 'loading'"
+                      :disabled="sel.samples != null"
+                      icon="mdi-download"
+                      @click="() => fetchRectangleSamples(sel as RectangleSelectionType)"
+                    ></v-btn>
+                  </template>
+                </v-tooltip>
+                <v-tooltip
+                  text="Get Center Point NO₂ Sample"
+                  location="top"
+                >
+                  <template #activator="{ props }">
+                    <v-btn
+                      v-bind="props"
+                      :loading="loadingPointSample === 'loading'"
+                      icon="mdi-image-filter-center-focus"
+                      @click="() => fetchCenterPointSample(sel as RectangleSelectionType)"
+                    ></v-btn>
+                  </template>
+                </v-tooltip>
+                <v-tooltip
+                  text="Remove selection"
+                  location="top"
+                >
+                  <template #activator="{ props }">
+                    <v-btn
+                      v-bind="props"
+                      icon="mdi-trash-can"
+                      @click="() => deleteSelection(sel as RectangleSelectionType)"
+                    ></v-btn>
+                  </template>
+                </v-tooltip>
+              </template>
+            </v-list-item>
+          </v-list>
+
+          <v-btn size="small" color="primary" @click="samplesGraph = true" :disabled="!haveSamples">
+            Show Timeseries
+          </v-btn>
+  
         </div>
 
         <hr style="border-color: grey;">
@@ -783,18 +821,7 @@
         </div>
       </div>
       
-      <div id="sample-info" v-if="selectionInfo" style="margin-top: 1em;">
-          <v-btn size="small" color="primary" @click="fetchRectangleSamples" :loading="loadingSamples === 'loading'" :disabled="loadingSamples === 'loading'">
-            Get NO₂ Samples
-          </v-btn>
-          <v-btn size="small" color="primary" @click="fetchCenterPointSample" :loading="loadingPointSample === 'loading'" :disabled="loadingPointSample === 'loading'">
-            Get Center Point NO₂ Sample
-          </v-btn>
-          <v-btn size="small" color="primary" @click="samplesGraph = true" :disabled="!sampleResults">
-            Show Timeseries
-          </v-btn>
 
-        </div>
         <cds-dialog 
           title="NO₂ Samples" 
           v-model="sampleDialog" 
@@ -810,7 +837,7 @@
           </div>
           
           <div v-if="sampleError" class="text-red">Error: {{ sampleError }}</div>
-          <div v-if="sampleResults && Object.keys(sampleResults).length > 0" class="mt-2">
+          <div v-if="selection && selection.samples && Object.keys(selection.samples).length > 0" class="mt-2">
             Sample Mean NO<sub>2</sub>
             <table style="width: 100%; max-height: 120px; overflow-y: auto; border-collapse: collapse;">
               <thead>
@@ -820,7 +847,7 @@
               </tr>
               </thead>
               <tbody>
-              <tr v-for="(result, time) in sampleResults" :key="time">
+              <tr v-for="(result, time) in selection.samples" :key="time">
                 <td class="pa-2" style="border-bottom: 1px solid #eee;">
                   {{ new Date(Number(time)) }}
                 </td>
@@ -1019,7 +1046,7 @@
 </template>
   
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, nextTick, ComputedRef } from "vue";
+import { ref, computed, watch, onMounted, nextTick } from "vue";
 import { API_BASE_URL, blurActiveElement } from "@cosmicds/vue-toolkit";
 import { useDisplay } from 'vuetify';
 import { DatePickerInstance } from "@vuepic/vue-datepicker";
@@ -1032,24 +1059,41 @@ import changes from "./changes";
 import { useBounds } from './composables/useBounds';
 import { interestingEvents } from "./interestingEvents";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { LatLngPair, LngLatPair, InitMapOptions } from "./types";
+import { AggValue, LatLngPair, InitMapOptions, RectangleSelectionInfo, RectangleSelection, RectangleType, MappingBackends } from "./types";
 
 import { useUniqueTimeSelection } from "./composables/useUniqueTimeSelection";
 
 
 // Import Leaflet Composables
 import { useMap } from "./composables/leaflet/useMap";
-import { usezoomhome} from './composables/leaflet/useZoomHome';
+import { usezoomhome } from './composables/leaflet/useZoomHome';
 import { useImageOverlay } from "./composables/leaflet/useImageOverlay";
 import { useFieldOfRegard} from "./composables/leaflet/useFieldOfRegard";
 import { useLocationMarker } from "./composables/leaflet/useMarker";
 import { useRectangleSelection } from "./composables/leaflet/useRectangleSelection";
+import { addRectangleLayer, updateRectangleBounds, removeRectangleLayer } from "./composables/leaflet/utils";
+
+// Import Maplibre Composables
+// import { useMap } from "./composables/maplibre/useMap";
+// import { usezoomhome } from './composables/maplibre/useZoomHome';
+// import { useImageOverlay } from "./composables/maplibre/useImageOverlay";
+// import { useFieldOfRegard} from "./composables/maplibre/useFieldOfRegard";
+// import { useLocationMarker } from "./composables/maplibre/useMarker";
+// import { useRectangleSelection } from "./composables/maplibre/useRectangleSelection";
+// import { addRectangleLayer, updateRectangleBounds, removeRectangleLayer } from "./composables/maplibre/utils";
+
+const BACKEND: MappingBackends = "leaflet" as const;
+
+type RectangleSelectionType = RectangleSelection<typeof BACKEND>;
+
+
 import { getAggregatedSamples } from "./esri/imageServer/esriGetSamples";
+
+
 const zoomScale = 1; 
 
-const samplesGraph = ref(false);
 
-// const zoomScale = 0.5; // for matplibre-gl
+// const zoomScale = 0.5; // for maplibre-gl
 
 
 const display = useDisplay();
@@ -1196,11 +1240,13 @@ const showTextSheet = computed({
   }
 });
 
+const infoColor = "#092088";
 const cssVars = computed(() => {
   return {
     '--accent-color': accentColor.value,
     '--accent-color-2': accentColor2.value,
     '--app-content-height': showTextSheet.value ? '66%' : '100%',
+    '--info-background': infoColor,
   };
 });
 
@@ -1468,22 +1514,44 @@ const {
   locationMarker
 } = useLocationMarker(map,  showLocationMarker.value);
 
+
+type SelectionOption = RectangleSelectionType | null;
+const selections = ref<RectangleSelectionType[]>([]);
+const selection = ref<SelectionOption>(null);
+const selectedIndex = computed({
+  get() {
+    const selectedID = selection.value?.id;
+    const idx = selections.value.findIndex(s => s.id == selectedID);
+    return idx >= 0 ? idx : null;
+  },
+  set(index: number | null) {
+    if (typeof index === "number") {
+      selection.value = selections.value[index] ?? null;
+    } else {
+      selection.value = null;
+    }
+  }
+});
+
+const selectionOptions = computed<SelectionOption[]>(() => ([null] as SelectionOption[]).concat(selections.value as SelectionOption[]));
+let selectionCount = 0;
+const samplesGraph = ref(false);
+const haveSamples = computed(() => selections.value.some(s => s.samples));
+
+// I stole this from here: https://sashamaps.net/docs/resources/20-colors/
+const COLORS = [
+  '#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#46f0f0',
+  '#f032e6', '#bcf60c', '#fabebe', '#008080', '#e6beff', '#9a6324', '#fffac8',
+  '#800000', '#aaffc3', '#808000', '#ffd8b1', '#000075', '#808080', '#ffffff',
+  '#000000'
+];
+
 // implement rectangle and point
-const { active: rectangleActive, selectionInfo } = useRectangleSelection(map, "red");
+const { active: selectionActive, selectionInfo } = useRectangleSelection(map, "red");
 const loadingSamples = ref<string | false>(false);
-const sampleResults = ref<Record<number, { value: number | null; date: Date }> | null>(null);
 
 const testErrorAmount = 0.25e15;
-const testErrors = computed(() => {
-  if (sampleResults.value) {
-    const results: Record<number, { lower: number, upper: number }> = {};
-    Object.keys(sampleResults.value).forEach(key => {
-      results[key] = { lower: testErrorAmount, upper: testErrorAmount };
-    });
-    return results;
-  }
-  return null;
-});
+const testError = { lower: testErrorAmount, upper: testErrorAmount };
 
 const sampleError = ref<string | null>(null);
 const sampleDialog = ref(false);
@@ -1491,11 +1559,9 @@ const pointSampleResult = ref<Record<number, { value: number | null; date: Date 
 const pointSampleError = ref<string | null>(null);
 const loadingPointSample = ref<string | false>(false);
 
-function fetchRectangleSamples() {
-  if (!selectionInfo.value) return;
+function fetchRectangleSamples(sel: RectangleSelectionType) {
   loadingSamples.value = "loading";
   sampleError.value = null;
-  sampleResults.value = null;
   sampleDialog.value = true;
   // Use current selected day for start/end
   const start = singleDateSelected.value.setHours(0, 0, 0, 0);
@@ -1503,11 +1569,16 @@ function fetchRectangleSamples() {
   getAggregatedSamples(
     'https://gis.earthdata.nasa.gov/image/rest/services/C2930763263-LARC_CLOUD/TEMPO_NO2_L3_V03_HOURLY_TROPOSPHERIC_VERTICAL_COLUMN/ImageServer',
     "NO2_Troposphere",
-    selectionInfo.value,
+    sel.rectangle,
     start,
     end
   ).then((samples) => {
-    sampleResults.value = samples;
+    sel.samples = samples;
+    const errors = {};
+    for (const key in samples) {
+      errors[key] = testError;
+    }
+    sel.errors = errors;
     loadingSamples.value = "finished";
   }).catch((error) => {
     sampleError.value = error?.message || String(error);
@@ -1515,15 +1586,34 @@ function fetchRectangleSamples() {
   });
 }
 
+function deleteSelection(sel: RectangleSelectionType) {
+  const index = selections.value.findIndex(s => s.id == sel.id);
+  if (index < 0) {
+    return;
+  }
+  const isSelected = selectedIndex.value === index;
+  if (map.value && sel.layer) {
+    removeRectangleLayer(map.value, sel.layer);
+  }
+  selections.value.splice(index, 1);
+  if (isSelected) {
+    if (index > 0) {
+      selection.value = selections.value[index - 1];
+    } else if (selections.value.length > 0) { 
+      selection.value = selections.value[0];
+    } else {
+      selection.value = null;
+    }
+  }
+}
 
-function fetchCenterPointSample() {
-  if (!selectionInfo.value) return;
+function fetchCenterPointSample(sel: RectangleSelectionType) {
   loadingPointSample.value = "loading";
   pointSampleError.value = null;
   pointSampleResult.value = null;
   sampleDialog.value = true;
   // Calculate center point
-  const { xmin, xmax, ymin, ymax } = selectionInfo.value;
+  const { xmin, xmax, ymin, ymax } = sel.rectangle;
   const x = (xmin + xmax) / 2;
   const y = (ymin + ymax) / 2;
   const center = { x, y };
@@ -1544,18 +1634,12 @@ function fetchCenterPointSample() {
   });
 }
 
-watch(selectionInfo, (info) => console.log(info));
-
-
-
 
 onMounted(() => {
   window.addEventListener("hashchange", updateHash);
   showSplashScreen.value = false;
   createMap();
   
-  rectangleActive.value = true;
-
   usezoomhome(map, homeState.value.loc, homeState.value.zoom, (_e: Event) => {
     sublocationRadio.value = null;
     // check if location marker is not null and on map. if so remove it
@@ -1589,25 +1673,6 @@ onMounted(() => {
 
 const datesOfInterest = computed(() => {
   return interestingEvents.map(event => event.date);
-});
-
-const dateStrings = computed(() => {
-  return interestingEvents.map(event => event.dateString);
-});
-
-const locationsOfInterest = computed(() => {
-  return interestingEvents.map(event =>
-    event.locations.map(loc => ({
-      ...loc,
-      index: nearestDateIndex(new Date(loc.time)),
-    }))
-  );
-});
-
-const locationsOfInterestText = computed(() => {
-  return interestingEvents.map(event =>
-    event.locations.map(loc => loc.description)
-  );
 });
 
 const dateIsDST = computed(() => {
@@ -2205,18 +2270,6 @@ watch(userGuideOpen, (open: boolean) => {
   }
 });
 
-const radioSubloc: ComputedRef<[number | null, number | null]> = computed(() => [radio.value, sublocationRadio.value]); 
-watch(radioSubloc, (item: [number | null, number | null]) => {
-  const radio = item[0];
-  const subRadio = item[1];
-  if (radio === null || subRadio === null) {
-    return [];
-  }
-  const eventText = interestingEvents[radio].label ?? "";
-  const subEventText = locationsOfInterest.value[radio][subRadio].text;
-  userSelectedNotableEvents.push([eventText, subEventText]);
-});
-
 watch(selectedTimezone, (timezone: string) => {
   userSelectedTimezones.push(timezone);
 });
@@ -2224,6 +2277,35 @@ watch(selectedTimezone, (timezone: string) => {
 watch(singleDateSelected, (date: Date) => {
   if (!timestampsLoaded.value ) return;
   userSelectedCalendarDates.push(date.getTime());
+});
+
+watch(selectionInfo, (info: RectangleSelectionInfo | null) => {
+  if (info === null || map.value === null) {
+    return;
+  }
+  if (selection.value === null || selectedIndex.value === null) {
+    const color = COLORS[selectionCount % COLORS.length];
+    selectionCount += 1;
+    const { layer } = addRectangleLayer(map.value, info, color);
+    const newSelection: RectangleSelectionType = {
+      id: v4(),
+      name: `Selection ${selectionCount}`,
+      rectangle: info,
+      layer,
+      color,
+    };
+    selections.value.push(newSelection);
+    selection.value = newSelection;
+  } else {
+    const selection = selections.value[selectedIndex.value];
+    selection.rectangle = info;
+    selection.samples = undefined;
+    const rect = selection.layer as RectangleType<typeof BACKEND>;
+    if (rect) {
+      updateRectangleBounds(rect, info);
+    }
+  }
+  selectionActive.value = false;
 });
 </script>
   
@@ -2524,7 +2606,7 @@ ul {
 
 #map {
   width: 100%;
-  height: var(--map-height)
+  height: calc(100% - 48px);
 }
 
 // define the layout
@@ -2743,13 +2825,13 @@ a {
   #map-show-hide-controls {
     z-index: 1000;
     position: absolute;
-    top: 1rem;
+    top: calc(48px + 1rem);
     right: 80px;
   }
 
   #map-legend {
     position: absolute;
-    top: 0;
+    top: 48px;
     right: 80px;
     width: fit-content;
     z-index: 1000;
