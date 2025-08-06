@@ -30,7 +30,7 @@
 
 <script setup lang="ts">
 import { computed, toRef } from 'vue';
-import { useTimezone } from '../composables/useTimezone';
+import { useTimezone } from './useTimezone';
 import type { MillisecondRange } from '../types/datetime';
 
 const props = defineProps<{
