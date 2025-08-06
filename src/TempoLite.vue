@@ -1652,7 +1652,29 @@ const pointSampleResult = ref<Record<number, { value: number | null; date: Date 
 const pointSampleError = ref<string | null>(null);
 const loadingPointSample = ref<string | false>(false);
 
-function fetchRectangleSamples(sel: RectangleSelectionType) {
+
+// Store markers for timeseries locations
+const timeseriesMarkerApi = useMultiMarker(map, {
+  shape: 'circle',
+  color: '#ff0000',
+  fillColor: '#ff0000',
+  fillOpacity: 0.8,
+  opacity: 1,
+  radius: 10,
+  outlineColor: '#ff0000',
+});
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function clearTimeseriesMarkers() {
+  timeseriesMarkerApi.clearMarkers();
+}
+
+function addTimeseriesLocationsToMap(timeseries: Array<{ x: number; y: number }>) {
+  // timeseriesMarkerApi.addMarkers(timeseries);
+  console.log(`Adding ${timeseries.length} timeseries locations to map`);
+}
+
+
   loadingSamples.value = "loading";
   sampleError.value = null;
   sampleDialog.value = true;
