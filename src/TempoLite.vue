@@ -885,110 +885,13 @@
         </cds-dialog>
       
       <div id="information">
-      <article>
-        <h2>TEMPO NO<sub>2</sub> Data</h2>
-        <p>
-          <a href="https://tempo.si.edu" target="_blank" rel="noopener noreferrer" >
-          TEMPO</a>, a collaboration between the Smithsonian and NASA, is the first space-based probe to measure air pollution hourly over North America at neighborhood scales. NO<sub>2</sub> (nitrogen dioxide) is one of the pollutants detected by TEMPO. It is produced by wildfires and the burning of fossil fuels. NO<sub>2</sub> contributes to the formation of harmful ground-level ozone and toxic particulates in the air we breathe.
-        </p>
+        <timeseries-graph
+          v-if="selections.length > 0"
+          :data="selections"
+        />
+        
 
-          <div class="d-flex flex-row justify-space-between">
-            <cds-dialog
-              title="Credits"
-              id="credits-dialog"
-              v-model="showCredits"
-              activator="parent"
-              :scrim="false"
-              location="center center"
-              :color="accentColor2"
-            >
-              <h4 class="mb-2"><a href="https://tempo.si.edu/" target="_blank" rel="noopener noreferrer">TEMPO</a> Team Acknowledgments:</h4>
-              <p>
-                Caroline Nowlan, Aaron Naeger, and Erika Wright provided dates and featured events of interest in the TEMPO data.
-              </p>
-              <p>
-                Xiong Liu provided the L3 version 2 TEMPO data files.
-              </p>
-              <p>
-                Heesung Chong provided the shape file for the TEMPO field of regard.
-              </p>
-
-              <p class="my-3">NASA's Scientific Visualization Studio provided the TEMPO NO<sub>2</sub> colormap.</p>
-
-              <h4 class="mb-2"><a href="https://www.cosmicds.cfa.harvard.edu/" target="_blank" rel="noopener noreferrer">CosmicDS</a> Team:</h4> 
-
-              John Lewis<br>
-              Jonathan Foster<br>
-              Pat Udomprasert<br>
-              Jon Carifio<br>
-              Alyssa Goodman<br>
-              Erika Wright<br>
-              Mary Dussault<br>
-              Harry Houghton<br>
-              Evaluator: Sue Sunbury<br>
-
-              <funding-acknowledgement class="my-3"></funding-acknowledgement>
-            </cds-dialog>
-
-          <cds-dialog
-            id="user-guide-dialog"
-            v-model="showUserGuide"
-            :scrim="false"
-            location="center center"
-            title="User Guide"
-            :color="accentColor2"
-          >
-            <p>
-              Do consectetur consequat dolore esse nulla .
-            </p>
-
-            <p>
-              Reprehenderit sint ipsum laborum in reprehenderit sunt eu pariatur ipsum tempor .
-            </p>
-
-            <p>
-              Ex laboris fugiat ad duis eu ipsum cupidatat veniam fugiat .
-            </p>
-          </cds-dialog>
-          
-          
-          <cds-dialog
-            id="about-data-dialog"
-            v-model="showAboutData"
-            :scrim="false"
-            location="center center"
-            title="Data source and processing"
-            short-title="About Data"
-            :color="accentColor2"
-          >
-            <p>
-              This visualization of the TEMPO satellite NO<sub>2</sub> Tropospheric Column Density data is derived from Level 3 data files obtained from the 
-              <a href="https://asdc.larc.nasa.gov/project/TEMPO" target="_blank" rel="noopener noreferrer">NASA ASDC TEMPO Data Products Page</a>.
-            </p>
-            <br />
-            <p>
-              The data has been processed and visualized by the CosmicDS team at the Harvard-Smithsonian Center for Astrophysics. The images displayed have undergone pre-processing to filter out erroneous data, and a 50% cloud cover mask has been applied. 
-              For performance optimization, the data resolution has been halved and reprojected to a Web Mercator projection to ensure compatibility with 
-              <a href="https://leafletjs.com/" target="_blank" rel="noopener noreferrer">Leaflet.js</a>.
-            </p>
-            <br />
-            <p>
-              The data is rendered using the color map provided by NASA's Scientific Visualization Studio.
-            </p>
-            <br />
-            <p>
-              All data processing scripts are available on 
-              <a href="https://github.com/johnarban/tempo_processing_scripts" target="_blank" rel="noopener noreferrer">GitHub</a>.
-            </p>
-          </cds-dialog>
-
-          <!-- make small inline show introduction link button -->
-          <!-- <a href="#" @click="inIntro = true" @keyup.enter="inIntro = true" style="right: 0;">
-            Show Introduction
-          </a> -->
-        </div>
-
-      </article>
+        
       </div>
       
     </div>
