@@ -115,8 +115,13 @@ export type AggValue = {
 };
 
 export interface DataPointError {
-  lower: number;
-  higher: number;
+  lower: number | null;
+  upper: number | null;
+}
+
+export interface MillisecondRange {
+  start: number;
+  end: number;
 }
 
 export interface RectangleSelection<T extends MappingBackends> {
@@ -128,4 +133,5 @@ export interface RectangleSelection<T extends MappingBackends> {
   source?: GeoJSONSource;
   samples?: Record<number, AggValue>;
   errors?: Record<number, DataPointError>;
+  timeRange?: MillisecondRange | MillisecondRange[];
 }
