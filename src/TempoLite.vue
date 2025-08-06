@@ -1065,24 +1065,33 @@ import { useUniqueTimeSelection } from "./composables/useUniqueTimeSelection";
 
 
 // Import Leaflet Composables
-import { useMap } from "./composables/leaflet/useMap";
-import { usezoomhome } from './composables/leaflet/useZoomHome';
-import { useImageOverlay } from "./composables/leaflet/useImageOverlay";
-import { useFieldOfRegard} from "./composables/leaflet/useFieldOfRegard";
-import { useLocationMarker } from "./composables/leaflet/useMarker";
-import { useRectangleSelection } from "./composables/leaflet/useRectangleSelection";
-import { addRectangleLayer, updateRectangleBounds, removeRectangleLayer } from "./composables/leaflet/utils";
+// import { useMap } from "./composables/leaflet/useMap";
+// import { usezoomhome } from './composables/leaflet/useZoomHome';
+// import { useImageOverlay } from "./composables/leaflet/useImageOverlay";
+// import { useFieldOfRegard} from "./composables/leaflet/useFieldOfRegard";
+// import { useLocationMarker } from "./composables/leaflet/useMarker";
+// import { useRectangleSelection } from "./composables/leaflet/useRectangleSelection";
+// import { addRectangleLayer, updateRectangleBounds, removeRectangleLayer } from "./composables/leaflet/utils";
+// import { useMultiMarker } from './composables/leaflet/useMultiMarker';
+// import { useEsriLayer } from "./esri/leaflet/useEsriImageLayer";
+// const zoomScale = 1; 
 
 // Import Maplibre Composables
-// import { useMap } from "./composables/maplibre/useMap";
-// import { usezoomhome } from './composables/maplibre/useZoomHome';
-// import { useImageOverlay } from "./composables/maplibre/useImageOverlay";
-// import { useFieldOfRegard} from "./composables/maplibre/useFieldOfRegard";
-// import { useLocationMarker } from "./composables/maplibre/useMarker";
-// import { useRectangleSelection } from "./composables/maplibre/useRectangleSelection";
-// import { addRectangleLayer, updateRectangleBounds, removeRectangleLayer } from "./composables/maplibre/utils";
+import { useMap } from "./composables/maplibre/useMap";
+import { usezoomhome } from './composables/maplibre/useZoomHome';
+import { useImageOverlay } from "./composables/maplibre/useImageOverlay";
+import { useFieldOfRegard} from "./composables/maplibre/useFieldOfRegard";
+import { useLocationMarker } from "./composables/maplibre/useMarker";
+import { useRectangleSelection } from "./composables/maplibre/useRectangleSelection";
+import { addRectangleLayer, updateRectangleBounds, removeRectangleLayer } from "./composables/maplibre/utils";
+import { useMultiMarker } from './composables/maplibre/useMultiMarker';
+import { useEsriLayer } from "./esri/maplibre/useEsriImageLayer";
+// import { useEsriLayer } from "./esri/maplibre/useEsriImageLayerPlain"; // do not use
+const zoomScale = 0.5; // for matplibre-gl
 
-const BACKEND: MappingBackends = "leaflet" as const;
+const showImage = ref(false);
+
+const BACKEND: MappingBackends = "maplibre" as const;
 
 type RectangleSelectionType = RectangleSelection<typeof BACKEND>;
 
@@ -1267,6 +1276,7 @@ function zpad(n: number, width: number = 2, character: string = "0"): string {
  * TIMESTAMP SETUP
  ************/
 import { getTimestamps, getExtendedRangeTimestamps } from "./timestamps";
+import { VariableNames } from "./esri/ImageLayerConfig";
 
 const erdTimestamps = ref<number[]>([]);
 const newTimestamps = ref<number[]>([]);
@@ -1344,25 +1354,36 @@ const newTimestampsSet = ref(new Set());
 const cloudTimestampsSet = ref(new Set());
 const extendedRangeTimestampsSet = ref(new Set());
 const timestampsSet = ref(new Set(fosterTimestamps.value));
-
+const preprocessedTimestampSet = ref(new Set(fosterTimestamps.value));
+// append and Set timestamps
+function appendTimestamps(newTimestamps: number[][]) {
+  if (newTimestamps.length > 0) {
+    timestamps.value = timestamps.value.concat(...newTimestamps).sort();
+    timestampsSet.value = new Set(timestamps.value);
+  }
+}
 async function updateTimestamps() {
   return Promise.all([
-    getExtendedRangeTimestamps().then(ts => {
-      extendedRangeTimestamps.value = ts;
-      extendedRangeTimestampsSet.value = new Set(ts);
-    }),
-    getTimestamps().then((ts) => {
-      erdTimestamps.value = ts.early_release;
-      erdTimestampsSet.value = new Set(ts.early_release);
-      newTimestamps.value = ts.released;
-      newTimestampsSet.value = new Set(ts.released);
-      timestamps.value = timestamps.value.concat(erdTimestamps.value, newTimestamps.value).sort();
-      timestampsSet.value = new Set(timestamps.value);
-      cloudTimestamps.value = ts.clouds;
-      cloudTimestampsSet.value = new Set(ts.clouds);
-    })
+    // getExtendedRangeTimestamps().then(ts => {
+    //   extendedRangeTimestamps.value = ts;
+    //   extendedRangeTimestampsSet.value = new Set(ts);
+    // }),
+    // getTimestamps().then((ts) => {
+    //   erdTimestamps.value = ts.early_release;
+    //   erdTimestampsSet.value = new Set(ts.early_release);
+    //   newTimestamps.value = ts.released;
+    //   newTimestampsSet.value = new Set(ts.released);
+    //   timestamps.value = timestamps.value.concat(erdTimestamps.value, newTimestamps.value).sort();
+    //   const _set = new Set(timestamps.value);
+    //   timestampsSet.value = _set;
+    //   preprocessedTimestampSet.value = _set;
+      
+    //   cloudTimestamps.value = ts.clouds;
+    //   cloudTimestampsSet.value = new Set(ts.clouds);
+    // })
   ]);
 }
+
 
 updateTimestamps().then(() => { timestampsLoaded.value = true; })
   .then(() => {
@@ -1433,6 +1454,10 @@ const imageName = computed(() => {
 });
 
 const imageUrl = computed(() => {
+  if (!showImage.value) {
+    return '';
+  }
+  
   if (customImageUrl.value) {
     return customImageUrl.value;
   }
@@ -1494,10 +1519,78 @@ const showingExtendedRange = computed(() => {
   return showExtendedRangeFeatures && showExtendedRange.value && extendedRangeAvailable.value;
 });
 
+const esriUrls = {
+  'no2': {
+    url: "https://gis.earthdata.nasa.gov/image/rest/services/C2930763263-LARC_CLOUD/TEMPO_NO2_L3_V03_HOURLY_TROPOSPHERIC_VERTICAL_COLUMN/ImageServer",
+    variable: "NO2_Troposphere",
+  },
+  'no2Monthly': {
+    url: "https://gis.earthdata.nasa.gov/gp/rest/services/Hosted/TEMPO_NO2_L3_V03_Monthly_Mean/ImageServer",
+    variable: "NO2_Troposphere",
+  },
+  'no2DailyMax' : {
+    url: "https://gis.earthdata.nasa.gov/gp/rest/services/Hosted/TEMPO_NO2_L3_V03_Daily_Maximum/ImageServer",
+    variable: "NO2_Troposphere",
+  },
+  'o3': {
+    url: "https://gis.earthdata.nasa.gov/image/rest/services/C2930764281-LARC_CLOUD/TEMPO_O3TOT_L3_V03_HOURLY_OZONE_COLUMN_AMOUNT/ImageServer",
+    variable: "Ozone_Column_Amount",
+  },
+  'hcho': {
+    url: "https://gis.earthdata.nasa.gov/image/rest/services/C2930761273-LARC_CLOUD/TEMPO_HCHO_L3_V03_HOURLY_VERTICAL_COLUMN/ImageServer",
+    variable: "HCHO",
+  },
+  'hchoMonthly': {
+    url: "https://gis.earthdata.nasa.gov/gp/rest/services/Hosted/TEMPO_HCHO_L3_V03_Monthly_Mean/ImageServer",
+    variable: "HCHO",
+  },
+  'hchoDailyMax': {
+    url: "https://gis.earthdata.nasa.gov/gp/rest/services/Hosted/TEMPO_HCHO_L3_V03_Daily_Maximum/ImageServer",
+    variable: "HCHO",
+  },
+} as Record<string, { url: string; variable: VariableNames }>;
+
+type MoleculeType = keyof typeof esriUrls;
+
+const whichMolecule = ref<MoleculeType>('no2');
+
+const moleculeOptions = [
+  { title: 'NO₂', value: 'no2' },
+  { title: 'Monthly Mean NO₂', value: 'no2Monthly' },
+  { title: 'Daily Max NO₂', value: 'no2DailyMax' },
+  { title: 'O₃', value: 'o3' },
+  { title: 'HCHO', value: 'hcho' },
+  { title: 'Monthly Mean HCHO', value: 'hchoMonthly' },
+  { title: 'Daily Max HCHO', value: 'hchoDailyMax' },
+];
+
+// computed
+const esriUrl = computed(() => {
+  return esriUrls[whichMolecule.value].url;
+});
+const esriVariable = computed(() => {
+  return esriUrls[whichMolecule.value].variable;
+});
+
+
+
+const {getEsriTimeSteps, addEsriSource, esriTimesteps, changeUrl} = useEsriLayer(
+  esriUrl.value,
+  esriVariable.value,
+  timestamp,
+  opacity,
+);
+getEsriTimeSteps();
+
+watch(whichMolecule, (newMolecule) => {
+  changeUrl(esriUrls[newMolecule].url, esriUrls[newMolecule].variable);
+  getEsriTimeSteps();
+});
 
 const onMapReady = (map) => {
   map.on('moveend', updateURL);
   map.on('zoomend', updateURL);
+  addEsriSource(map);
 };
 const showRoads = ref(true);
 const { map, createMap, setView } = useMap("map", initState.value, showRoads, onMapReady);

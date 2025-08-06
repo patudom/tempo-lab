@@ -51,6 +51,7 @@ export interface CEsriTimeseries {
   variable: number | null;
   value: number | null;
   locationId: number;
+  geometryType: 'rectangle' | 'point';
 }
 
 
