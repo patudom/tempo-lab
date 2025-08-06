@@ -837,51 +837,11 @@
           </div>
           
           <div v-if="sampleError" class="text-red">Error: {{ sampleError }}</div>
-          <div v-if="selection && selection.samples && Object.keys(selection.samples).length > 0" class="mt-2">
-            Sample Mean NO<sub>2</sub>
-            <table style="width: 100%; max-height: 120px; overflow-y: auto; border-collapse: collapse;">
-              <thead>
-              <tr>
-                <th class="font-weight-bold text-white">Time</th>
-                <th cless="font-weight-bold text-white">Value</th>
-              </tr>
-              </thead>
-              <tbody>
-              <tr v-for="(result, time) in selection.samples" :key="time">
-                <td class="pa-2" style="border-bottom: 1px solid #eee;">
-                  {{ new Date(Number(time)) }}
-                </td>
-                <td class="pa-2" style=" border-bottom: 1px solid #eee;">
-                  {{ result.value !== null ? result.value.toExponential(3) : 'N/A' }}
-                </td>
-              </tr>
-              </tbody>
-            </table>
-          </div>
+          <SampleTable :samples="selection?.samples ?? null" :error="sampleError" />
           <div v-if="loadingPointSample === 'loading'" class="mt-2">Loading center point sample...</div>
           <div v-if="pointSampleError" class="mt-2 text-red">Error: {{ pointSampleError }}</div>
-          <div v-if="pointSampleResult && Object.keys(pointSampleResult).length > 0" class="mt-2">
-            Center Point NO₂ (mean) by time:
-            <table style="width: 100%; max-height: 120px; overflow-y: auto; border-collapse: collapse;">
-              <thead>
-              <tr>
-                <th class="font-weight-bold text-white">Time</th>
-                <th class="font-weight-bold text-white">Value</th>
-              </tr>
-              </thead>
-              <tbody>
-              <tr v-for="(result, time) in pointSampleResult" :key="time">
-                <td class="pa-2" style="border-bottom: 1px solid #eee;">
-                {{ new Date(Number(time)) }}
-                </td>
-                <td class="pa-2" style="border-bottom: 1px solid #eee;">
-                {{ result.value !== null ? result.value.toExponential(3) : 'N/A' }}
-                </td>
-              </tr>
-              </tbody>
-            </table>
-          </div>
-          <div v-else-if="pointSampleResult && Object.keys(pointSampleResult).length === 0" class="mt-2">No data for this point/time.</div>
+          <SampleTable :samples="pointSampleResult" :error="pointSampleError" />
+          <div v-if="pointSampleResult && Object.keys(pointSampleResult).length === 0" class="mt-2">No data for this point/time.</div>
         </cds-dialog>
       
       <div id="information">
