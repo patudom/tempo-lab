@@ -181,7 +181,7 @@
       </a>
 
       <h1 id="title">What is in the Air You Breathe?</h1>
-      <cds-dialog
+      <!-- <cds-dialog
         title="Timeseries"
         v-model="samplesGraph"
         :color="accentColor2"
@@ -193,7 +193,7 @@
           v-if="selections.length > 0"
           :data="selections"
         />
-      </cds-dialog>
+      </cds-dialog> -->
 
       <!-- </div> -->
       <cds-dialog title="What's new" v-model="showChanges" :color="accentColor2">
@@ -317,18 +317,27 @@
         </colorbar-horizontal>
         <v-card id="map-contents" style="width:100%; height: 100%;">
           <v-toolbar
-            :color="infoColor"
             density="compact"
           >
             <v-toolbar-title text="TEMPO Data Viewer"></v-toolbar-title>
             <v-spacer></v-spacer>
-            <v-tooltip text="Select a region">
+            <v-select
+              v-model="whichMolecule"
+              :items="moleculeOptions"
+              item-title="title"
+              item-value="value"
+              label="Molecule"
+              hide-details
+              dense
+            ></v-select>
+            <v-tooltip :text="selectionActive ? 'Cancel selection' : 'Select a region'">
               <template #activator="{ props }">
                 <v-btn
                   v-bind="props"
                   icon="mdi-select"
-                  :active="selectionActive"
-                  @click="selectionActive = !selectionActive"
+                  :color="selectionActive ? 'info' : 'default'"
+                  :variant="selectionActive ? 'tonal' : 'text'"
+                  @click="activateSelectionMode"
                 ></v-btn>
               </template>
             </v-tooltip>
@@ -456,6 +465,20 @@
                 <info-button>
                   <p>
                     The cloud mask shows where the satellite could not measure NO<sub>2</sub> because of cloud cover. 
+                  </p>
+                </info-button>
+              </div>
+                <div class="d-flex flex-row align-center justify-space-between">
+                  <v-checkbox
+                  v-model="showImage"
+                  @keyup.enter="showImage = !showImage"
+                  color="#c10124"
+                  label="Show CDS Images (when available)"
+                  hide-details
+                />
+                <info-button>
+                  <p>
+                    Show or hide the post-processed NO<sub>2</sub> data layer.
                   </p>
                 </info-button>
               </div>
@@ -634,6 +657,15 @@
                 
                 </template> -->
               </date-picker>
+              <!-- time chips to select time specifically for esri times -->
+              <time-chips
+                v-if="whichMolecule.toLowerCase().includes('month')"
+                :timestamps="esriTimesteps"
+                @select="handleEsriTimeSelected($event.value, $event.index)"
+                reverse
+                use-utc
+                date-only
+              />
             </v-radio-group>
           </div>        
           <!-- create a list of the uniqueDays -->
@@ -719,8 +751,9 @@
         <hr style="border-color: grey">
 
         <div id="sample-info" v-if="selections" style="margin-top: 1em;">
+          <ListComponent :selectionOptions="selectionOptions" v-model="selection as RectangleSelectionType" :selectionActive="selectionActive" @edit-selection="editSelection" @create-new="createNewSelection" />
           <v-select
-            v-model="selection as SelectionOption"
+            v-model="selection"
             :items="selectionOptions"
             label="Selection"
             return-object
@@ -729,7 +762,7 @@
               {{ item.value == null ? "None" : item.value.name }}
             </template>
             <template #item="{ item, props }">
-              <v-list-item :title="item.value == null ? 'None' : item.value.name" @click="props.onClick"></v-list-item>
+              <v-list-item :title="item.value == null ? 'None' : item.value.name" @click="typeof props.onClick === 'function' ? props.onClick($event) : undefined"></v-list-item>
             </template>
           </v-select>
 
@@ -740,7 +773,25 @@
               :key="index"
               :color="sel.color"
             >
+              <template #subtitle>
+                <span v-if="sel.timeRange" class="text-caption">
+                  {{ getTimeRangeDisplay(sel as RectangleSelectionType) }}
+                </span>
+              </template>
               <template #append>
+                <v-tooltip
+                  text="Edit selection"
+                  location="top"
+                >
+                  <template #activator="{ props }">
+                    <v-btn
+                      v-bind="props"
+                      size="x-small"
+                      icon="mdi-pencil"
+                      @click="() => editSelection(sel as RectangleSelectionType)"
+                    ></v-btn>
+                  </template>
+                </v-tooltip>
                 <v-tooltip
                   text="Get NO₂ Samples"
                   location="top"
@@ -748,10 +799,11 @@
                   <template #activator="{ props }">
                     <v-btn
                       v-bind="props"
+                      size="x-small"
                       :loading="loadingSamples === 'loading'"
                       :disabled="sel.samples != null"
                       icon="mdi-download"
-                      @click="() => fetchRectangleSamples(sel as RectangleSelectionType)"
+                      @click="() => fetchDataForSelection(sel as RectangleSelectionType)"
                     ></v-btn>
                   </template>
                 </v-tooltip>
@@ -762,9 +814,10 @@
                   <template #activator="{ props }">
                     <v-btn
                       v-bind="props"
+                      size="x-small"
                       :loading="loadingPointSample === 'loading'"
                       icon="mdi-image-filter-center-focus"
-                      @click="() => fetchCenterPointSample(sel as RectangleSelectionType)"
+                      @click="() => fetchCenterPointDataForSelection(sel as RectangleSelectionType)"
                     ></v-btn>
                   </template>
                 </v-tooltip>
@@ -775,6 +828,7 @@
                   <template #activator="{ props }">
                     <v-btn
                       v-bind="props"
+                      size="x-small"
                       icon="mdi-trash-can"
                       @click="() => deleteSelection(sel as RectangleSelectionType)"
                     ></v-btn>
@@ -787,6 +841,58 @@
           <v-btn size="small" color="primary" @click="samplesGraph = true" :disabled="!haveSamples">
             Show Timeseries
           </v-btn>
+          
+          <v-btn size="small" color="primary" @click="sampleDialog = true" :disabled="!haveSamples">
+            Show Tables
+          </v-btn>
+          
+          <!-- Add Time Series button -->
+          <v-btn 
+            v-if="selection && selection.samples" 
+            size="small" 
+            color="success" 
+            @click="copySelectionWithNewTimeRange(selection as RectangleSelectionType)"
+            :disabled="loadingSamples === 'loading'"
+            class="ml-2"
+          >
+            <v-icon size="small">mdi-plus</v-icon>
+            Add Time Series
+          </v-btn>
+          
+          <!-- Time Range Selection -->
+          <div class="time-range-selection mt-3">
+            <v-card variant="outlined" class="pa-3">
+              <v-card-title class="text-subtitle-1 pa-0 mb-2">Time Range for New Selections</v-card-title>
+              
+                            <!-- Binary choice radio buttons -->
+              <v-radio-group v-model="useCustomTimeRange" row density="compact" class="mb-3">
+                <v-radio 
+                  :value="false" 
+                  label="Current Day"
+                  density="compact"
+                />
+                <v-radio 
+                  :value="true" 
+                  label="Custom Range"
+                  density="compact"
+                />
+              </v-radio-group>
+              
+              <!-- Effective time range display -->
+              <div class="mt-2">
+                <v-chip size="small" :color="useCustomTimeRange ? 'success' : 'info'">
+                  {{ useCustomTimeRange ? 'Custom' : 'Current Day' }}: {{ effectiveTimeRangeDisplay }}
+                </v-chip>
+              </div>
+              
+              <!-- Current selection info -->
+              <div v-if="selection" class="mt-2">
+                <v-chip size="small" color="info">
+                  Selection: {{ getTimeRangeDisplay(selection as RectangleSelectionType) }}
+                </v-chip>
+              </div>
+            </v-card>
+          </div>
   
         </div>
 
@@ -800,6 +906,7 @@
             item-title="name"
             item-value="tz"
           ></v-select>
+          
           <v-checkbox
             v-if="false"
             :disabled="!highresAvailable"
@@ -852,6 +959,12 @@
         
 
         
+        <date-time-range-selection
+          :current-date="singleDateSelected"
+          :selected-timezone="selectedTimezone"
+          :allowed-dates="uniqueDays"
+          @ranges-change="handleTimeRangesChange"
+        />
       </div>
       
     </div>
@@ -863,7 +976,7 @@
     </div>
   </div>
 
-   <!-- Data collection opt-out dialog -->
+  <!-- Data collection opt-out dialog -->
     <v-dialog
       scrim="false"
       v-model="showPrivacyDialog"
@@ -905,6 +1018,8 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+
 </v-app>
 </template>
   
@@ -923,10 +1038,15 @@ import { useBounds } from './composables/useBounds';
 import { interestingEvents } from "./interestingEvents";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { AggValue, LatLngPair, InitMapOptions, RectangleSelectionInfo, RectangleSelection, RectangleType, MappingBackends } from "./types";
+import type { MillisecondRange } from "./types/datetime";
+import ListComponent from "./components/ListComponent.vue";
+import SampleTable from "./components/SampleTable.vue";
+import { atleast1d } from "./utils/atleast1d";
 
 import { useUniqueTimeSelection } from "./composables/useUniqueTimeSelection";
 
-
+import DateTimeRangeSelection from "./date_time_range_selection/DateTimeRangeSelection.vue";
+import TimeChips from "./components/TimeChips.vue";
 // Import Leaflet Composables
 // import { useMap } from "./composables/leaflet/useMap";
 // import { usezoomhome } from './composables/leaflet/useZoomHome';
@@ -959,10 +1079,8 @@ const BACKEND: MappingBackends = "maplibre" as const;
 type RectangleSelectionType = RectangleSelection<typeof BACKEND>;
 
 
-import { getAggregatedSamples } from "./esri/imageServer/esriGetSamples";
+import { TempoDataService } from "./esri/services/TempoDataService";
 
-
-const zoomScale = 1; 
 
 
 // const zoomScale = 0.5; // for maplibre-gl
@@ -1138,11 +1256,14 @@ function zpad(n: number, width: number = 2, character: string = "0"): string {
 /************
  * TIMESTAMP SETUP
  ************/
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { getTimestamps, getExtendedRangeTimestamps } from "./timestamps";
 import { VariableNames } from "./esri/ImageLayerConfig";
-
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const erdTimestamps = ref<number[]>([]);
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const newTimestamps = ref<number[]>([]);
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const cloudTimestamps = ref<number[]>([]);
 const fosterTimestamps = ref<number[]>([
   1698838920000,
@@ -1193,6 +1314,7 @@ const fosterTimestamps = ref<number[]>([
 
 
 const timestamps = ref<number[]>(fosterTimestamps.value);
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const extendedRangeTimestamps = ref<number[]>([]);
 const showExtendedRange = ref(extendedRange.value);
 const useHighRes = ref(false);
@@ -1219,6 +1341,7 @@ const extendedRangeTimestampsSet = ref(new Set());
 const timestampsSet = ref(new Set(fosterTimestamps.value));
 const preprocessedTimestampSet = ref(new Set(fosterTimestamps.value));
 // append and Set timestamps
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function appendTimestamps(newTimestamps: number[][]) {
   if (newTimestamps.length > 0) {
     timestamps.value = timestamps.value.concat(...newTimestamps).sort();
@@ -1302,7 +1425,6 @@ const searchOpen = ref(true);
 const searchErrorMessage = ref<string | null>(null);
 const showControls = ref(false);
 const showCredits = ref(false);
-const showUserGuide = ref(false);
 const showAboutData = ref(false);
 const loadedImagesProgress = ref(0);
 
@@ -1435,6 +1557,8 @@ const esriVariable = computed(() => {
   return esriUrls[whichMolecule.value].variable;
 });
 
+// Create TempoDataService instance
+const tempoDataService = new TempoDataService(esriUrl.value, esriVariable.value);
 
 
 const {getEsriTimeSteps, addEsriSource, esriTimesteps, changeUrl} = useEsriLayer(
@@ -1444,9 +1568,32 @@ const {getEsriTimeSteps, addEsriSource, esriTimesteps, changeUrl} = useEsriLayer
   opacity,
 );
 getEsriTimeSteps();
+watch(esriTimesteps, (newSteps, _oldSteps) => {
+  if (newSteps.length > 0) {
+    timestamps.value = newSteps.sort();
+    // remove old steps from timestamps and timestampsSet
+    // const oldSet = new Set(oldSteps);
+    // const filtered = timestamps.value.filter(t => !oldSet.has(t));
+    // timestamps.value = filtered;
+    // timestampsSet.value = new Set(timestamps.value);
+    // appendTimestamps([newSteps]);
+  }
+});
+
+function handleEsriTimeSelected(timestamp:number, _index: number) {
+  const idx = timestamps.value.indexOf(timestamp);
+  console.log(`ESRI time selected: ${new Date(timestamp)} (nearest index ${idx})`);
+  if (idx >= 0) {
+    timeIndex.value = idx;
+  }
+  singleDateSelected.value = new Date(timestamp);
+}
 
 watch(whichMolecule, (newMolecule) => {
   changeUrl(esriUrls[newMolecule].url, esriUrls[newMolecule].variable);
+  // Update TempoDataService with new URL and variable
+  tempoDataService.setBaseUrl(esriUrls[newMolecule].url);
+  tempoDataService.setVariable(esriUrls[newMolecule].variable);
   getEsriTimeSteps();
 });
 
@@ -1506,8 +1653,10 @@ const COLORS = [
 const { active: selectionActive, selectionInfo } = useRectangleSelection(map, "red");
 const loadingSamples = ref<string | false>(false);
 
+
+
 const testErrorAmount = 0.25e15;
-const testError = { lower: testErrorAmount, upper: testErrorAmount };
+const _testError = { lower: testErrorAmount, upper: testErrorAmount };
 
 const sampleError = ref<string | null>(null);
 const sampleDialog = ref(false);
@@ -1515,6 +1664,9 @@ const pointSampleResult = ref<Record<number, { value: number | null; date: Date 
 const pointSampleError = ref<string | null>(null);
 const loadingPointSample = ref<string | false>(false);
 
+// UI state for time range management
+
+const useCustomTimeRange = ref(false); // Binary choice: false = current day, true = custom range
 
 // Store markers for timeseries locations
 const timeseriesMarkerApi = useMultiMarker(map, {
@@ -1538,31 +1690,238 @@ function addTimeseriesLocationsToMap(timeseries: Array<{ x: number; y: number }>
 }
 
 
+
+// Handle time ranges from DateTimeRangeSelection component
+function handleTimeRangesChange(timeRanges: MillisecondRange[]) {
+  if (timeRanges.length === 0) {
+    console.log('No time ranges received from DateTimeRangeSelection');
+    return;
+  }
+  
+  console.log(`Received ${timeRanges.length} time range(s) from DateTimeRangeSelection:`, timeRanges);
+  
+  // If custom time range mode is enabled, store the ranges for later use
+  if (useCustomTimeRange.value) {
+    // Store the entire array of ranges
+    customTimeRange.value = timeRanges;
+    console.log(`Custom time ranges updated: ${timeRanges.length} range(s)`);
+    
+    // Log all ranges
+    timeRanges.forEach((range, index) => {
+      console.log(`  Range ${index + 1}: ${new Date(range.start).toLocaleDateString()} to ${new Date(range.end).toLocaleDateString()}`);
+    });
+  } else {
+    // Apply the time ranges to the current selection if one exists
+    if (selection.value && timeRanges.length > 0) {
+      // Store the entire array instead of just the first range
+      selection.value.timeRange = timeRanges;
+      console.log(`Applied ${timeRanges.length} time range(s) from DateTimeRangeSelection to selection`);
+    }
+  }
+}
+
+
+
+// Add custom time range ref
+const customTimeRange = ref<MillisecondRange | MillisecondRange[] | null>(null);
+
+// Selection management handlers
+function activateSelectionMode() {
+  // Activate selection mode
+  selectionActive.value = !selectionActive.value;
+}
+
+function editSelection(sel: RectangleSelectionType) {
+  // Set the selection to edit
+  selection.value = sel;
+  selectedIndex.value = selections.value.findIndex(s => s.id === sel.id);
+  
+  // Activate selection mode to allow editing
+  selectionActive.value = true;
+  
+  console.log(`Editing selection: ${sel.name}`);
+}
+
+function createNewSelection() {
+  // Clear current selection to force new selection creation
+  selection.value = null;
+  selectedIndex.value = null;
+  
+  // Activate selection mode
+  selectionActive.value = true;
+  
+  console.log('Creating new selection');
+}
+
+// Unified fetching methods
+async function fetchDataForSelection(sel: RectangleSelectionType) {
   loadingSamples.value = "loading";
   sampleError.value = null;
-  sampleDialog.value = true;
-  // Use current selected day for start/end
-  const start = singleDateSelected.value.setHours(0, 0, 0, 0);
-  const end = singleDateSelected.value.setHours(23, 59, 59, 999);
-  getAggregatedSamples(
-    'https://gis.earthdata.nasa.gov/image/rest/services/C2930763263-LARC_CLOUD/TEMPO_NO2_L3_V03_HOURLY_TROPOSPHERIC_VERTICAL_COLUMN/ImageServer',
-    "NO2_Troposphere",
-    sel.rectangle,
-    start,
-    end
-  ).then((samples) => {
-    sel.samples = samples;
-    const errors = {};
-    for (const key in samples) {
-      errors[key] = testError;
-    }
-    sel.errors = errors;
+  
+  // we want to always have a timeRange set here.
+  if (!sel.timeRange) {
+    throw new Error(`No time range set for selection ${sel.name}`);
+  }
+  // because of the thrown error above, sel.timeRange is guaranteed to be set here. 
+  // so we will never use the effectiveTimeRange fallback, but we keep it here for safety.
+  const timeRanges = atleast1d(sel.timeRange) ?? effectiveTimeRange.value;
+  
+  try {
+    const data = await tempoDataService.fetchTimeseriesData(sel.rectangle, timeRanges);
+    sel.samples = data.values;
+    sel.errors = data.errors;
     loadingSamples.value = "finished";
-  }).catch((error) => {
-    sampleError.value = error?.message || String(error);
+    console.log(`Fetched data for ${timeRanges.length} time range(s)`);
+    addTimeseriesLocationsToMap(data.locations);
+  } catch (error) {
+    sampleError.value = error instanceof Error ? error.message : String(error);
     loadingSamples.value = "error";
-  });
+  }
 }
+
+async function fetchCenterPointDataForSelection(sel: RectangleSelectionType) {
+  loadingSamples.value = "loading";
+  sampleError.value = null;
+  
+  if (!sel.timeRange) {
+    throw new Error(`No time range set for selection ${sel.name}`);
+  }
+  const timeRanges = atleast1d(sel.timeRange) ?? effectiveTimeRange.value;
+  
+  try {
+    const data = await tempoDataService.fetchCenterPointData(sel.rectangle, timeRanges);
+    if (data) {
+      sel.samples = data.values;
+      loadingSamples.value = "finished";
+      console.log(`Fetched center point data for ${timeRanges.length} time range(s)`);
+      addTimeseriesLocationsToMap(data.locations);
+    }
+  } catch (error) {
+    sampleError.value = error instanceof Error ? error.message : String(error);
+    loadingSamples.value = "error";
+  }
+}
+
+// This old version keeps the point version of the data off somewhere else. 
+// Eventually we will want to implement point selections, or the ability to create point selections from a rectangle selection.
+// So I am keeping this arround for a reference in case it is useful
+// async function fetchCenterPointDataForSelection(sel: RectangleSelectionType) {
+//   loadingPointSample.value = "loading";
+//   pointSampleError.value = null;
+//   pointSampleResult.value = null;
+  
+//   try {
+//     const data = await tempoDataService.fetchCenterPointData(sel.rectangle, timeRanges);
+//     if (data) {
+//       pointSampleResult.value = data.values;
+//       loadingPointSample.value = "finished";
+//       console.log(`Fetched center point data for ${timeRanges.length} time range(s)`);
+//       addTimeseriesLocationsToMap(data.locations);
+//     }
+//   } catch (error) {
+//     pointSampleError.value = error instanceof Error ? error.message : String(error);
+//     loadingPointSample.value = "error";
+//   }
+// }
+
+// Create a new selection with a time range
+function createSelectionWithTimeRange(rectangle: RectangleSelectionInfo, timeRanges?: MillisecondRange | MillisecondRange[]): RectangleSelectionType {
+  const color = COLORS[selectionCount % COLORS.length];
+  selectionCount += 1;
+  
+  const _timeRanges = (timeRanges ? atleast1d(timeRanges) : timeRanges)  ?? effectiveTimeRange.value;
+  
+  console.log(`Creating selection with ${_timeRanges.length} time range(s)`);
+  _timeRanges.forEach((range, index) => {
+    console.log(`  Range ${index + 1}: ${new Date(range.start)} to ${new Date(range.end)}`);
+  });
+  
+  const { layer } = addRectangleLayer(map.value!, rectangle, color);
+  const newSelection: RectangleSelectionType = {
+    id: v4(),
+    name: `Selection ${selectionCount}`,
+    rectangle,
+    layer,
+    color,
+    timeRange: _timeRanges.length === 1 ? _timeRanges[0] : _timeRanges,
+  };
+
+  // Add to selections array
+  (selections.value as RectangleSelectionType[]).push(newSelection);
+  
+  // Deselect after fetching
+  selection.value = null;
+  selectedIndex.value = null;
+  
+  console.log(`Created new selection ${newSelection.name} with ${_timeRanges.length} time range(s)`);
+  return newSelection;
+}
+
+
+// Add time series to existing selection - copy the selection and set a new time range
+// TODO: contains a lot of the createSelectionWithTimeRange. Should be possible to refactor these to use a common api
+function copySelectionWithNewTimeRange(existingSelection: RectangleSelectionType, timeRanges?: MillisecondRange | MillisecondRange[]): RectangleSelectionType {
+  const color = COLORS[selectionCount % COLORS.length];
+  selectionCount += 1;
+  
+  // allow the user to pass in a time range manually
+  const _timeRanges = (timeRanges ? atleast1d(timeRanges) : timeRanges)  ?? effectiveTimeRange.value;
+  
+  const newSelection: RectangleSelectionType = {
+    id: v4(),
+    name: `${existingSelection.name} (Time Series ${selectionCount})`,
+    rectangle: existingSelection.rectangle,
+    layer: existingSelection.layer, // Share the same layer
+    color,
+    timeRange: _timeRanges.length === 1 ? _timeRanges[0] : _timeRanges,
+  };
+
+  // Add to selections array
+  (selections.value as RectangleSelectionType[]).push(newSelection);
+  
+  // Deselect after fetching
+  selection.value = null;
+  selectedIndex.value = null;
+  
+  console.log(`Added time series to selection ${newSelection.name} with ${_timeRanges.length} time range(s)`);
+  return newSelection;
+}
+
+// Utility function to get time range display string
+function formatTimeRange(ranges: MillisecondRange | MillisecondRange[]): string {
+  if (Array.isArray(ranges)) {
+    if (ranges.length === 0) {
+      return 'No time range set';
+    }
+    
+    if (ranges.length === 1) {
+      const range = ranges[0];
+      return `${new Date(range.start).toLocaleDateString()} - ${new Date(range.end).toLocaleDateString()}`;
+    } else {
+      // For multiple ranges, show the full span
+      const allStarts = ranges.map(r => r.start);
+      const allEnds = ranges.map(r => r.end);
+      const minStart = Math.min(...allStarts);
+      const maxEnd = Math.max(...allEnds);
+      return `${new Date(minStart).toLocaleDateString()} - ${new Date(maxEnd).toLocaleDateString()} (${ranges.length} ranges)`;
+    }
+  } else {
+    return `${new Date(ranges.start).toLocaleDateString()} - ${new Date(ranges.end).toLocaleDateString()}`;
+  }
+}
+function getTimeRangeDisplay(sel: RectangleSelectionType): string {
+  if (!sel.timeRange) {
+    return `No time range set for selection ${sel.name}`;
+  }
+  return formatTimeRange(sel.timeRange);
+}
+
+// Computed property for effective time range display
+const effectiveTimeRangeDisplay = computed(() => {
+  return formatTimeRange(effectiveTimeRange.value);
+});
+
+
 
 function deleteSelection(sel: RectangleSelectionType) {
   const index = selections.value.findIndex(s => s.id == sel.id);
@@ -1571,6 +1930,7 @@ function deleteSelection(sel: RectangleSelectionType) {
   }
   const isSelected = selectedIndex.value === index;
   if (map.value && sel.layer) {
+    // @ts-expect-error -- sel.layer has the correct type
     removeRectangleLayer(map.value, sel.layer);
   }
   selections.value.splice(index, 1);
@@ -1585,32 +1945,6 @@ function deleteSelection(sel: RectangleSelectionType) {
   }
 }
 
-function fetchCenterPointSample(sel: RectangleSelectionType) {
-  loadingPointSample.value = "loading";
-  pointSampleError.value = null;
-  pointSampleResult.value = null;
-  sampleDialog.value = true;
-  // Calculate center point
-  const { xmin, xmax, ymin, ymax } = sel.rectangle;
-  const x = (xmin + xmax) / 2;
-  const y = (ymin + ymax) / 2;
-  const center = { x, y };
-  const start = singleDateSelected.value.setHours(0, 0, 0, 0);
-  const end = singleDateSelected.value.setHours(23, 59, 59, 999);
-  getAggregatedSamples(
-    'https://gis.earthdata.nasa.gov/image/rest/services/C2930763263-LARC_CLOUD/TEMPO_NO2_L3_V03_HOURLY_TROPOSPHERIC_VERTICAL_COLUMN/ImageServer',
-    "NO2_Troposphere",
-    center,
-    start,
-    end
-  ).then((samples) => {
-    pointSampleResult.value = samples;
-    loadingPointSample.value = "finished";
-  }).catch((error) => {
-    pointSampleError.value = error?.message || String(error);
-    loadingPointSample.value = "error";
-  });
-}
 
 
 onMounted(() => {
@@ -1685,6 +2019,18 @@ const thumbLabel = computed(() => {
     hourValue = 12;
   }
   return `${date.value.getUTCMonth() + 1}/${dateObj.getUTCDate()}/${dateObj.getUTCFullYear()} ${hourValue}:${dateObj.getUTCMinutes().toString().padStart(2, '0')} ${amPm}`;
+});
+
+// Computed property for effective time range based on user selection
+const effectiveTimeRange = computed<MillisecondRange[]>(() => {
+  if (useCustomTimeRange.value && customTimeRange.value) {
+    return atleast1d(customTimeRange.value);
+  } else {
+    // Use current day as default
+    const start = singleDateSelected.value.setHours(0, 0, 0, 0);
+    const end = singleDateSelected.value.setHours(23, 59, 59, 999);
+    return [{ start, end }];
+  }
 });
 
 
@@ -1789,13 +2135,42 @@ function getCloudFilename(date: Date): string {
   }
 }
 
+function findNearestImageTimestamp(esriTimestamp: number, toleranceMinutes: number = 2): number | null {
+  const toleranceMs = toleranceMinutes * 60 * 1000;
+  
+  // Check all timestamp sets for the nearest match within tolerance
+  
+  // Find the nearest timestamp within tolerance
+  let nearestTimestamp: number | null = null;
+  let minDifference = Infinity;
+  
+  for (const imageTimestamp of preprocessedTimestampSet.value) {
+    const difference = Math.abs(imageTimestamp - esriTimestamp);
+    if (difference <= toleranceMs && difference < minDifference) {
+      minDifference = difference;
+      nearestTimestamp = imageTimestamp;
+    }
+  }
+  
+  return nearestTimestamp;
+}
 
-function getTempoFilename(date: Date): string {
+function getTempoFilename(_date: Date): string {
+  const ts = findNearestImageTimestamp(_date.getTime());
+  if (ts === null) {
+    return '';
+  }
+  const date = new Date(ts);
   return `tempo_${date.getUTCFullYear()}-${zpad(date.getUTCMonth() + 1)}-${zpad(date.getUTCDate())}T${zpad(date.getUTCHours())}h${zpad(date.getUTCMinutes())}m.png`;
 }
 
 
-function getTempoDataUrl(timestamp: number): string {
+
+function getTempoDataUrl(_timestamp: number): string | null {
+  const timestamp = findNearestImageTimestamp(_timestamp);
+  if (timestamp === null) {
+    return null;
+  }
   if (showExtendedRange.value && extendedRangeTimestampsSet.value.has(timestamp)) {
     if (useHighRes.value) {
       return 'https://raw.githubusercontent.com/johnarban/tempo-data-holdings/main/data_range_0_300/released/images/';
@@ -1817,7 +2192,7 @@ function getTempoDataUrl(timestamp: number): string {
     return "https://raw.githubusercontent.com/johnarban/tempo-data-holdings/main/released/images/resized_images/";
   }
 
-  return '';
+  return null;
 }
 
 
@@ -1828,7 +2203,7 @@ function imagePreload() {
     return;
   }
   // console.log('preloading images for ', this.thumbLabel);
-  const times = timestamps.value.slice(minIndex.value, maxIndex.value + 1);
+  const times = timestamps.value.slice(minIndex.value, maxIndex.value + 1).filter(ts => getTempoDataUrl(ts) !== null);
   const images = times.map(ts => getTempoDataUrl(ts) + getTempoFilename(new Date(ts)));
   const cloudImages = times.reduce((acc: string[], ts) => {
     if (cloudTimestampsSet.value.has(ts)) {
@@ -1837,6 +2212,10 @@ function imagePreload() {
     return acc;
   }, []);
   images.push(...cloudImages);
+  if (images.length === 0) {
+    console.warn('No images to preload');
+    return;
+  }
   const promises = _preloadImages(images);
   let loaded = 0;
   loadedImagesProgress.value = 0;
@@ -1850,7 +2229,7 @@ function imagePreload() {
   });
 }
 
-
+const locationsOfInterest = ref<Array<Array<{ latlng: LatLngPair; zoom: number; index?: number }>>>([]);
 function goToLocationOfInterst(index: number, subindex: number) {
   if (index < 0 || index >= locationsOfInterest.value.length) {
     console.warn('Invalid index for location of interest');
@@ -2261,30 +2640,41 @@ watch(selectionInfo, (info: RectangleSelectionInfo | null) => {
   if (info === null || map.value === null) {
     return;
   }
+  
   if (selection.value === null || selectedIndex.value === null) {
-    const color = COLORS[selectionCount % COLORS.length];
-    selectionCount += 1;
-    const { layer } = addRectangleLayer(map.value, info, color);
-    const newSelection: RectangleSelectionType = {
-      id: v4(),
-      name: `Selection ${selectionCount}`,
-      rectangle: info,
-      layer,
-      color,
-    };
-    selections.value.push(newSelection);
-    selection.value = newSelection;
+    // Create a new selection with time range using the unified function
+    createSelectionWithTimeRange(info);
   } else {
-    const selection = selections.value[selectedIndex.value];
-    selection.rectangle = info;
-    selection.samples = undefined;
-    const rect = selection.layer as RectangleType<typeof BACKEND>;
+    // Update the existing selection
+    const currentSelection = selections.value[selectedIndex.value];
+    currentSelection.rectangle = info;
+    currentSelection.samples = undefined; // Clear existing data
+    // explicit type
+    const rect = currentSelection.layer as RectangleSelectionType['layer'];
     if (rect) {
       updateRectangleBounds(rect, info);
     }
+    
+    console.log(`Updated existing selection: ${currentSelection.name} (time range unchanged)`);
   }
+  
+  // Deactivate selection mode
   selectionActive.value = false;
 });
+
+// Watch for time range mode changes and update custom time range if needed
+watch(useCustomTimeRange, (useCustom) => {
+  console.log(`Time range mode changed to: ${useCustom ? 'Custom Range' : 'Current Day'}`);
+  if (useCustom && !customTimeRange.value) {
+    // If switching to custom but no custom range is set, set a default
+    const start = singleDateSelected.value.setHours(0, 0, 0, 0);
+    const end = singleDateSelected.value.setHours(23, 59, 59, 999);
+    customTimeRange.value = { start, end };
+  }
+});
+
+// Watch for custom time range input changes
+
 </script>
   
 <style lang="less">
