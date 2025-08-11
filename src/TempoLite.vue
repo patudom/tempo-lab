@@ -751,6 +751,13 @@
         <hr style="border-color: grey">
 
         <div id="sample-info" v-if="selections" style="margin-top: 1em;">
+          <cds-dialog
+            v-model="showUserGuide"
+            title="User Guide"
+            button
+            >
+          <UserGuide/>
+          </cds-dialog>
           <ListComponent 
             :selectionOptions="selectionOptions" 
             v-model="selection as RectangleSelectionType" 
@@ -1046,6 +1053,7 @@ import { interestingEvents } from "./interestingEvents";
 import { AggValue, LatLngPair, InitMapOptions, RectangleSelectionInfo, RectangleSelection, RectangleType, MappingBackends } from "./types";
 import type { MillisecondRange } from "./types/datetime";
 import ListComponent from "./components/ListComponent.vue";
+import UserGuide from "./components/UserGuide.vue";
 import SampleTable from "./components/SampleTable.vue";
 import { atleast1d } from "./utils/atleast1d";
 
@@ -1433,6 +1441,7 @@ const showControls = ref(false);
 const showCredits = ref(false);
 const showAboutData = ref(false);
 const loadedImagesProgress = ref(0);
+const showUserGuide = ref(false);
 
 const showLocationMarker = ref(true);
 const currentUrl = ref(window.location.href);
