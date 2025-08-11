@@ -751,7 +751,24 @@
         <hr style="border-color: grey">
 
         <div id="sample-info" v-if="selections" style="margin-top: 1em;">
-          <ListComponent :selectionOptions="selectionOptions" v-model="selection as RectangleSelectionType" :selectionActive="selectionActive" @edit-selection="editSelection" @create-new="createNewSelection" />
+          <ListComponent 
+            :selectionOptions="selectionOptions" 
+            v-model="selection as RectangleSelectionType" 
+            :selectionActive="selectionActive" 
+            @edit-selection="editSelection" 
+            @create-new="createNewSelection" 
+          />
+          <!-- Add Time Series button -->
+          <v-btn 
+            v-if="selection && selectionHasSamples(selection as RectangleSelectionType)" 
+            size="small" 
+            color="success" 
+            @click="copySelectionWithNewTimeRange(selection as RectangleSelectionType)"
+            :disabled="loadingSamples === 'loading'"
+          >
+            + New Time Series <br/>for Current Selection
+          </v-btn>
+          
           <v-select
             v-model="selection"
             :items="selectionOptions"
@@ -800,7 +817,7 @@
                     <v-btn
                       v-bind="props"
                       size="x-small"
-                      :loading="loadingSamples === 'loading'"
+                      :loading="loadingSamples === sel.name"
                       :disabled="sel.samples != null"
                       icon="mdi-download"
                       @click="() => fetchDataForSelection(sel as RectangleSelectionType)"
@@ -815,7 +832,7 @@
                     <v-btn
                       v-bind="props"
                       size="x-small"
-                      :loading="loadingPointSample === 'loading'"
+                      :loading="loadingPointSample === sel.name"
                       icon="mdi-image-filter-center-focus"
                       @click="() => fetchCenterPointDataForSelection(sel as RectangleSelectionType)"
                     ></v-btn>
@@ -846,18 +863,7 @@
             Show Tables
           </v-btn>
           
-          <!-- Add Time Series button -->
-          <v-btn 
-            v-if="selection && selection.samples" 
-            size="small" 
-            color="success" 
-            @click="copySelectionWithNewTimeRange(selection as RectangleSelectionType)"
-            :disabled="loadingSamples === 'loading'"
-            class="ml-2"
-          >
-            <v-icon size="small">mdi-plus</v-icon>
-            Add Time Series
-          </v-btn>
+          
           
           <!-- Time Range Selection -->
           <div class="time-range-selection mt-3">
@@ -963,7 +969,7 @@
           :current-date="singleDateSelected"
           :selected-timezone="selectedTimezone"
           :allowed-dates="uniqueDays"
-          @ranges-change="handleTimeRangesChange"
+          @ranges-change="handleDateTimeRangeSelectionChange"
         />
       </div>
       
@@ -1620,6 +1626,14 @@ const {
 
 type SelectionOption = RectangleSelectionType | null;
 const selections = ref<RectangleSelectionType[]>([]);
+function updateSelections() {
+  selections.value = [...selections.value];
+}
+function addToSelections(sel: RectangleSelectionType) {
+  (selections.value as RectangleSelectionType[]).push(sel);
+  updateSelections(); // to trigger reactivity in watchers
+  return selections.value[selections.value.length - 1];
+}
 const selection = ref<SelectionOption>(null);
 const selectedIndex = computed({
   get() {
@@ -1635,7 +1649,26 @@ const selectedIndex = computed({
     }
   }
 });
-
+function  setSelection(sel: RectangleSelectionType | null) {
+  // returns the correspondin selection from within the selections array
+  // maybe this is unecessary. we don't use the returned value
+  // but maybe somewhere we would want it. idk if the input "sel" is
+  // identical to the value from the array (I arrays just store a reference)
+  if (sel === null) {
+    selection.value = null;
+    selectedIndex.value = null;
+    return null;
+  } else {
+    selection.value = sel;
+    const idx = selections.value.findIndex(s => s.id === sel.id);
+    if (idx == -1) {
+      // must already be in selections, so throw an error if that is not true
+      throw new Error(`Selection with ID ${sel.id} and name ${sel.name} not found in selections.`);
+    }
+    selectedIndex.value = idx;
+    return selections.value[selectedIndex.value] ?? null;
+  }
+}
 const selectionOptions = computed<SelectionOption[]>(() => ([null] as SelectionOption[]).concat(selections.value as SelectionOption[]));
 let selectionCount = 0;
 const samplesGraph = ref(false);
@@ -1689,41 +1722,79 @@ function addTimeseriesLocationsToMap(timeseries: Array<{ x: number; y: number }>
   console.log(`Adding ${timeseries.length} timeseries locations to map`);
 }
 
-
-
-// Handle time ranges from DateTimeRangeSelection component
-function handleTimeRangesChange(timeRanges: MillisecondRange[]) {
-  if (timeRanges.length === 0) {
-    console.log('No time ranges received from DateTimeRangeSelection');
-    return;
-  }
-  
-  console.log(`Received ${timeRanges.length} time range(s) from DateTimeRangeSelection:`, timeRanges);
-  
-  // If custom time range mode is enabled, store the ranges for later use
-  if (useCustomTimeRange.value) {
-    // Store the entire array of ranges
-    customTimeRange.value = timeRanges;
-    console.log(`Custom time ranges updated: ${timeRanges.length} range(s)`);
-    
-    // Log all ranges
-    timeRanges.forEach((range, index) => {
-      console.log(`  Range ${index + 1}: ${new Date(range.start).toLocaleDateString()} to ${new Date(range.end).toLocaleDateString()}`);
-    });
+function selectionHasSamples(sel: RectangleSelectionType): boolean {
+  console.log(`Checking if selection ${sel.name} has samples:`, sel.samples);
+  const has = (sel.samples !== undefined) && Object.keys(sel.samples).length > 0;
+  if (has) {
+    console.log(`Selection ${sel.name} has samples.`);
   } else {
-    // Apply the time ranges to the current selection if one exists
-    if (selection.value && timeRanges.length > 0) {
-      // Store the entire array instead of just the first range
-      selection.value.timeRange = timeRanges;
-      console.log(`Applied ${timeRanges.length} time range(s) from DateTimeRangeSelection to selection`);
-    }
+    console.log(`Selection ${sel.name} does not have samples.`);
   }
+  return has;
 }
 
+function setCurrentSelectionTimeRange(timeRange: MillisecondRange | MillisecondRange[]) {
+  console.log(`Setting time range for current selection:`);
+  if (selection.value && selectedIndex.value !== null) {
+    if (selectionHasSamples(selection.value as RectangleSelectionType)) {
+      console.error("Cannot set time range for selection with existing samples. Please clear samples first (disabled).");
+      return;
+    } else {
+      // Store the time range in the selection
+      selection.value.timeRange = timeRange;
+      selections.value[selectedIndex.value].timeRange = timeRange; // Update the selection in the array too
+      console.log(`Set time range for selection ${selection.value.name}:`, timeRange);
+      updateSelections();
+      return;
+    }
+  } else {
+    console.error("No current selection to set time range for.");
+    return;
+  }
+  // eslint-disable-next-line no-unreachable
+  console.error("how did i get here???");
+}
 
 
 // Add custom time range ref
 const customTimeRange = ref<MillisecondRange | MillisecondRange[] | null>(null);
+
+// This only handles the the change event from the DateTimeRangeSelection component.
+// We always want it's output in customTimeRange so we can use it if ncessary
+function handleDateTimeRangeSelectionChange(timeRanges: MillisecondRange[]) {
+  if (timeRanges.length === 0) {
+    console.error('No time ranges received from DateTimeRangeSelection');
+    return;
+  }
+  
+  console.log(`Received ${timeRanges.length} time range(s) from DateTimeRangeSelection:`, timeRanges);
+  // with this set, effectiveTimeRange will check if we are using a custom time range
+  // and if so, will update the current selection time (if samples have not been fetched yet)
+  // else will get the option to add a new time series
+  customTimeRange.value = timeRanges; 
+  timeRanges.forEach((range, index) => {
+    console.log(`  Range ${index + 1}: ${new Date(range.start).toLocaleDateString()} to ${new Date(range.end).toLocaleDateString()}`);
+  });
+}
+
+// Computed property for effective time range based on user selection
+const effectiveTimeRange = computed<MillisecondRange[]>(() => {
+  if (useCustomTimeRange.value && customTimeRange.value) {
+    return atleast1d(customTimeRange.value);
+  } else {
+    // Use current day as default
+    const day = new Date(singleDateSelected.value);
+    const start = day.setHours(0, 0, 0, 0);
+    const end = day.setHours(23, 59, 59, 999);
+    return [{ start, end }];
+  }
+});
+
+watch(effectiveTimeRange, (newRange) => {
+  console.log(`Effective time range changed: ${newRange.length} range(s). Attempting to set current selection time range.`);
+  setCurrentSelectionTimeRange(newRange);
+});
+
 
 // Selection management handlers
 function activateSelectionMode() {
@@ -1731,10 +1802,23 @@ function activateSelectionMode() {
   selectionActive.value = !selectionActive.value;
 }
 
+// clear all the data from the current selection
+// This is not used right now, but it is useful to have
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function clearSelectionSamples(sel: RectangleSelectionType) {
+  sel.samples = undefined;
+  sel.errors = undefined;
+  sel.timeRange = undefined;
+}
+
+// edit the region of the given selection.
 function editSelection(sel: RectangleSelectionType) {
+  if (selectionHasSamples(sel)) {
+    console.error("Cannot edit selection with existing samples.");
+    return;
+  }
   // Set the selection to edit
-  selection.value = sel;
-  selectedIndex.value = selections.value.findIndex(s => s.id === sel.id);
+  setSelection(sel);
   
   // Activate selection mode to allow editing
   selectionActive.value = true;
@@ -1744,8 +1828,7 @@ function editSelection(sel: RectangleSelectionType) {
 
 function createNewSelection() {
   // Clear current selection to force new selection creation
-  selection.value = null;
-  selectedIndex.value = null;
+  setSelection(null);
   
   // Activate selection mode
   selectionActive.value = true;
@@ -1755,7 +1838,7 @@ function createNewSelection() {
 
 // Unified fetching methods
 async function fetchDataForSelection(sel: RectangleSelectionType) {
-  loadingSamples.value = "loading";
+  loadingSamples.value = sel.name;
   sampleError.value = null;
   
   // we want to always have a timeRange set here.
@@ -1779,14 +1862,23 @@ async function fetchDataForSelection(sel: RectangleSelectionType) {
   }
 }
 
-async function fetchCenterPointDataForSelection(sel: RectangleSelectionType) {
-  loadingSamples.value = "loading";
+async function fetchCenterPointDataForSelection(_sel: RectangleSelectionType) {
+  loadingSamples.value = _sel.name;
   sampleError.value = null;
   
-  if (!sel.timeRange) {
+  if (!_sel.timeRange) {
+    throw new Error(`No time range set for selection ${_sel.name}`);
+  }
+  
+  const sel = copyAndUseSelection(_sel);
+  sel.name = `${_sel.name} (Center Point)`;
+  
+  if (!sel.timeRange) { // have to do the check again for type checker
     throw new Error(`No time range set for selection ${sel.name}`);
   }
+  loadingSamples.value = sel.name;
   const timeRanges = atleast1d(sel.timeRange) ?? effectiveTimeRange.value;
+  
   
   try {
     const data = await tempoDataService.fetchCenterPointData(sel.rectangle, timeRanges);
@@ -1802,27 +1894,7 @@ async function fetchCenterPointDataForSelection(sel: RectangleSelectionType) {
   }
 }
 
-// This old version keeps the point version of the data off somewhere else. 
-// Eventually we will want to implement point selections, or the ability to create point selections from a rectangle selection.
-// So I am keeping this arround for a reference in case it is useful
-// async function fetchCenterPointDataForSelection(sel: RectangleSelectionType) {
-//   loadingPointSample.value = "loading";
-//   pointSampleError.value = null;
-//   pointSampleResult.value = null;
-  
-//   try {
-//     const data = await tempoDataService.fetchCenterPointData(sel.rectangle, timeRanges);
-//     if (data) {
-//       pointSampleResult.value = data.values;
-//       loadingPointSample.value = "finished";
-//       console.log(`Fetched center point data for ${timeRanges.length} time range(s)`);
-//       addTimeseriesLocationsToMap(data.locations);
-//     }
-//   } catch (error) {
-//     pointSampleError.value = error instanceof Error ? error.message : String(error);
-//     loadingPointSample.value = "error";
-//   }
-// }
+
 
 // Create a new selection with a time range
 function createSelectionWithTimeRange(rectangle: RectangleSelectionInfo, timeRanges?: MillisecondRange | MillisecondRange[]): RectangleSelectionType {
@@ -1847,20 +1919,19 @@ function createSelectionWithTimeRange(rectangle: RectangleSelectionInfo, timeRan
   };
 
   // Add to selections array
-  (selections.value as RectangleSelectionType[]).push(newSelection);
+  addToSelections(newSelection);
   
-  // Deselect after fetching
-  selection.value = null;
-  selectedIndex.value = null;
+  // set this as the current selection
+  setSelection(newSelection);
   
   console.log(`Created new selection ${newSelection.name} with ${_timeRanges.length} time range(s)`);
-  return newSelection;
+  return selections.value[selections.value.length - 1] as RectangleSelectionType;
 }
 
 
 // Add time series to existing selection - copy the selection and set a new time range
 // TODO: contains a lot of the createSelectionWithTimeRange. Should be possible to refactor these to use a common api
-function copySelectionWithNewTimeRange(existingSelection: RectangleSelectionType, timeRanges?: MillisecondRange | MillisecondRange[]): RectangleSelectionType {
+function copySelectionWithNewTimeRange(existingSelection: RectangleSelectionType, timeRanges?: MillisecondRange | MillisecondRange[], name?: string): RectangleSelectionType {
   const color = COLORS[selectionCount % COLORS.length];
   selectionCount += 1;
   
@@ -1869,7 +1940,7 @@ function copySelectionWithNewTimeRange(existingSelection: RectangleSelectionType
   
   const newSelection: RectangleSelectionType = {
     id: v4(),
-    name: `${existingSelection.name} (Time Series ${selectionCount})`,
+    name: name ?? `${existingSelection.name} (Copy)`,
     rectangle: existingSelection.rectangle,
     layer: existingSelection.layer, // Share the same layer
     color,
@@ -1877,15 +1948,32 @@ function copySelectionWithNewTimeRange(existingSelection: RectangleSelectionType
   };
 
   // Add to selections array
-  (selections.value as RectangleSelectionType[]).push(newSelection);
+  addToSelections(newSelection);
   
-  // Deselect after fetching
-  selection.value = null;
-  selectedIndex.value = null;
+  // set this as the current selection
+  setSelection(newSelection);
   
   console.log(`Added time series to selection ${newSelection.name} with ${_timeRanges.length} time range(s)`);
   return newSelection;
 }
+
+function copyAndUseSelection(sel: RectangleSelectionType) {
+  // Create a new selection with the same rectangle and time range
+  const copiedSelection = copySelectionWithNewTimeRange(sel, sel.timeRange, `${sel.name} (Center Point)`);
+  
+  // Set the new selection as current
+  setSelection(copiedSelection);
+  
+  console.log(`Copied and using selection: ${copiedSelection.name}`);
+  return copiedSelection;
+}
+
+
+watch(selections, (newSelections, oldSelections) => {
+  // just log out the length difference
+  console.log(`Selections changed: ${oldSelections.length} -> ${newSelections.length}`);
+});
+
 
 // Utility function to get time range display string
 function formatTimeRange(ranges: MillisecondRange | MillisecondRange[]): string {
@@ -2019,18 +2107,6 @@ const thumbLabel = computed(() => {
     hourValue = 12;
   }
   return `${date.value.getUTCMonth() + 1}/${dateObj.getUTCDate()}/${dateObj.getUTCFullYear()} ${hourValue}:${dateObj.getUTCMinutes().toString().padStart(2, '0')} ${amPm}`;
-});
-
-// Computed property for effective time range based on user selection
-const effectiveTimeRange = computed<MillisecondRange[]>(() => {
-  if (useCustomTimeRange.value && customTimeRange.value) {
-    return atleast1d(customTimeRange.value);
-  } else {
-    // Use current day as default
-    const start = singleDateSelected.value.setHours(0, 0, 0, 0);
-    const end = singleDateSelected.value.setHours(23, 59, 59, 999);
-    return [{ start, end }];
-  }
 });
 
 
@@ -2213,7 +2289,7 @@ function imagePreload() {
   }, []);
   images.push(...cloudImages);
   if (images.length === 0) {
-    console.warn('No images to preload');
+    console.error('No images to preload');
     return;
   }
   const promises = _preloadImages(images);
@@ -2232,7 +2308,7 @@ function imagePreload() {
 const locationsOfInterest = ref<Array<Array<{ latlng: LatLngPair; zoom: number; index?: number }>>>([]);
 function goToLocationOfInterst(index: number, subindex: number) {
   if (index < 0 || index >= locationsOfInterest.value.length) {
-    console.warn('Invalid index for location of interest');
+    console.error('Invalid index for location of interest');
     return;
   }
   const loi = locationsOfInterest.value[index][subindex];
@@ -2240,7 +2316,7 @@ function goToLocationOfInterst(index: number, subindex: number) {
   if (loi.index !== undefined) {
     timeIndex.value = loi.index;
   } else {
-    console.warn('No index found for location of interest');
+    console.error('No index found for location of interest');
   }
 }
 
