@@ -5,7 +5,19 @@
     >
     <!-- add the activator slot, but only use it if the appropriate value is given for activator -->
      <template v-slot:activator="$attrs">
-      <slot name="activator" v-bind="$attrs"></slot>
+      <slot name="activator" v-bind="$attrs">
+        <v-btn
+          v-if="button"
+          :color="color"
+          :title="displayedShortTitle"
+          class="cds-dialog-button"
+          @click="showDialog = true"
+          @keyup.enter="showDialog = true"
+          tabindex="0"
+          >
+          Open {{ displayedShortTitle }}
+        </v-btn>
+      </slot>
     </template>
      
     <v-card
@@ -51,6 +63,7 @@ interface CDSDialogProps {
   color?: string;
   shortTitle?: string;
   draggable?: boolean;
+  button?: boolean;
 }
 
 const props = withDefaults(defineProps<CDSDialogProps>(), {
@@ -58,6 +71,7 @@ const props = withDefaults(defineProps<CDSDialogProps>(), {
   color: "red",
   shortTitle: "",
   draggable: false,
+  button: false,
 });
 
 const emit = defineEmits<{
