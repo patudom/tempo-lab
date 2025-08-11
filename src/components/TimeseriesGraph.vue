@@ -44,12 +44,12 @@ function renderPlot() {
   
   const plotlyData: Data[] = [];
   if (props.data.length === 0) {
-    console.warn("No data provided for timeseries graph");
+    console.log("No data provided for timeseries graph");
     return;
   }
   
   if (props.data.map(sel => Object.keys(sel.samples ?? {}).length).every(len => len === 0)) {
-    console.warn("No samples provided for timeseries graph");
+    console.log("No samples provided for timeseries graph");
     return;
   }
 
@@ -161,15 +161,16 @@ onMounted(() => {
 });
 
 
-
 watch(() => props.data.map(sel => Object.keys(sel.samples ?? {}).length), (newData) => {
   if (newData.length === 0) {
-    console.warn("No data provided for timeseries graph");
+    console.log("No data provided for timeseries graph");
     return;
   }
   console.log("Data changed, re-rendering plot");
   renderPlot();
-});
+}, 
+{ immediate: true } // needed to force render in some situations
+);
 </script>
 
 <style scoped>
