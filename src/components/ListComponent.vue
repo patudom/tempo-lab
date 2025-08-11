@@ -1,7 +1,7 @@
 <template>
   <section class="selection-list">
     <header class="selection-header">
-      <h3>Selection</h3>
+      <h3>Selected Regions</h3>
       <v-btn
         size="x-small"
         icon="mdi-plus"
@@ -11,31 +11,29 @@
     </header>
     
     <ul class="selection-items">
-      <li
-        v-if="filteredSelectionOptions.length === 0"
-        class="selection-placeholder"
-      >
-        <span class="placeholder-text">Select a region on the map</span>
+      <li v-if="filteredSelectionOptions.length === 0" class="selection-placeholder">
+        Select a region on the map
       </li>
       <li
         v-for="(sel, idx) in filteredSelectionOptions"
-        :key="sel?.id || idx"
+        :key="sel.id ?? idx"
+        @click="select(sel)"
         class="selection-item"
-        :class="{ 
-          'is-selected': sel === modelValue, 
-          'is-editing': sel === modelValue && selectionActive
-        }"
-        :style="sel?.color ? { '--selection-color': sel.color } : {}"
-        @click="handleSelectionClick(idx, sel)"
-        tabindex="0"
-        @keyup.enter="handleSelectionClick(idx, sel)"
-        role="button"
-        :aria-label="`Edit selection: ${sel.name}`"
+        :style="sel.color ? { '--selection-color': sel.color } : {}"
       >
-        <span class="selection-name">{{ sel.name }}</span>
-        <time v-if="sel.timeRange" class="selection-time">
-          {{ formatTimeRange(sel.timeRange) }}
-        </time>
+        <label class="selection-label">
+          <input
+            type="radio"
+            name="region-selection"
+            :value="sel"
+            v-model="modelValue"
+            @change="select(sel)"
+          />
+          <span class="selection-name">{{ sel.name }}</span>
+          <span v-if="sel.timeRange" class="selection-time">
+            {{ formatTimeRange(sel.timeRange) }}
+          </span>
+        </label>
       </li>
     </ul>
   </section>
@@ -50,43 +48,38 @@ const modelValue = defineModel<RectangleSelectionType>('modelValue');
 const props = defineProps<{ selectionOptions: RectangleSelectionType[], selectionActive?: boolean }>();
 const emits = defineEmits(['edit-selection', 'create-new']);
 
-
-// Filter out null items from selectionOptions
-const filteredSelectionOptions = computed(() => 
+const filteredSelectionOptions = computed(() =>
   props.selectionOptions.filter(sel => sel !== null)
 );
 
 // Function to format time range for display - from TempoLite.vue
 function formatTimeRange(ranges:  { start: number; end: number } |  { start: number; end: number }[]): string {
   if (Array.isArray(ranges)) {
-    if (ranges.length === 0) {
-      return 'No time range set';
-    }
-    
+    if (ranges.length === 0) return 'No time range set';
     if (ranges.length === 1) {
       const range = ranges[0];
       return `${new Date(range.start).toLocaleDateString()} - ${new Date(range.end).toLocaleDateString()}`;
-    } else {
-      // For multiple ranges, show the full span
-      const allStarts = ranges.map(r => r.start);
-      const allEnds = ranges.map(r => r.end);
-      const minStart = Math.min(...allStarts);
-      const maxEnd = Math.max(...allEnds);
-      return `${new Date(minStart).toLocaleDateString()} - ${new Date(maxEnd).toLocaleDateString()} (${ranges.length} ranges)`;
     }
-  } else {
-    return `${new Date(ranges.start).toLocaleDateString()} - ${new Date(ranges.end).toLocaleDateString()}`;
+    const allStarts = ranges.map(r => r.start);
+    const allEnds = ranges.map(r => r.end);
+    const minStart = Math.min(...allStarts);
+    const maxEnd = Math.max(...allEnds);
+    return `${new Date(minStart).toLocaleDateString()} - ${new Date(maxEnd).toLocaleDateString()} (${ranges.length} ranges)`;
   }
+  return `${new Date(ranges.start).toLocaleDateString()} - ${new Date(ranges.end).toLocaleDateString()}`;
 }
 
-// Function to handle selection clicks
-function handleSelectionClick(_idx: number, sel: RectangleSelectionType) {
-  emits('edit-selection', sel);
+function select(sel: RectangleSelectionType) {
+  if (modelValue.value !== sel) {
+    modelValue.value = sel;
+    emits('edit-selection', sel);
+  }
 }
 </script>
 
 <style scoped>
 .selection-list {
+  font-size: 0.9em;
   max-height: 200px;
 }
 
@@ -100,75 +93,47 @@ function handleSelectionClick(_idx: number, sel: RectangleSelectionType) {
 .selection-header h3 {
   margin: 0;
   font-size: 1em;
-  font-weight: bold;
 }
 
 .selection-items {
   list-style: none;
   padding: 0;
   margin: 0;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  max-height: 160px;
-  overflow-y: auto;
-
 }
 
 .selection-item {
-  padding: 0.5em;
-  margin: 0.25em;
-  background: var(--selection-color, #f5f5f5);
-  border-radius: 4px;
+  margin: 0.25em 0;
   cursor: pointer;
-  border: 5px solid transparent;
-  transition: border-color 0.2s;
+  background: var(--selection-color, transparent);
+  padding: 0.25em 0.5em;
 }
 
-.selection-item:hover {
-  border-color: #ddd;
-}
-
-.selection-item.is-selected {
-  border-color: white;
-  border-width: 3px;
-  font-weight: bold;
-}
-
-.selection-item.is-editing {
-  border-color: #ff4500;
-  border-width: 2px;
-  font-weight: bold;
-}
-
-.selection-item:focus {
-  outline: 2px solid #068ede;
-  outline-offset: 2px;
+.selection-label {
+  /* updated to inline layout */
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5em;
 }
 
 .selection-name {
-  display: block;
-  font-weight: 500;
+  /* no extra formatting */
 }
 
 .selection-time {
-  display: block;
-  font-size: 0.8rem;
-  color: #666;
-  margin-top: 0.25rem;
+  /* updated sub-label inline */
+  font-size: 0.75em;
+  opacity: 0.7;
+  margin-left: 0.5em;
 }
 
 .selection-placeholder {
-  padding: 1rem;
+  padding: 0.75em;
   text-align: center;
-  color: #999;
   font-style: italic;
-  border: 2px dashed #ccc;
-  border-radius: 4px;
-  margin: 0.25rem;
-  background: #fafafa;
+  font-size: 0.85em;
+  color: #666;
 }
 
-.placeholder-text {
-  font-size: 0.9rem;
-}
+
 </style>
