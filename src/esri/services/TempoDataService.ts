@@ -162,7 +162,6 @@ export class TempoDataService {
       : 'esriGeometryPoint';
 
     // Handle multiple time ranges by combining them
-    console.log("in fetchSsamples. timeRanges", timeRange);
     const timeString = `${timeRange.start},${timeRange.end}`;
 
     const params = {
@@ -198,7 +197,7 @@ export class TempoDataService {
         locationId: sample.locationId,
         geometryType: this.isRectBounds(geometry) ? 'rectangle' : 'point' as 'rectangle' | 'point'
       })); // this is a CEsriTimeseries[]
-
+      console.log(`Fetched ${processedSamples.length} samples for time range ${timeRange.start}-${timeRange.end}`);
       return {
         samples: processedSamples,
         metadata: {
@@ -223,7 +222,6 @@ export class TempoDataService {
     options: FetchOptions = {}
   ): Promise<RawSampleData> {
     
-    console.log("in fetchSsamples. timeRanges", timeRanges);
     if (!Array.isArray(timeRanges)) {
       return this.fetchSample(geometry, timeRanges, options);
     }
