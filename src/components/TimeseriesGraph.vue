@@ -1,3 +1,4 @@
+<!-- eslint-disable @typescript-eslint/no-unused-vars -->
 <template>
   <div
     ref="graph"
@@ -8,14 +9,16 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { onMounted, ref, watch } from "vue";
 import { v4 } from "uuid";
 import { PlotlyHTMLElement, newPlot, type Data, type Datum, type PlotMouseEvent } from "plotly.js-dist-min";
 
-import { AggValue, RectangleSelection } from "../types";
+import { AggValue, RectangleSelection, MappingBackends } from "../types";
+
 
 interface TimeseriesProps {
-  data: RectangleSelection[];
+  data: Omit<RectangleSelection<MappingBackends>[], 'layer'>;
 }
 
 const props = defineProps<TimeseriesProps>();
@@ -37,9 +40,18 @@ function datumToDate(datum: Datum): Date | null {
 
 const legendGroups: Record<string, string> = {};
 
-onMounted(() => {
-
+function renderPlot() {
+  
   const plotlyData: Data[] = [];
+  if (props.data.length === 0) {
+    console.log("No data provided for timeseries graph");
+    return;
+  }
+  
+  if (props.data.map(sel => Object.keys(sel.samples ?? {}).length).every(len => len === 0)) {
+    console.log("No samples provided for timeseries graph");
+    return;
+  }
 
   let max = 0;
   props.data.forEach(data => {
@@ -50,10 +62,12 @@ onMounted(() => {
     const dataV: (number | null)[] = [];
     ts.forEach(t => {
       const point: AggValue = samples[t];
-      dataT.push(point.date);
-      dataV.push(point.value);
+      if (point.value !== null) {
+        dataT.push(point.date);
+        dataV.push(point.value);
+      }
     });
-    max = Math.max(max, Math.max(...dataV));
+    max = Math.max(max, Math.max(...dataV.filter((v): v is number => v !== null)));
 
     const legendGroup = v4();
     legendGroups[data.id] = legendGroup;
@@ -78,8 +92,8 @@ onMounted(() => {
         const value = point.value;
         const errs = errors[t];
         if (value === null || errs == null) {
-          lowerY.push(null);
-          upperY.push(null);
+          // lowerY.push(null);
+          // upperY.push(null);
           return;
         }
         const { lower, upper } = errs;
@@ -139,12 +153,28 @@ onMounted(() => {
       });
     });
   });
+}
 
+
+onMounted(() => {
+  renderPlot();
 });
+
+
+watch(() => props.data.map(sel => Object.keys(sel.samples ?? {}).length), (newData) => {
+  if (newData.length === 0) {
+    console.log("No data provided for timeseries graph");
+    return;
+  }
+  console.log("Data changed, re-rendering plot");
+  renderPlot();
+}, 
+{ immediate: true } // needed to force render in some situations
+);
 </script>
 
 <style scoped>
-.timeseries {
+.timeseries:not(:empty) {
   width: 600px;
   height: 400px;
 }

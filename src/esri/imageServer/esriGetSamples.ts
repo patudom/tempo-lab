@@ -2,7 +2,7 @@
 import { rectangleToGeometry, pointToGeometry } from '../geometry';
 import type { RectBounds, PointBounds, EsriGeometryType } from '../geometry';
 import type { EsriGetSamplesReturn, EsriGetSamplesReturnError, EsriGetSamplesSample, Variables, EsriInterpolationMethod, CEsriTimeseries } from '../types';
-import type { AggValue } from "../../types";
+import type { AggValue, DataPointError } from "../../types";
 
 function safeParseNumber(value: string | null | undefined): number | null {
   if (value === null || value === '' || value === undefined) return null;
@@ -134,6 +134,7 @@ export function esriGetSamples(
           variable: safeParseNumber(sample.attributes[variableName] ?? ''), // assuming NO2_Troposphere is the variable we want
           value: safeParseNumber(sample.value),
           locationId: sample.locationId,
+          geometryType: geometryType === 'esriGeometryPolygon' ? 'rectangle' : 'point' as CEsriTimeseries['geometryType'],
         };
       });
     })
@@ -143,39 +144,6 @@ export function esriGetSamples(
     });
 }
 
-export function test() {
-  console.log('test function called');
-  const url =
-    'https://gis.earthdata.nasa.gov/image/rest/services/C2930763263-LARC_CLOUD/TEMPO_NO2_L3_V03_HOURLY_TROPOSPHERIC_VERTICAL_COLUMN/ImageServer';
-  const oneDay = 24 * 60 * 60 * 1000; // 1 day in milliseconds
-
-  const test_geometry = { x: -110, y: 44 };
-  // test small rectangle around new york city
-  // const test_geometry = {
-  //   xmin: -110,
-  //   ymin: 40,
-  //   xmax: -100,
-  //   ymax: 45,
-  // } as RectBounds;
-  esriGetSamples(
-    url,
-    'NO2_Troposphere',
-    test_geometry,
-    Date.now() - 3 * oneDay,
-    Date.now() - 2 * oneDay,
-    30,
-  )
-    .then((samples) => {
-      const grouped = groupSamplesByTime(samples);
-      const aggregated = aggregate(grouped, (samples) =>
-        nullMean(samples.map((sample) => sample.value)),
-      );
-      console.log('Aggregated Samples:', aggregated);
-    })
-    .catch((error) => {
-      console.error('Error:', error);
-    });
-}
 
 export function groupSamplesByTime(
   samples: CEsriTimeseries[],
@@ -192,21 +160,35 @@ export function groupSamplesByTime(
   return groupd;
 }
 
-function nullMean(samples: (number | null)[]): number | null {
+function nullMean(samples: (number | null)[], time: number): AggValue {
   const validSamples = samples.filter((sample) => sample !== null);
-  if (validSamples.length === 0) return null;
+  if (validSamples.length === 0) return {value: null, date: new Date(time)};
   const sum = validSamples.reduce((acc, val) => acc + (val ?? 0), 0);
-  return sum / validSamples.length;
+  return {value: sum / validSamples.length, date: new Date(time)}; 
 }
 
 
-export function aggregate(
+function nullError(samples: (number | null)[], _time: number): DataPointError {
+  const validSamples = samples.filter((sample) => sample !== null);
+  if (validSamples.length === 0) return {lower: null, upper: null};
+  
+  const mean = validSamples.reduce((acc, val) => acc + (val ?? 0), 0) / validSamples.length;
+  const squaredDiffs = validSamples.map((sample) => {
+    if (sample === null) return 0;
+    return Math.pow(sample - mean, 2);
+  });
+  const variance = squaredDiffs.reduce((acc, val) => acc + val, 0) / validSamples.length;
+  
+  return {lower: Math.sqrt(variance), upper: Math.sqrt(variance)}; 
+}
+
+export function aggregate<T>(
   grouped: Map<number, CEsriTimeseries[]>,
-  aggFunction: (samples: CEsriTimeseries[]) => number | null,
+  aggFunction: (samples: CEsriTimeseries[], time: number) => T,
 ) {
-  const aggregated: Record<number, AggValue> = {};
+  const aggregated: Record<number, T> = {};
   grouped.forEach((samples, time) => {
-    aggregated[time] = {value: aggFunction(samples), date: new Date(time)};
+    aggregated[time] = aggFunction(samples, time);
   });
   return aggregated;
 }
@@ -220,8 +202,20 @@ export async function getAggregatedSamples(
   start: number,
   end: number,
   sampleCount: number = 30,
-): Promise<Record<number, AggValue>> {
+): Promise<{ mean: Record<number, AggValue>, error: Record<number, DataPointError>, uniqueLocations: { x: number, y: number }[] }> {
   const samples = await esriGetSamples(url, variableName, geometry, start, end, sampleCount);
   const grouped = groupSamplesByTime(samples);
-  return aggregate(grouped, (samples) => nullMean(samples.map((sample) => sample.value)));
+  const mean = aggregate(grouped, (samples, time) => nullMean(samples.map((sample) => sample.value), time));
+  const error = aggregate(grouped, (samples, time) => nullError(samples.map((sample) => sample.value), time));
+  // Collect unique locations
+  const seen = new Set<string>();
+  const uniqueLocations: { x: number, y: number }[] = [];
+  for (const sample of samples) {
+    const key = `${sample.x},${sample.y}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      uniqueLocations.push({ x: sample.x, y: sample.y });
+    }
+  }
+  return { mean, error, uniqueLocations };
 }
