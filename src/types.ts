@@ -109,6 +109,11 @@ export interface RectangleSelectionInfo {
   ymax: number;
 }
 
+export interface PointSelectionInfo {
+  x: number;
+  y: number;
+}
+
 export type AggValue = {
   value: number | null;
   date: Date;
