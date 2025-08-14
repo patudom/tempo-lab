@@ -1,22 +1,21 @@
 import { ref, type Ref } from "vue";
-import { type LeafletMouseEvent, Map } from "leaflet";
+import { Map, MapMouseEvent } from "maplibre-gl";
 
-import { PointSelectionInfo, SelectionHandler } from "../../types";
+import type { PointSelectionInfo, SelectionHandler } from "../../types";
 import { baseUseSelection } from "./baseUseSelection";
 
 export function usePointSelection(
   map: Ref<Map | null>,
   startActive: boolean = false,
 ) {
-
-  const handler: SelectionHandler<LeafletMouseEvent, PointSelectionInfo> = {
-
+  
+  const handler: SelectionHandler<MapMouseEvent, PointSelectionInfo> = {
     selectionInfo: ref<PointSelectionInfo | null>(null),
 
-    onMouseup(event: LeafletMouseEvent) {
+    onMouseup(event: MapMouseEvent) {
       this.selectionInfo.value = {
-        x: event.latlng.lng,
-        y: event.latlng.lat,
+        x: event.lngLat.lng,
+        y: event.lngLat.lat,
       };
     },
   };

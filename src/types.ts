@@ -140,3 +140,18 @@ export interface RectangleSelection<T extends MappingBackends> {
   errors?: Record<number, DataPointError>;
   timeRange?: MillisecondRange | MillisecondRange[];
 }
+
+export interface SelectionHandler<EventType, SelectionInfo> {
+  selectionInfo: Ref<SelectionInfo | null>;
+  onMouseup?: (event: EventType) => void;
+  onMousedown?: (event: EventType) => void;
+  onMousemove?: (event: EventType) => void;
+}
+
+export interface UseSelectionOptions<MapType, EventType, SelectionInfo> {
+  map: Ref<MapType | null>;
+  handler: SelectionHandler<EventType, SelectionInfo>;
+  startActive?: boolean;
+}
+
+
