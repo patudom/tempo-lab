@@ -21,6 +21,7 @@ export function baseUseSelection<SelectionInfo>(
     if (active) {
       map.dragging.disable();
       map.scrollWheelZoom.disable();
+      console.log(handler);
       if (handler.onMouseup) {
         map.addEventListener("mouseup", handler.onMouseup);
       }
@@ -28,7 +29,7 @@ export function baseUseSelection<SelectionInfo>(
         map.addEventListener("mousedown", handler.onMousedown);
       }
       if (handler.onMousemove) {
-        map.addEventListener("mousedown", handler.onMousemove);
+        map.addEventListener("mousemove", handler.onMousemove);
       }
     } else {
       map.dragging.enable();
@@ -40,7 +41,7 @@ export function baseUseSelection<SelectionInfo>(
         map.removeEventListener("mousedown", handler.onMousedown);
       }
       if (handler.onMousemove) {
-        map.removeEventListener("mousedown", handler.onMousemove);
+        map.removeEventListener("mousemove", handler.onMousemove);
       }
     }
   }

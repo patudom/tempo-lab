@@ -14,7 +14,7 @@ export function usePointSelection(
     selectionInfo: ref<PointSelectionInfo | null>(null),
 
     onMouseup(event: LeafletMouseEvent) {
-      this.selectionInfo.value = {
+      handler.selectionInfo.value = {
         x: event.latlng.lng,
         y: event.latlng.lat,
       };

@@ -34,7 +34,7 @@ export function useRectangleSelection(
       }
 
       const eventCoords = event.latlng;
-      this.selectionInfo.value = {
+      handler.selectionInfo.value = {
         xmin: startCoords.lng,
         ymin: startCoords.lat,
         xmax: eventCoords.lng,

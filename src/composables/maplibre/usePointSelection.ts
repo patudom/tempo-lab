@@ -13,7 +13,7 @@ export function usePointSelection(
     selectionInfo: ref<PointSelectionInfo | null>(null),
 
     onMouseup(event: MapMouseEvent) {
-      this.selectionInfo.value = {
+      handler.selectionInfo.value = {
         x: event.lngLat.lng,
         y: event.lngLat.lat,
       };
