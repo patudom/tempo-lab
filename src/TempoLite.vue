@@ -614,6 +614,22 @@
             <v-expansion-panel
               title="Date/Time Range"
             >
+              <template #text>
+                <date-time-range-selection
+                  :current-date="singleDateSelected"
+                  :selected-timezone="selectedTimezone"
+                  :allowed-dates="uniqueDays"
+                  @ranges-change="handleDateTimeRangeSelectionChange"
+                />
+                <v-list>
+                  <v-list-item
+                    v-for="(timeRange, index) in availableTimeRanges"
+                    :key="index"
+                    :title="timeRange.name"
+                    :subtitle="timeRange.description"
+                  ></v-list-item>
+                </v-list>
+              </template>
             </v-expansion-panel>
             <v-expansion-panel
               title="Regions"
@@ -3213,7 +3229,9 @@ ul {
   }
 
   #user-options {
+    overflow-y: scroll;
     min-width: 200px;
+    height: 100%;
     margin-left: 1.5rem;
     grid-column: 3 / 4;
     grid-row: 2 / 3;
