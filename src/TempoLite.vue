@@ -321,15 +321,6 @@
           >
             <v-toolbar-title text="TEMPO Data Viewer"></v-toolbar-title>
             <v-spacer></v-spacer>
-            <v-select
-              v-model="whichMolecule"
-              :items="moleculeOptions"
-              item-title="title"
-              item-value="value"
-              label="Molecule"
-              hide-details
-              dense
-            ></v-select>
             <v-tooltip :text="selectionActive ? 'Cancel selection' : 'Select a region'">
               <template #activator="{ props }">
                 <v-btn
@@ -614,9 +605,87 @@
           ></icon-button>
         </div>
 
-        
-
         <div id="user-options">
+          <v-expansion-panels
+            variant="accordion"
+            id="user-options-panels"
+            multiple
+          >
+            <v-expansion-panel
+              title="Date/Time Range"
+            >
+            </v-expansion-panel>
+            <v-expansion-panel
+              title="Regions"
+            >
+              <template #text>
+                <div id="add-region-buttons">
+                  <v-btn
+                    size="small"
+                    :active="selectionActive"
+                    @click="() => {
+                      if (selectionActive) {
+                        selectionActive = false;
+                      } else {
+                        createNewSelection();
+                      }
+                    }"
+                  >
+                    <template #prepend>
+                      <v-icon icon="mdi-plus"></v-icon>
+                    </template>
+                    Add Region
+                  </v-btn>
+                  <v-btn
+                    size="small"
+                  >
+                    <template #prepend>
+                      <v-icon icon="mdi-plus"></v-icon>
+                    </template>
+                    Add Point
+                  </v-btn>
+                </div>
+                <v-list>
+                  <v-list-item
+                    v-for="(region, index) in availableRegions"
+                    :key="index"
+                    :title="region.name"
+                    :style="{ 'background-color': region.color }"
+                  >
+                    <template #append>
+                      <v-btn
+                        variant="plain"
+                        v-tooltip="'Edit'"
+                        icon="mdi-pencil"
+                        color="white"
+                      ></v-btn>
+                      <v-btn
+                        variant="plain"
+                        v-tooltip="'Delete'"
+                        icon="mdi-delete"
+                        color="white"
+                      ></v-btn>
+                    </template>
+                  </v-list-item>
+                </v-list>
+              </template>
+            </v-expansion-panel>
+            <v-expansion-panel
+              title="Molecule / Quantity"
+            >
+              <template #text>
+                <v-select
+                  v-model="whichMolecule"
+                  :items="moleculeOptions"
+                  item-title="title"
+                  item-value="value"
+                  label="Molecule"
+                  hide-details
+                  dense
+                ></v-select>
+              </template>
+            </v-expansion-panel>
+          </v-expansion-panels>
         <div id="all-dates">
           <h2>Select a Date</h2>  
           <div class="d-flex flex-row align-center">
@@ -3148,6 +3217,11 @@ ul {
     margin-left: 1.5rem;
     grid-column: 3 / 4;
     grid-row: 2 / 3;
+  }
+
+  #add-region-buttons {
+    display: flex;
+    flex-direction: row;
   }
   
   #sample-info {
