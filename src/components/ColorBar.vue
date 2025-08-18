@@ -260,13 +260,14 @@ export default defineComponent({
   width: max-content;
   height: 100%;
   top: 50%;
+  line-height: 1.75;
   /* right: -1.5ch; */
   -webkit-transform-origin: top center;
       -ms-transform-origin: top center;
           transform-origin: top center;
-  -webkit-transform: rotate(180deg) translate(-75%,-50%);
-      -ms-transform: rotate(180deg) translate(-75%,-50%);
-          transform: rotate(180deg) translate(-75%,-50%);
+  -webkit-transform: rotate(180deg) translate(-100%,-50%);
+      -ms-transform: rotate(180deg) translate(-100%,-50%);
+          transform: rotate(180deg) translate(-100%,-50%);
   -webkit-writing-mode: vertical-rl;
       -ms-writing-mode: tb-rl;
           writing-mode: vertical-rl;
