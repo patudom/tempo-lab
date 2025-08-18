@@ -306,13 +306,14 @@
           label="Amount of NO2"
           backgroundColor="transparent"
           :nsteps="255"
-          :cmap="cmapNO2"
-          start-value="1"
-          :end-value="showingExtendedRange ? '300' : '150'"
+          :cmap="currentColormap"
+          :start-value="colorbarOptions[whichMolecule].stretch[0] / colorbarOptions[whichMolecule].cbarScale"
+          :end-value="colorbarOptions[whichMolecule].stretch[1] / colorbarOptions[whichMolecule].cbarScale"
           :extend="true"
         >
         <template v-slot:label>
-              <div style="text-align: center;">Amount of NO&#x2082;&nbsp;<span class="unit-label">(10&sup1;&#x2074; mol/cm&sup2;)</span></div>
+              <div v-if="Math.log10(colorbarOptions[whichMolecule].cbarScale) !== 0" style="text-align: center;">Amount of NO<sub>2</sub>&nbsp;<span class="unit-label">(10<sup>{{ Math.log10(colorbarOptions[whichMolecule].cbarScale)}}</sup> mol/cm<sup>2</sup>)</span></div>
+              <div v-else style="text-align: center;">Amount of NO<sub>2</sub>&nbsp;<span class="unit-label"> molecules/cm<sup>2</sup></span></div>
         </template>
         </colorbar-horizontal>
         <v-card id="map-contents" style="width:100%; height: 100%;">
@@ -573,13 +574,14 @@
           label="Amount of NO2"
           backgroundColor="transparent"
           :nsteps="255"
-          :cmap="cmapNO2"
-          start-value="1"
-          :end-value="showingExtendedRange ? '300' : '150'"
+          :cmap="currentColormap"
+          :start-value="colorbarOptions[whichMolecule].stretch[0] / colorbarOptions[whichMolecule].cbarScale"
+          :end-value="colorbarOptions[whichMolecule].stretch[1] / colorbarOptions[whichMolecule].cbarScale"
           :extend="true"
         >
           <template v-slot:label>
-              <div style="text-align: center;">Amount of NO&#x2082;<br><span class="unit-label">(10&sup1;&#x2074; molecules/cm&sup2;)</span></div>
+              <div v-if="Math.log10(colorbarOptions[whichMolecule].cbarScale) !== 0" style="text-align: center;">Amount of NO<sub>2</sub>&nbsp;<span class="unit-label">(10<sup>{{ Math.log10(colorbarOptions[whichMolecule].cbarScale)}}</sup> mol/cm<sup>2</sup>)</span></div>
+              <div v-else style="text-align: center;">Amount of NO<sub>2</sub>&nbsp;<span class="unit-label"> molecules/cm<sup>2</sup></span></div>
           </template>
         </colorbar>
         
@@ -1080,7 +1082,8 @@ import { useDisplay } from 'vuetify';
 import { DatePickerInstance } from "@vuepic/vue-datepicker";
 import { v4 } from "uuid";
 import { getTimezoneOffset } from "date-fns-tz";
-import { cbarNO2 } from "./revised_cmap";
+// import { cbarNO2 } from "./revised_cmap";
+import { colormap } from "./colormaps/utils";
 import { MapBoxFeature, MapBoxFeatureCollection, geocodingInfoForSearch } from "./mapbox";
 import { _preloadImages } from "./PreloadImages";
 import changes from "./changes";
@@ -1310,6 +1313,7 @@ function zpad(n: number, width: number = 2, character: string = "0"): string {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { getTimestamps, getExtendedRangeTimestamps } from "./timestamps";
 import { VariableNames } from "./esri/ImageLayerConfig";
+import { AllAvailableColorMaps } from "./colormaps";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const erdTimestamps = ref<number[]>([]);
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -1552,9 +1556,6 @@ const extendedRangeAvailable = computed(() => {
   return extendedRangeTimestampsSet.value.has(timestamp.value);
 });
 
-const showingExtendedRange = computed(() => {
-  return showExtendedRangeFeatures && showExtendedRange.value && extendedRangeAvailable.value;
-});
 
 const esriUrls = {
   'no2': {
@@ -1591,15 +1592,29 @@ type MoleculeType = keyof typeof esriUrls;
 
 const whichMolecule = ref<MoleculeType>('no2');
 
+import { stretches } from "./esri/ImageLayerConfig";
 const moleculeOptions = [
-  { title: 'NO₂', value: 'no2' },
-  { title: 'Monthly Mean NO₂', value: 'no2Monthly' },
-  { title: 'Daily Max NO₂', value: 'no2DailyMax' },
-  { title: 'O₃', value: 'o3' },
-  { title: 'HCHO', value: 'hcho' },
-  { title: 'Monthly Mean HCHO', value: 'hchoMonthly' },
-  { title: 'Daily Max HCHO', value: 'hchoDailyMax' },
+  { title: 'NO₂', value: 'no2'},
+  { title: 'Monthly Mean NO₂', value: 'no2Monthly'},
+  { title: 'Daily Max NO₂', value: 'no2DailyMax'},
+  { title: 'O₃', value: 'o3'},
+  { title: 'HCHO', value: 'hcho'},
+  { title: 'Monthly Mean HCHO', value: 'hchoMonthly'},
+  { title: 'Daily Max HCHO', value: 'hchoDailyMax'},
 ];
+
+const colorbarOptions = {
+  'no2': {stretch: stretches['NO2_Troposphere'], cbarScale: 1e14},
+  'no2Monthly': {stretch: stretches['NO2_Troposphere'], cbarScale: 1e14},
+  'no2DailyMax': {stretch: stretches['NO2_Troposphere'], cbarScale: 1e14},
+  'o3': {stretch: stretches['Ozone_Column_Amount'], cbarScale: 1},
+  'hcho': {stretch: stretches['HCHO'], cbarScale: 1e14},
+  'hchoMonthly': {stretch: stretches['HCHO'], cbarScale: 1e14},
+  'hchoDailyMax': {stretch: stretches['HCHO'], cbarScale: 1e14},
+};
+
+
+
 
 // computed
 const esriUrl = computed(() => {
@@ -2217,10 +2232,15 @@ function updateURL() {
   }
 }
 
-function cmapNO2(x: number): string {
-  const rgb = cbarNO2(0, 1, x);
+
+const colorMap = ref<AllAvailableColorMaps>('magma_r');
+
+const currentColormap = computed(() => {return (x: number): string => {
+  // const rgb = cbarNO2(0, 1, x);
+  const rgb = colormap(colorMap.value, 0 ,1 ,x);
   return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]},1)`;
-}
+};
+});
 
 async function geocodingInfoForSearchLimited(searchText: string): Promise<MapBoxFeatureCollection | null> {
   return geocodingInfoForSearch(searchText, {
@@ -3387,6 +3407,20 @@ a {
 
   }
 }
+
+.colorbar-container sub {
+    vertical-align: sub !important;
+    line-height: 1.25  !important;
+  }
+
+.colorbar-container sup {
+    vertical-align: super  !important;
+    line-height: 1.25  !important;
+  }
+.colorbar-container sub ,
+.colorbar-container sup {
+    top: 0  !important;
+  }
 
 #slider-row {
   display: flex;

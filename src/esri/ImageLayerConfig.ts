@@ -46,9 +46,9 @@ export function _stretchRule(min: number, max: number): RasterFunctionObject {
 }
 
 export const stretches = {
-  'NO2_Troposphere': [100000000000000, 15000000000000000],
-  'Ozone_Column_Amount': [260, 400],
-  'HCHO': [0, 300000000000000000],
+  'NO2_Troposphere': [0*100000000000000, 15000000000000000],
+  'Ozone_Column_Amount': [250, 430], // +- 2 sigma
+  'HCHO': [0, 50000000000000000],
 } as Record<Variables, [number, number]>;
   
 export const _colorMapRule: RasterFunctionObject = {
