@@ -6,7 +6,7 @@
 import { type ImageMapLayer } from 'esri-leaflet';
 import { Variables } from './types';
 
-export type ColorRamps = "Magma" | "Inferno" | "Plasma" | "Viridis" | "Gray" | "Hillshade";
+export type ColorRamps = "Magma" | "Inferno" | "Plasma" | "Viridis" | "Gray" | "Hillshade" | "Cividis";
 
 type PixelType = Parameters<ImageMapLayer['setPixelType']>[0];
 
@@ -52,7 +52,7 @@ export const stretches = {
 } as Record<Variables, [number, number]>;
 export const colorramps = {
   'NO2_Troposphere': 'Magma',
-  'Ozone_Column_Amount': 'Gray', 
+  'Ozone_Column_Amount': 'Inferno', 
   'HCHO': 'Viridis',
 } as Record<Variables, ColorRamps>;
 

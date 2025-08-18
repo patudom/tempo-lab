@@ -307,6 +307,7 @@
           backgroundColor="transparent"
           :nsteps="255"
           :cmap="currentColormap"
+          :cmapName="colorMap"
           :start-value="colorbarOptions[whichMolecule].stretch[0] / colorbarOptions[whichMolecule].cbarScale"
           :end-value="colorbarOptions[whichMolecule].stretch[1] / colorbarOptions[whichMolecule].cbarScale"
           :extend="true"
@@ -575,6 +576,7 @@
           backgroundColor="transparent"
           :nsteps="255"
           :cmap="currentColormap"
+          :cmapName="colorMap"
           :start-value="colorbarOptions[whichMolecule].stretch[0] / colorbarOptions[whichMolecule].cbarScale"
           :end-value="colorbarOptions[whichMolecule].stretch[1] / colorbarOptions[whichMolecule].cbarScale"
           :extend="true"
@@ -1592,7 +1594,7 @@ type MoleculeType = keyof typeof esriUrls;
 
 const whichMolecule = ref<MoleculeType>('no2');
 
-import { stretches } from "./esri/ImageLayerConfig";
+import { stretches, colorramps } from "./esri/ImageLayerConfig";
 const moleculeOptions = [
   { title: 'NO₂', value: 'no2'},
   { title: 'Monthly Mean NO₂', value: 'no2Monthly'},
@@ -1604,13 +1606,13 @@ const moleculeOptions = [
 ];
 
 const colorbarOptions = {
-  'no2': {stretch: stretches['NO2_Troposphere'], cbarScale: 1e14},
-  'no2Monthly': {stretch: stretches['NO2_Troposphere'], cbarScale: 1e14},
-  'no2DailyMax': {stretch: stretches['NO2_Troposphere'], cbarScale: 1e14},
-  'o3': {stretch: stretches['Ozone_Column_Amount'], cbarScale: 1},
-  'hcho': {stretch: stretches['HCHO'], cbarScale: 1e14},
-  'hchoMonthly': {stretch: stretches['HCHO'], cbarScale: 1e14},
-  'hchoDailyMax': {stretch: stretches['HCHO'], cbarScale: 1e14},
+  'no2': {stretch: stretches['NO2_Troposphere'], cbarScale: 1e14, colormap: colorramps['NO2_Troposphere'] + '_r'},
+  'no2Monthly': {stretch: stretches['NO2_Troposphere'], cbarScale: 1e14, colormap: colorramps['NO2_Troposphere'] + '_r'},
+  'no2DailyMax': {stretch: stretches['NO2_Troposphere'], cbarScale: 1e14, colormap: colorramps['NO2_Troposphere'] + '_r'},
+  'o3': {stretch: stretches['Ozone_Column_Amount'], cbarScale: 1, colormap: colorramps['Ozone_Column_Amount'] + '_r'},
+  'hcho': {stretch: stretches['HCHO'], cbarScale: 1e14, colormap: colorramps['HCHO'] + '_r'},
+  'hchoMonthly': {stretch: stretches['HCHO'], cbarScale: 1e14, colormap: colorramps['HCHO'] + '_r'},
+  'hchoDailyMax': {stretch: stretches['HCHO'], cbarScale: 1e14, colormap: colorramps['HCHO'] + '_r'},
 };
 
 
@@ -1664,6 +1666,8 @@ watch(whichMolecule, (newMolecule) => {
   tempoDataService.setBaseUrl(esriUrls[newMolecule].url);
   tempoDataService.setVariable(esriUrls[newMolecule].variable);
   getEsriTimeSteps();
+  console.log(colorbarOptions[newMolecule].colormap.toLowerCase());
+  colorMap.value = colorbarOptions[newMolecule].colormap.toLowerCase();
 });
 
 const onMapReady = (map) => {

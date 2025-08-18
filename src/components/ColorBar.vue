@@ -33,6 +33,10 @@ export default defineComponent({
       default: null
     },
     
+    cmapName: {
+      type: String,
+      default: 'none'
+    },
     nsteps: {
       type: Number,
       default: 20
@@ -173,7 +177,10 @@ export default defineComponent({
     },
     cmap() {
       this.colorbarGradient();
-    }
+    },
+    cmapName() {
+      this.colorbarGradient();
+    },
   }
   
 });
