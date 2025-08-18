@@ -13,6 +13,7 @@ import ShareButton from "./components/ShareButton.vue";
 import CDSDialog from "./components/CDSDialog.vue";
 import MarqeeAlert from "./components/MarqeeAlert.vue";
 import TimeseriesGraph from "./components/TimeseriesGraph.vue";
+import SelectionComposer from "./components/SelectionComposer.vue";
 
 
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
@@ -85,6 +86,7 @@ createApp(TempoLite, {})
   .component('cds-dialog', CDSDialog)
   .component('marquee-alert', MarqeeAlert)
   .component('timeseries-graph', TimeseriesGraph)
+  .component('selection-composer', SelectionComposer)
 
   // Mount
   .mount("#app");
