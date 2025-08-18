@@ -1,5 +1,5 @@
-import { ref, watch, Ref, MaybeRef, toRef, nextTick } from 'vue';
-import { renderingRule, fetchEsriTimeSteps, extractTimeSteps, VariableNames, stretches } from '../ImageLayerConfig';
+import { ref, watch, Ref, MaybeRef, toRef, nextTick, computed } from 'vue';
+import { renderingRule, fetchEsriTimeSteps, extractTimeSteps, VariableNames, stretches, colorramps, RenderingRuleOptions, ColorRamps } from '../ImageLayerConfig';
 import { Map } from 'maplibre-gl';
 
 import { ImageService } from 'mapbox-gl-esri-sources';
@@ -15,6 +15,7 @@ interface UseEsriLayer {
   updateEsriTimeRange: () => void;
   addEsriSource: (Map) => void;
   changeUrl: (newUrl: string, variableName: VariableNames) => void;
+  renderOptions: Ref<RenderingRuleOptions>;
 }
 
 export function useEsriLayer(url: string, variableName: VariableNames, timestamp: Ref<number>, opacity: MaybeRef<number>): UseEsriLayer {
@@ -28,18 +29,25 @@ export function useEsriLayer(url: string, variableName: VariableNames, timestamp
   const noEsriData = ref(false);
   const variableNameRef = toRef(variableName);
   const urlRef = toRef(url);
+  const renderOptions = ref<RenderingRuleOptions>({
+    range: stretches[variableNameRef.value],
+    colormap: colorramps[variableNameRef.value],
+  });
+
   
-  const options = {
-    'format': 'png',
-    'pixelType': 'U8',
-    'size': '256,256',
-    'transparent': true,
-    'bboxSR': 3857,
-    'imageSR': 3857,
-    'bbox': '{bbox-epsg-3857}',
-    'interpolation': 'RSP_NearestNeighbor',
-    'renderingRule': renderingRule(stretches[variableNameRef.value]),
-  };
+  const options = computed(() => {
+    return  {
+      'format': 'png',
+      'pixelType': 'U8',
+      'size': '256,256',
+      'transparent': true,
+      'bboxSR': 3857,
+      'imageSR': 3857,
+      'bbox': '{bbox-epsg-3857}',
+      'interpolation': 'RSP_NearestNeighbor',
+      'renderingRule': renderingRule(renderOptions.value.range, renderOptions.value.colormap),
+    };
+  });
   const _esriImageOptions = Object.entries(options).map(([key, value]) => `${key}=${value}`).join('&');
   
   function addLayer(map: Map | null | undefined) {
@@ -84,7 +92,7 @@ export function useEsriLayer(url: string, variableName: VariableNames, timestamp
     if (!_map) return;
     map.value = _map;
     
-    dynamicMapService.value = createImageService(_map, urlRef.value, options);
+    dynamicMapService.value = createImageService(_map, urlRef.value, options.value);
 
     addLayer(_map);
   }
@@ -143,11 +151,36 @@ export function useEsriLayer(url: string, variableName: VariableNames, timestamp
       variableNameRef.value = variableName; // Default to NO2 if not provided
       urlRef.value = newUrl;
       dynamicMapService.value.esriServiceOptions.url = newUrl;
-      dynamicMapService.value.esriServiceOptions.renderingRule = renderingRule(stretches[variableName]);
+      dynamicMapService.value.esriServiceOptions.renderingRule = renderingRule(renderOptions.value.range, renderOptions.value.colormap);
       // console.log(dynamicMapService.value.esriServiceOptions);
     }
   }
-
+  
+  function updateStretch(vmin: number, vmax: number) {
+    if (dynamicMapService.value) {
+      dynamicMapService.value.esriServiceOptions.renderingRule = renderingRule([vmin, vmax], renderOptions.value.colormap);
+    }
+  }
+  
+  function updateColormap(colormap: ColorRamps) {
+    if (dynamicMapService.value) {
+      dynamicMapService.value.esriServiceOptions.renderingRule = renderingRule(renderOptions.value.range, colormap);
+    }
+  }
+  
+  watch(() => renderOptions.value.range, (newRange) => {
+    console.log('Range changed to ', newRange);
+    updateStretch(newRange[0], newRange[1]);
+  });
+  watch(() => renderOptions.value.colormap, (newColormap) => {
+    console.log('Colormap changed to ', newColormap);
+    updateColormap(newColormap);
+  });
+  
+  watch(variableNameRef, () => {
+    renderOptions.value.range = stretches[variableNameRef.value];
+    renderOptions.value.colormap = colorramps[variableNameRef.value];
+  });
 
   watch(opacityRef, (_value: number) => {
     updateEsriOpacity(_value);
@@ -172,6 +205,7 @@ export function useEsriLayer(url: string, variableName: VariableNames, timestamp
     updateEsriTimeRange,
     addEsriSource,
     changeUrl,
+    renderOptions,
   } as UseEsriLayer;
 }
 

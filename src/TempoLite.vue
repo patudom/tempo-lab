@@ -1123,8 +1123,8 @@ import { useRectangleSelection } from "./composables/maplibre/useRectangleSelect
 import { addRectangleLayer, updateRectangleBounds, removeRectangleLayer } from "./composables/maplibre/utils";
 import { useMultiMarker } from './composables/maplibre/useMultiMarker';
 import { useEsriLayer } from "./esri/maplibre/useEsriImageLayer";
-// import { useEsriLayer } from "./esri/maplibre/useEsriImageLayerPlain"; // do not use
 const zoomScale = 0.5; // for matplibre-gl
+// import { useEsriLayer } from "./esri/maplibre/useEsriImageLayerPlain"; // do not use
 
 const showImage = ref(false);
 
@@ -1628,7 +1628,8 @@ const esriVariable = computed(() => {
 const tempoDataService = new TempoDataService(esriUrl.value, esriVariable.value);
 
 
-const {getEsriTimeSteps, addEsriSource, esriTimesteps, changeUrl} = useEsriLayer(
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const {getEsriTimeSteps, addEsriSource, esriTimesteps, changeUrl, renderOptions} = useEsriLayer(
   esriUrl.value,
   esriVariable.value,
   timestamp,
@@ -1646,6 +1647,7 @@ watch(esriTimesteps, (newSteps, _oldSteps) => {
     // appendTimestamps([newSteps]);
   }
 });
+// renderOptions.value.colormap = 'Plasma';
 
 function handleEsriTimeSelected(timestamp:number, _index: number) {
   const idx = timestamps.value.indexOf(timestamp);
