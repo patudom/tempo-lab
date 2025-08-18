@@ -738,7 +738,20 @@
           </div>
 
           <hr style="border-color: grey">
+            <div>
+              <h2>Create a Selection</h2>
+              <v-btn
+                size="small"
+                :active="createSelectionActive"
+                @click="createSelectionActive = !createSelectionActive"
+              >
+                <template #prepend>
+                  <v-icon v-if="!createSelectionActive" icon="mdi-plus"></v-icon>
+                </template>
+                {{ createSelectionActive ? "Cancel" : "Create Selection" }}
+              </v-btn>
               <selection-composer
+                v-show="createSelectionActive"
                 :backend="BACKEND"
                 :time-ranges="availableTimeRanges"
                 :regions="availableRegions"
@@ -746,6 +759,8 @@
                 @create="handleSelectionCreated"
               >
               </selection-composer>
+            </div>
+          <hr style="border-color: grey">
 
           <div id="user-options">
             <h2>Options</h2>  
@@ -846,7 +861,7 @@
                 <template #text>
                   <v-select
                     v-model="whichMolecule"
-                    :items="moleculeOptions"
+                    :items="MOLECULE_OPTIONS"
                     item-title="title"
                     item-value="value"
                     label="Molecule"
@@ -867,6 +882,8 @@
               >
             <UserGuide/>
             </cds-dialog>
+
+            <!--
             <ListComponent 
               :selectionOptions="selectionOptions" 
               v-model="selection" 
@@ -874,8 +891,7 @@
               @edit-selection="editSelection" 
               @create-new="createNewSelection" 
             />
-            <!-- Add Time Series button -->
-            <!-- Legacy 'add time series' button removed after refactor to immutable UserSelection -->
+            -->
             
             <v-select
               v-model="selection"
@@ -900,7 +916,7 @@
               >
                 <template #subtitle>
                   <span v-if="sel.timeRange" class="text-caption">
-                    {{ getTimeRangeDisplay(sel) }}
+                    {{ sel.timeRange.description }}
                   </span>
                 </template>
                 <template #append>
@@ -1125,11 +1141,10 @@ import { interestingEvents } from "./interestingEvents";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { AggValue, LatLngPair, InitMapOptions, RectangleSelectionInfo, RectangleSelection, RectangleType, MappingBackends, TimeRange, UserSelection } from "./types";
 import type { MillisecondRange } from "./types/datetime";
-import ListComponent from "./components/ListComponent.vue";
 import UserGuide from "./components/UserGuide.vue";
 import SampleTable from "./components/SampleTable.vue";
 import { atleast1d } from "./utils/atleast1d";
-import { formatTimeRange, getTimeRangeDisplay } from "./utils/timeRange";
+import { formatTimeRange } from "./utils/timeRange";
 
 import { useUniqueTimeSelection } from "./composables/useUniqueTimeSelection";
 
@@ -1709,8 +1724,11 @@ function addUserSelection(sel: UserSelectionType) {
 }
 
 function handleSelectionCreated(sel: UserSelectionType) {
+  console.log("Selection created");
+  console.log(sel);
   addUserSelection(sel);
   setSelection(sel);
+  createSelectionActive.value = false;
 }
 
 // Track total created selections for unique naming
@@ -1733,6 +1751,7 @@ const { active: selectionActive, selectionInfo } = useRectangleSelection(map, "r
 const loadingSamples = ref<string | false>(false);
 
 const createTimeRangeActive = ref(false);
+const createSelectionActive = ref(false);
 
 const testErrorAmount = 0.25e15;
 const _testError = { lower: testErrorAmount, upper: testErrorAmount };

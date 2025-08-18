@@ -1,7 +1,6 @@
 <template>
   <v-card>
     <v-card-title class="d-flex justify-space-between">
-      <h3>Compose Selection</h3>
       <v-chip size="x-small" color="primary" variant="tonal">{{ creationProgress.count }}/3</v-chip>
     </v-card-title>
     <v-card-text class="d-flex flex-column ga-3">
@@ -40,7 +39,7 @@
         @update:model-value="setDraftSelectionTimeRange($event)"
         label="Time Range"
         :disabled="disabled?.timeRange"
-        item-title="title"
+        item-title="name"
         item-value="value"
         density="compact"
         hide-details
