@@ -40,7 +40,7 @@
         label="Time Range"
         :disabled="disabled?.timeRange"
         item-title="name"
-        item-value="value"
+        item-value="range"
         density="compact"
         hide-details
         variant="outlined"
