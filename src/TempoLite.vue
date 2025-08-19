@@ -3164,7 +3164,6 @@ a[href="https://tempo.si.edu"]>img {
 }
 
 #information {
-  background-color: var(--info-background);
   border-radius: 10px;
   padding-inline: 1rem;
   // margin-right: 200px;
