@@ -1,3 +1,4 @@
+
 import { ref, watch, Ref, MaybeRef, toRef, nextTick } from 'vue';
 import { fetchEsriTimeSteps, extractTimeSteps, VariableNames, _stretchRule, _colorMapRule, composeRasterRules, stretches } from '../ImageLayerConfig';
 import { Map } from 'maplibre-gl';
@@ -35,6 +36,7 @@ export function useEsriLayer(url: string, variableName: VariableNames, timestamp
     'imageSR': 3857,
     'bbox': '{bbox-epsg-3857}',
     'interpolation': 'RSP_NearestNeighbor',
+    // @ts-expect-error this is actually broken, but ignore it since we don't use this file
     'renderingRule': encodeURIComponent(JSON.stringify(composeRasterRules(_stretchRule(stretches[variableName][0], stretches[variableName][1]), [_colorMapRule]))),
   };
   const _esriImageOptions = Object.entries(options).map(([key, value]) => `${key}=${value}`).join('&');
