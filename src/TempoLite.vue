@@ -1363,8 +1363,6 @@ function zpad(n: number, width: number = 2, character: string = "0"): string {
  ************/
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { getTimestamps, getExtendedRangeTimestamps } from "./timestamps";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { VariableNames } from "./esri/ImageLayerConfig";
 import { AllAvailableColorMaps } from "./colormaps";
 import { ESRI_URLS, MOLECULE_OPTIONS, MoleculeType } from "./esri/utils";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -1613,15 +1611,6 @@ const extendedRangeAvailable = computed(() => {
 const whichMolecule = ref<MoleculeType>('no2');
 
 import { stretches, colorramps } from "./esri/ImageLayerConfig";
-const moleculeOptions = [
-  { title: 'NO₂', value: 'no2'},
-  { title: 'Monthly Mean NO₂', value: 'no2Monthly'},
-  { title: 'Daily Max NO₂', value: 'no2DailyMax'},
-  { title: 'O₃', value: 'o3'},
-  { title: 'HCHO', value: 'hcho'},
-  { title: 'Monthly Mean HCHO', value: 'hchoMonthly'},
-  { title: 'Daily Max HCHO', value: 'hchoDailyMax'},
-];
 
 const colorbarOptions = {
   'no2': {stretch: stretches['NO2_Troposphere'], cbarScale: 1e14, colormap: colorramps['NO2_Troposphere'] + '_r', label:'NO<sub>2</sub>&nbsp;&nbsp;'},
