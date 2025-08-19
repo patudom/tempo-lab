@@ -1725,8 +1725,6 @@ function addUserSelection(sel: UserSelectionType) {
 }
 
 function handleSelectionCreated(sel: UserSelectionType) {
-  console.log("Selection created");
-  console.log(sel);
   addUserSelection(sel);
   setSelection(sel);
   createSelectionActive.value = false;

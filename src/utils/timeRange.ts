@@ -23,7 +23,6 @@ export function formatTimeRange(ranges: MillisecondRange | MillisecondRange[]): 
 }
 
 export function getTimeRangeDisplay(sel: UserSelection): string {
-  console.log(sel);
   if (!sel.timeRange || !sel.timeRange.range) {
     return `No time range set for selection ${sel.name}`;
   }
