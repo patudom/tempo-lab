@@ -2239,7 +2239,9 @@ function updateURL() {
 }
 
 
-const colorMap = ref<AllAvailableColorMaps>('magma_r');
+const colorMap = ref<AllAvailableColorMaps>('None');
+colorMap.value = colorbarOptions[whichMolecule.value].colormap.toLowerCase();
+
 
 const currentColormap = computed(() => {return (x: number): string => {
   // const rgb = cbarNO2(0, 1, x);
