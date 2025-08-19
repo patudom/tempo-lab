@@ -1064,18 +1064,14 @@
         </cds-dialog>
       
       <div id="information">
-        <timeseries-graph
-          v-if="selections.length > 0"
-          :data="selections"
-        />
+        <div id="body-logos">
+          <a href="https://www.si.edu/" target="_blank" rel="noopener noreferrer" class="mr-1" 
+          ><img alt="Smithsonian Logo" src="./assets/smithsonian.png"
+            /></a>
+          <credit-logos/>
+        </div>
       </div>
       
-    </div>
-    <div id="body-logos">
-      <a href="https://www.si.edu/" target="_blank" rel="noopener noreferrer" class="mr-1" 
-      ><img alt="Smithsonian Logo" src="./assets/smithsonian.png"
-        /></a>
-      <credit-logos/>
     </div>
   </div>
 
@@ -3091,7 +3087,6 @@ ul {
 
   #side-panel {
     overflow-y: auto;
-    min-width: 200px;
     margin-left: 1.5rem;
     grid-column: 3 / 4;
     grid-row: 2 / 6;
@@ -3156,7 +3151,7 @@ ul {
   font-weight: normal;
   font-style: normal;
   background-color: transparent;
-  height: calc(100% - 2rem);
+  height: calc(100% - 4rem);
 }
 
 #title {
@@ -3499,7 +3494,7 @@ button:focus-visible,
 @media (max-width: 1180px) {
 
   .content-with-sidebars {
-    grid-template-columns: 0px auto auto;
+    grid-template-columns: 0px 0.7fr 0.3fr;
     grid-template-rows: 3.5rem var(--map-height) 78px .5fr .5fr;
 
     #when {
@@ -3525,11 +3520,6 @@ button:focus-visible,
       height: 70px !important;
       width: auto !important;
     }
-
-    #user-options {
-      width: 250px;
-    }
-
 
   }
 }
@@ -3562,51 +3552,19 @@ button:focus-visible,
   }
 
   .content-with-sidebars {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto 78px repeat(5, auto);
     gap: 10px;
     // padding-inline: 1rem;
 
-
-    #logo-title {
-      min-width: 0;
-      grid-column: 1 / 2;
-      grid-row: 1 / 2;
-    }
-
-    a[href="https://tempo.si.edu"]:has(img) {
-      grid-column: 1 / 2;
-      grid-row: 1 / 2;
-    }
-
     #menu-area {
-      grid-column: 1 / 2;
-      grid-row: 1 / 2;
       display: flex;
       flex-direction: column-reverse;
       gap: 1rem;
       align-items: flex-end;
     }
 
-    #map-container {
-      grid-column: 1 / 2;
-      grid-row: 2 / 3;
-    }
-
     #map-container #map-show-hide-controls {
       right: 5px
     }
-
-    #slider-row {
-      grid-column: 1 / 2;
-      grid-row: 3 / 4;
-    }
-
-    #user-options {
-      grid-column: 1 / 2;
-      grid-row: 4 / 5;
-    }
-
 
     #where {
       display: none;
@@ -3617,16 +3575,6 @@ button:focus-visible,
       display: none;
     }
 
-
-    #bottom-options {
-      grid-column: 1 / 2;
-      grid-row: 5 / 6;
-    }
-
-    #information {
-      grid-column: 1 / 2;
-      grid-row: 6 / 7;
-    }
 
     // #body-logos {
     //   grid-column: 1 / 2;
