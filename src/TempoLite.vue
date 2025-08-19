@@ -765,6 +765,7 @@
           <div id="user-options">
             <h2>Options</h2>  
             <v-expansion-panels
+              v-model="openPanels"
               variant="accordion"
               id="user-options-panels"
               multiple
@@ -1752,6 +1753,7 @@ const loadingSamples = ref<string | false>(false);
 
 const createTimeRangeActive = ref(false);
 const createSelectionActive = ref(false);
+const openPanels = ref<number[]>([]);
 
 const testErrorAmount = 0.25e15;
 const _testError = { lower: testErrorAmount, upper: testErrorAmount };
@@ -1838,6 +1840,8 @@ function handleDateTimeRangeSelectionChange(timeRanges: MillisecondRange[], sele
   useCustomTimeRange.value = true;
   // Add to available list if new (compare by serialized range key)
   availableTimeRanges.value.push(tr); // always append
+
+  createTimeRangeActive.value = false;
   console.log(`Registered ${tr.name}: ${tr.description}`);
 }
 
@@ -2704,6 +2708,15 @@ watch(selectedTimezone, (timezone: string) => {
 watch(singleDateSelected, (date: Date) => {
   if (!timestampsLoaded.value ) return;
   userSelectedCalendarDates.push(date.getTime());
+});
+
+watch(openPanels, (open: number[]) => {
+  if (!open.includes(0)) {
+    createTimeRangeActive.value = false;
+  }
+  if (!open.includes(1)) {
+    selectionActive.value = false;
+  }
 });
 
 watch(selectionInfo, (info: RectangleSelectionInfo | null) => {
