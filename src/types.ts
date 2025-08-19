@@ -146,9 +146,6 @@ export interface TimeRange {
   range: MillisecondRange | MillisecondRange[];
 }
 
-
-
-
 export interface UserSelection {
   id: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -19,7 +19,9 @@
         :key="sel.id"
         @click="select(sel)"
         class="selection-item"
-        :style="sel.region?.color ? { '--selection-color': sel.region.color } : {'--selection-color': '#aaa'}"
+        :style="{
+          '--selection-color': sel.region?.color ? sel.region.color : '#aaa'
+        }"
       >
         <label class="selection-label">
           <input
@@ -40,7 +42,9 @@
 
 <script setup lang="ts">
 import { defineProps, defineEmits, computed, defineModel } from 'vue';
-import { UserSelection } from '@/types';
+import { UserSelection } from "../types";
+import { formatTimeRange } from "../utils/timeRange";
+
 
 // Model (v-model) for currently selected UserSelection
 const modelValue = defineModel<UserSelection | null>('modelValue');
@@ -55,19 +59,6 @@ const filteredSelectionOptions = computed(() =>
   props.selectionOptions.filter((sel): sel is UserSelection => sel !== null)
 );
 
-function formatTimeRange(ranges: { start: number; end: number } | { start: number; end: number }[]): string {
-  if (Array.isArray(ranges)) {
-    if (ranges.length === 0) return 'No time range';
-    if (ranges.length === 1) {
-      const r = ranges[0];
-      return `${new Date(r.start).toLocaleDateString()} - ${new Date(r.end).toLocaleDateString()}`;
-    }
-    const starts = ranges.map(r => r.start);
-    const ends = ranges.map(r => r.end);
-    return `${new Date(Math.min(...starts)).toLocaleDateString()} - ${new Date(Math.max(...ends)).toLocaleDateString()} (${ranges.length})`;
-  }
-  return `${new Date(ranges.start).toLocaleDateString()} - ${new Date(ranges.end).toLocaleDateString()}`;
-}
 
 function select(sel: UserSelection) {
   if (modelValue.value !== sel) {

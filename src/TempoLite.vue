@@ -323,15 +323,6 @@
           >
             <v-toolbar-title text="TEMPO Data Viewer"></v-toolbar-title>
             <v-spacer></v-spacer>
-            <v-select
-              v-model="whichMolecule"
-              :items="moleculeOptions"
-              item-title="title"
-              item-value="value"
-              label="Molecule"
-              hide-details
-              dense
-            ></v-select>
             <v-tooltip :text="selectionActive ? 'Cancel selection' : 'Select a region'">
               <template #activator="{ props }">
                 <v-btn
@@ -618,271 +609,407 @@
           ></icon-button>
         </div>
 
-        
-
-        <div id="user-options">
-        <div id="all-dates">
-          <h2>Select a Date</h2>  
-          <div class="d-flex flex-row align-center">
-            <v-radio-group v-model="radio">
-              <date-picker
-                ref="calendar"
-                :model-value="singleDateSelected"
-                @internal-model-change="(value: Date) => {
-                  if (value != null && value.getTime() != singleDateSelected.getTime()) {
-                    radio = null;
-                    singleDateSelected = value;
-                    calendar?.closeMenu();
-                  }
-                }"
-                :allowed-dates="uniqueDays"
-                :clearable="false"
-                :enable-time-picker="false"
-                :multi-dates="false"
-                :transitions="false"
-                :format="(date: Date | null) => date?.toDateString()"
-                :preview-format="(date: Date | null) => date?.toDateString()"
-                no-today
-                dark
-              >
-                <template #action-buttons>
-                  <button
-                    class="dp__action_button dp__action-latest"
+        <div id="side-panel">
+            <div id="all-dates">
+              <h2>Select a Date</h2>  
+              <div class="d-flex flex-row align-center">
+                <v-radio-group v-model="radio">
+                  <date-picker
+                    ref="calendar"
+                    :model-value="singleDateSelected"
+                    @internal-model-change="(value: Date) => {
+                      if (value != null && value.getTime() != singleDateSelected.getTime()) {
+                        radio = null;
+                        singleDateSelected = value;
+                        calendar?.closeMenu();
+                      }
+                    }"
+                    :allowed-dates="uniqueDays"
+                    :clearable="false"
+                    :enable-time-picker="false"
+                    :multi-dates="false"
+                    :transitions="false"
+                    :format="(date: Date | null) => date?.toDateString()"
+                    :preview-format="(date: Date | null) => date?.toDateString()"
+                    no-today
+                    dark
+                  >
+                    <template #action-buttons>
+                      <button
+                        class="dp__action_button dp__action-latest"
+                        @click="() => singleDateSelected = uniqueDays[uniqueDays.length - 1]"
+                        @keyup.enter="() => singleDateSelected = uniqueDays[uniqueDays.length - 1]"
+                        :disabled="singleDateSelected === uniqueDays[uniqueDays.length - 1]"
+                        elevation="0"
+                        size="sm"
+                      >
+                        Latest
+                    </button>
+                    </template>
+                    <!-- <template #action-extra="{ selectCurrentDate }">
+                    
+                    </template> -->
+                  </date-picker>
+                  <!-- time chips to select time specifically for esri times -->
+                  <time-chips
+                    v-if="whichMolecule.toLowerCase().includes('month')"
+                    :timestamps="esriTimesteps"
+                    @select="handleEsriTimeSelected($event.value, $event.index)"
+                    reverse
+                    use-utc
+                    date-only
+                  />
+                </v-radio-group>
+              </div>        
+            <!-- create a list of the uniqueDays -->
+            <!-- <v-select
+              :modelValue="singleDateSelected"
+              :disabled="radio !== 0"
+              :items="uniqueDays"
+              item-title="title"
+              item-value="value"
+              label="Select a Date"
+              @update:model-value="(e) => { singleDateSelected = e;}"
+              hide-details
+              variant="solo"
+            ></v-select> -->
+            <!-- add buttons to increment and decrement the singledateselected -->
+            <div class="d-flex flex-row align-center my-2">
+              <v-tooltip :disabled="touchscreen" text="Previous Date">
+                <template v-slot:activator="{ props }">
+                  <v-btn
+                    v-bind="props"
+                    class="rounded-icon-wrapper"
+                    @click="moveBackwardOneDay"
+                    @keyup.enter="moveBackwardOneDay"
+                    :disabled="singleDateSelected === uniqueDays[0]"
+                    color="#009ade"
+                    variant="outlined"
+                    elevation="0"
+                    size="md"
+                  >
+                    <v-icon>mdi-chevron-double-left</v-icon>
+                  </v-btn>
+                </template>
+              </v-tooltip>
+              <v-spacer></v-spacer>
+              <v-tooltip :disabled="touchscreen" text="Get Data for latest available day">
+                <template v-slot:activator="{ props }">
+                  <v-btn
+                    v-bind="props"
+                    style="padding-inline: 4px;"
                     @click="() => singleDateSelected = uniqueDays[uniqueDays.length - 1]"
                     @keyup.enter="() => singleDateSelected = uniqueDays[uniqueDays.length - 1]"
                     :disabled="singleDateSelected === uniqueDays[uniqueDays.length - 1]"
+                    color="#009ade"
+                    variant="outlined"
                     elevation="0"
-                    size="sm"
+                    size="md"
                   >
-                    Latest
-                </button>
+                    Latest Data
+                  </v-btn>
                 </template>
-                <!-- <template #action-extra="{ selectCurrentDate }">
+              </v-tooltip>
+              <v-spacer></v-spacer>
+              <v-tooltip :disabled="touchscreen" text="Next Date">
+                <template v-slot:activator="{ props }">
+                  <v-btn
+                    v-bind="props"
+                    class="rounded-icon-wrapper"
+                    @click="moveForwardOneDay"
+                    @keyup.enter="moveForwardOneDay"
+                    :disabled="singleDateSelected === uniqueDays[uniqueDays.length - 1]"
+                    color="#009ade"
+                    variant="outlined"
+                    elevation="0"
+                    size="md"
+                  >
+                    <v-icon>mdi-chevron-double-right</v-icon>
+                  </v-btn>
+                </template>
+              </v-tooltip>
+            </div>
+            <v-progress-linear
+              v-if="loadedImagesProgress < 101"
+              v-model="loadedImagesProgress"
+              color="#092088"
+              height="20"
+            >
+            <span v-if="loadedImagesProgress < 100">Loading Data ({{ loadedImagesProgress.toFixed(0) }}%)</span>
+            <span v-else>Data Loaded</span>
+            </v-progress-linear>
+            <!-- <v-switch label="LA fires" v-model="showExtendedRange" /> -->
+          </div>
+
+          <hr style="border-color: grey">
+            <div>
+              <h2>Create a Selection</h2>
+              <v-btn
+                size="small"
+                :active="createSelectionActive"
+                @click="createSelectionActive = !createSelectionActive"
+              >
+                <template #prepend>
+                  <v-icon v-if="!createSelectionActive" icon="mdi-plus"></v-icon>
+                </template>
+                {{ createSelectionActive ? "Cancel" : "Create Selection" }}
+              </v-btn>
+              <selection-composer
+                v-show="createSelectionActive"
+                :backend="BACKEND"
+                :time-ranges="availableTimeRanges"
+                :regions="availableRegions"
+                :disabled="{ region: selectionActive, timeRange: createTimeRangeActive }"
+                @create="handleSelectionCreated"
+              >
+              </selection-composer>
+            </div>
+          <hr style="border-color: grey">
+
+          <div id="user-options">
+            <h2>Options</h2>  
+            <v-expansion-panels
+              v-model="openPanels"
+              variant="accordion"
+              id="user-options-panels"
+              multiple
+            >
+              <v-expansion-panel
+                title="Date/Time Range"
+              >
+                <template #text>
+                  <v-btn
+                    size="small"
+                    :active="createTimeRangeActive"
+                    @click="createTimeRangeActive = !createTimeRangeActive"
+                  >
+                    <template #prepend>
+                      <v-icon v-if="!createTimeRangeActive" icon="mdi-plus"></v-icon>
+                    </template>
+                    {{ createTimeRangeActive ? "Cancel" : "Create Time Range" }}
+                  </v-btn>
+                  <date-time-range-selection
+                    v-if="createTimeRangeActive"
+                    :current-date="singleDateSelected"
+                    :selected-timezone="selectedTimezone"
+                    :allowed-dates="uniqueDays"
+                    @ranges-change="handleDateTimeRangeSelectionChange"
+                  />
+                  <v-list>
+                    <v-list-item
+                      v-for="(timeRange, index) in availableTimeRanges"
+                      :key="index"
+                      :title="timeRange.name"
+                      :subtitle="timeRange.description"
+                    ></v-list-item>
+                  </v-list>
+                </template>
+              </v-expansion-panel>
+              <v-expansion-panel
+                title="Regions"
+              >
+                <template #text>
+                  <div id="add-region-buttons">
+                    <v-btn
+                      size="small"
+                      :active="selectionActive"
+                      @click="() => {
+                        if (selectionActive) {
+                          selectionActive = false;
+                        } else {
+                          createNewSelection();
+                        }
+                      }"
+                    >
+                      <template #prepend>
+                        <v-icon v-if="!selectionActive" icon="mdi-plus"></v-icon>
+                      </template>
+                      {{ selectionActive ? "Cancel" : "Add Region" }}
+                    </v-btn>
+                    <v-btn
+                      size="small"
+                    >
+                      <template #prepend>
+                        <v-icon icon="mdi-plus"></v-icon>
+                      </template>
+                      Add Point
+                    </v-btn>
+                  </div>
+                  <v-list>
+                    <v-list-item
+                      v-for="(region, index) in availableRegions"
+                      :key="index"
+                      :title="region.name"
+                      :style="{ 'background-color': region.color }"
+                    >
+                      <template #append>
+                        <v-btn
+                          variant="plain"
+                          v-tooltip="'Edit'"
+                          icon="mdi-pencil"
+                          color="white"
+                        ></v-btn>
+                        <v-btn
+                          variant="plain"
+                          v-tooltip="'Delete'"
+                          icon="mdi-delete"
+                          color="white"
+                        ></v-btn>
+                      </template>
+                    </v-list-item>
+                  </v-list>
+                </template>
+              </v-expansion-panel>
+              <v-expansion-panel
+                title="Molecule / Quantity"
+              >
+                <template #text>
+                  <v-select
+                    v-model="whichMolecule"
+                    :items="MOLECULE_OPTIONS"
+                    item-title="title"
+                    item-value="value"
+                    label="Molecule"
+                    hide-details
+                    dense
+                  ></v-select>
+                </template>
+              </v-expansion-panel>
+            </v-expansion-panels>
+
+          <hr style="border-color: grey">
+
+          <div id="sample-info" v-if="selections" style="margin-top: 1em;">
+            <cds-dialog
+              v-model="showUserGuide"
+              title="User Guide"
+              button
+              >
+            <UserGuide/>
+            </cds-dialog>
+
+            <!--
+            <ListComponent 
+              :selectionOptions="selectionOptions" 
+              v-model="selection" 
+              :selectionActive="selectionActive" 
+              @edit-selection="editSelection" 
+              @create-new="createNewSelection" 
+            />
+            -->
+            
+            <v-select
+              v-model="selection"
+              :items="selectionOptions"
+              label="Selection"
+              return-object
+            >
+              <template #selection="{ item }">
+                {{ item.value == null ? "None" : item.value.name }}
+              </template>
+              <template #item="{ item, props }">
+                <v-list-item :title="item.value == null ? 'None' : item.value.name" @click="typeof props.onClick === 'function' ? props.onClick($event) : undefined"></v-list-item>
+              </template>
+            </v-select>
+
+            <v-list>
+              <v-list-item
+                v-for="sel in selections"
+                :title="sel.name"
+                :key="sel.id"
+                :color="sel.region.color"
+              >
+                <template #subtitle>
+                  <span v-if="sel.timeRange" class="text-caption">
+                    {{ sel.timeRange.description }}
+                  </span>
+                </template>
+                <template #append>
+                  <v-tooltip
+                    text="Edit selection"
+                    location="top"
+                  >
+                    <template #activator="{ props }">
+                      <v-btn
+                        v-bind="props"
+                        size="x-small"
+                        icon="mdi-pencil"
+                        @click="() => editSelection(sel)"
+                      ></v-btn>
+                    </template>
+                  </v-tooltip>
+                  <v-tooltip
+                    text="Get NO₂ Samples"
+                    location="top"
+                  >
+                    <template #activator="{ props }">
+                      <v-btn
+                        v-bind="props"
+                        size="x-small"
+                        :loading="loadingSamples === sel.name"
+                        :disabled="sel.samples != null"
+                        icon="mdi-download"
+                        @click="() => fetchDataForSelection(sel)"
+                      ></v-btn>
+                    </template>
+                  </v-tooltip>
+                  <v-tooltip
+                    text="Get Center Point NO₂ Sample"
+                    location="top"
+                  >
+                    <template #activator="{ props }">
+                      <v-btn
+                        v-bind="props"
+                        size="x-small"
+                        :loading="loadingPointSample === sel.name"
+                        icon="mdi-image-filter-center-focus"
+                        @click="() => fetchCenterPointDataForSelection(sel)"
+                      ></v-btn>
+                    </template>
+                  </v-tooltip>
+                  <v-tooltip
+                    text="Remove selection"
+                    location="top"
+                  >
+                    <template #activator="{ props }">
+                      <v-btn
+                        v-bind="props"
+                        size="x-small"
+                        icon="mdi-trash-can"
+                        @click="() => deleteSelection(sel)"
+                      ></v-btn>
+                    </template>
+                  </v-tooltip>
+                </template>
+              </v-list-item>
+            </v-list>
+
+            <v-btn size="small" color="primary" @click="samplesGraph = true" :disabled="!haveSamples">
+              Show Timeseries
+            </v-btn>
+            
+            <v-btn size="small" color="primary" @click="sampleDialog = true" :disabled="!haveSamples">
+              Show Tables
+            </v-btn>
+            
+            
+            
+            <!-- Time Range Selection -->
+            <div class="time-range-selection mt-3">
+              <v-card variant="outlined" class="pa-3">
+                <v-card-title class="text-subtitle-1 pa-0 mb-2">Time Range for New Selections</v-card-title>
                 
-                </template> -->
-              </date-picker>
-              <!-- time chips to select time specifically for esri times -->
-              <time-chips
-                v-if="whichMolecule.toLowerCase().includes('month')"
-                :timestamps="esriTimesteps"
-                @select="handleEsriTimeSelected($event.value, $event.index)"
-                reverse
-                use-utc
-                date-only
-              />
-            </v-radio-group>
-          </div>        
-          <!-- create a list of the uniqueDays -->
-          <!-- <v-select
-            :modelValue="singleDateSelected"
-            :disabled="radio !== 0"
-            :items="uniqueDays"
-            item-title="title"
-            item-value="value"
-            label="Select a Date"
-            @update:model-value="(e) => { singleDateSelected = e;}"
-            hide-details
-            variant="solo"
-          ></v-select> -->
-          <!-- add buttons to increment and decrement the singledateselected -->
-          <div class="d-flex flex-row align-center my-2">
-            <v-tooltip :disabled="touchscreen" text="Previous Date">
-              <template v-slot:activator="{ props }">
-                <v-btn
-                  v-bind="props"
-                  class="rounded-icon-wrapper"
-                  @click="moveBackwardOneDay"
-                  @keyup.enter="moveBackwardOneDay"
-                  :disabled="singleDateSelected === uniqueDays[0]"
-                  color="#009ade"
-                  variant="outlined"
-                  elevation="0"
-                  size="md"
-                >
-                  <v-icon>mdi-chevron-double-left</v-icon>
-                </v-btn>
-              </template>
-            </v-tooltip>
-            <v-spacer></v-spacer>
-            <v-tooltip :disabled="touchscreen" text="Get Data for latest available day">
-              <template v-slot:activator="{ props }">
-                <v-btn
-                  v-bind="props"
-                  style="padding-inline: 4px;"
-                  @click="() => singleDateSelected = uniqueDays[uniqueDays.length - 1]"
-                  @keyup.enter="() => singleDateSelected = uniqueDays[uniqueDays.length - 1]"
-                  :disabled="singleDateSelected === uniqueDays[uniqueDays.length - 1]"
-                  color="#009ade"
-                  variant="outlined"
-                  elevation="0"
-                  size="md"
-                >
-                  Latest Data
-                </v-btn>
-              </template>
-            </v-tooltip>
-            <v-spacer></v-spacer>
-            <v-tooltip :disabled="touchscreen" text="Next Date">
-              <template v-slot:activator="{ props }">
-                <v-btn
-                  v-bind="props"
-                  class="rounded-icon-wrapper"
-                  @click="moveForwardOneDay"
-                  @keyup.enter="moveForwardOneDay"
-                  :disabled="singleDateSelected === uniqueDays[uniqueDays.length - 1]"
-                  color="#009ade"
-                  variant="outlined"
-                  elevation="0"
-                  size="md"
-                >
-                  <v-icon>mdi-chevron-double-right</v-icon>
-                </v-btn>
-              </template>
-            </v-tooltip>
-          </div>
-          <v-progress-linear
-            v-if="loadedImagesProgress < 101"
-            v-model="loadedImagesProgress"
-            color="#092088"
-            height="20"
-          >
-          <span v-if="loadedImagesProgress < 100">Loading Data ({{ loadedImagesProgress.toFixed(0) }}%)</span>
-          <span v-else>Data Loaded</span>
-          </v-progress-linear>
-          <!-- <v-switch label="LA fires" v-model="showExtendedRange" /> -->
-        </div>
-
-        <hr style="border-color: grey">
-
-        <div id="sample-info" v-if="selections" style="margin-top: 1em;">
-          <cds-dialog
-            v-model="showUserGuide"
-            title="User Guide"
-            button
-            >
-          <UserGuide/>
-          </cds-dialog>
-          <ListComponent 
-            :selectionOptions="selectionOptions" 
-            v-model="selection" 
-            :selectionActive="selectionActive" 
-            @edit-selection="editSelection" 
-            @create-new="createNewSelection" 
-          />
-          <!-- Add Time Series button -->
-          <!-- Legacy 'add time series' button removed after refactor to immutable UserSelection -->
-          
-          <v-select
-            v-model="selection"
-            :items="selectionOptions"
-            label="Selection"
-            return-object
-          >
-            <template #selection="{ item }">
-              {{ item.value == null ? "None" : item.value.name }}
-            </template>
-            <template #item="{ item, props }">
-              <v-list-item :title="item.value == null ? 'None' : item.value.name" @click="typeof props.onClick === 'function' ? props.onClick($event) : undefined"></v-list-item>
-            </template>
-          </v-select>
-
-          <v-list>
-            <v-list-item
-              v-for="sel in selections"
-              :title="sel.name"
-              :key="sel.id"
-              :color="sel.region.color"
-            >
-              <template #subtitle>
-                <span v-if="sel.timeRange" class="text-caption">
-                  {{ getTimeRangeDisplay(sel) }}
-                </span>
-              </template>
-              <template #append>
-                <v-tooltip
-                  text="Edit selection"
-                  location="top"
-                >
-                  <template #activator="{ props }">
-                    <v-btn
-                      v-bind="props"
-                      size="x-small"
-                      icon="mdi-pencil"
-                      @click="() => editSelection(sel)"
-                    ></v-btn>
-                  </template>
-                </v-tooltip>
-                <v-tooltip
-                  text="Get NO₂ Samples"
-                  location="top"
-                >
-                  <template #activator="{ props }">
-                    <v-btn
-                      v-bind="props"
-                      size="x-small"
-                      :loading="loadingSamples === sel.name"
-                      :disabled="sel.samples != null"
-                      icon="mdi-download"
-                      @click="() => fetchDataForSelection(sel)"
-                    ></v-btn>
-                  </template>
-                </v-tooltip>
-                <v-tooltip
-                  text="Get Center Point NO₂ Sample"
-                  location="top"
-                >
-                  <template #activator="{ props }">
-                    <v-btn
-                      v-bind="props"
-                      size="x-small"
-                      :loading="loadingPointSample === sel.name"
-                      icon="mdi-image-filter-center-focus"
-                      @click="() => fetchCenterPointDataForSelection(sel)"
-                    ></v-btn>
-                  </template>
-                </v-tooltip>
-                <v-tooltip
-                  text="Remove selection"
-                  location="top"
-                >
-                  <template #activator="{ props }">
-                    <v-btn
-                      v-bind="props"
-                      size="x-small"
-                      icon="mdi-trash-can"
-                      @click="() => deleteSelection(sel)"
-                    ></v-btn>
-                  </template>
-                </v-tooltip>
-              </template>
-            </v-list-item>
-          </v-list>
-
-          <v-btn size="small" color="primary" @click="samplesGraph = true" :disabled="!haveSamples">
-            Show Timeseries
-          </v-btn>
-          
-          <v-btn size="small" color="primary" @click="sampleDialog = true" :disabled="!haveSamples">
-            Show Tables
-          </v-btn>
-          
-          
-          
-          <!-- Time Range Selection -->
-          <div class="time-range-selection mt-3">
-            <v-card variant="outlined" class="pa-3">
-              <v-card-title class="text-subtitle-1 pa-0 mb-2">Time Range for New Selections</v-card-title>
-              
-              <!-- Effective time range display -->
-              <div class="mt-2">
-                <v-chip size="small" :color="useCustomTimeRange ? 'success' : 'info'">
-                  {{ effectiveTimeRangeDisplay }}
-                </v-chip>
-              </div>
-              
-            </v-card>
-          </div>
+                <!-- Effective time range display -->
+                <div class="mt-2">
+                  <v-chip size="small" :color="useCustomTimeRange ? 'success' : 'info'">
+                    {{ effectiveTimeRangeDisplay }}
+                  </v-chip>
+                </div>
+                
+              </v-card>
+            </div>
   
+          </div>
         </div>
 
         <hr style="border-color: grey;">
@@ -941,92 +1068,14 @@
         </cds-dialog>
       
       <div id="information">
-        <timeseries-graph
-          v-if="selections.length > 0"
-          :data="selections"
-        />
-        
-        <!-- Selection Composition UI -->
-        <v-card >
-          <v-card-title class="d-flex justify-space-between">
-            <h3>Compose Selection</h3>
-            <v-chip size="x-small" color="primary" variant="tonal">{{ creationProgress.count }}/3</v-chip>
-          </v-card-title>
-
-          <v-card-text class="d-flex flex-column ga-3">
-            <!-- Region Picker -->
-            <v-select
-              :items="availableRegions.map(r => ({ title: r.name, value: r }))"
-              :model-value="draftUserSelection.region"
-              @update:model-value="setDraftSelectionRegion($event as RectangleSelectionType)"
-              label="Region"
-              :disabled="selectionActive"
-              item-title="title"
-              item-value="value"
-              density="compact"
-              hide-details
-              variant="outlined"
-            />
-
-            <!-- Molecule Picker -->
-            <v-select
-              :items="availableMolecules.map(m => ({ title: m.title, value: m.key }))"
-              :model-value="draftUserSelection.molecule"
-              @update:model-value="setDraftSelectionMolecule($event)"
-              label="Molecule"
-              item-title="title"
-              item-value="value"
-              density="compact"
-              hide-details
-              variant="outlined"
-            />
-
-            <!-- Time Range Picker: offer Effective (current day/custom) and any active custom ranges -->
-            <v-select
-              :items="timeRangeOptions"
-              :model-value="draftUserSelection.timeRange"
-              @update:model-value="setDraftSelectionTimeRange($event)"
-              label="Time Range"
-              item-title="title"
-              item-value="value"
-              density="compact"
-              hide-details
-              variant="outlined"
-            />
-
-            <v-progress-linear :model-value="creationProgress.percent" height="6" color="primary" rounded></v-progress-linear>
-
-            <div class="d-flex ga-2">
-              <v-btn
-                color="primary"
-                :disabled="creationProgress.count < 3"
-                @click="composeSelection"
-                size="small"
-              >Create Selection</v-btn>
-              <v-btn
-                color="secondary"
-                variant="tonal"
-                size="small"
-                @click="() => { draftUserSelection.region = null; draftUserSelection.timeRange = null; draftUserSelection.molecule = null; }"
-              >Reset</v-btn>
-            </div>
-          </v-card-text>
-        </v-card>
-        
-        <date-time-range-selection
-          :current-date="singleDateSelected"
-          :selected-timezone="selectedTimezone"
-          :allowed-dates="uniqueDays"
-          @ranges-change="handleDateTimeRangeSelectionChange"
-        />
+        <div id="body-logos">
+          <a href="https://www.si.edu/" target="_blank" rel="noopener noreferrer" class="mr-1" 
+          ><img alt="Smithsonian Logo" src="./assets/smithsonian.png"
+            /></a>
+          <credit-logos/>
+        </div>
       </div>
       
-    </div>
-    <div id="body-logos">
-      <a href="https://www.si.edu/" target="_blank" rel="noopener noreferrer" class="mr-1" 
-      ><img alt="Smithsonian Logo" src="./assets/smithsonian.png"
-        /></a>
-      <credit-logos/>
     </div>
   </div>
 
@@ -1094,10 +1143,10 @@ import { interestingEvents } from "./interestingEvents";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { AggValue, LatLngPair, InitMapOptions, RectangleSelectionInfo, RectangleSelection, RectangleType, MappingBackends, TimeRange, UserSelection } from "./types";
 import type { MillisecondRange } from "./types/datetime";
-import ListComponent from "./components/ListComponent.vue";
 import UserGuide from "./components/UserGuide.vue";
 import SampleTable from "./components/SampleTable.vue";
 import { atleast1d } from "./utils/atleast1d";
+import { formatTimeRange } from "./utils/timeRange";
 
 import { useUniqueTimeSelection } from "./composables/useUniqueTimeSelection";
 
@@ -1314,8 +1363,10 @@ function zpad(n: number, width: number = 2, character: string = "0"): string {
  ************/
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { getTimestamps, getExtendedRangeTimestamps } from "./timestamps";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { VariableNames } from "./esri/ImageLayerConfig";
 import { AllAvailableColorMaps } from "./colormaps";
+import { ESRI_URLS, MOLECULE_OPTIONS, MoleculeType } from "./esri/utils";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const erdTimestamps = ref<number[]>([]);
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -1559,39 +1610,6 @@ const extendedRangeAvailable = computed(() => {
 });
 
 
-const esriUrls = {
-  'no2': {
-    url: "https://gis.earthdata.nasa.gov/image/rest/services/C2930763263-LARC_CLOUD/TEMPO_NO2_L3_V03_HOURLY_TROPOSPHERIC_VERTICAL_COLUMN/ImageServer",
-    variable: "NO2_Troposphere",
-  },
-  'no2Monthly': {
-    url: "https://gis.earthdata.nasa.gov/gp/rest/services/Hosted/TEMPO_NO2_L3_V03_Monthly_Mean/ImageServer",
-    variable: "NO2_Troposphere",
-  },
-  'no2DailyMax' : {
-    url: "https://gis.earthdata.nasa.gov/gp/rest/services/Hosted/TEMPO_NO2_L3_V03_Daily_Maximum/ImageServer",
-    variable: "NO2_Troposphere",
-  },
-  'o3': {
-    url: "https://gis.earthdata.nasa.gov/image/rest/services/C2930764281-LARC_CLOUD/TEMPO_O3TOT_L3_V03_HOURLY_OZONE_COLUMN_AMOUNT/ImageServer",
-    variable: "Ozone_Column_Amount",
-  },
-  'hcho': {
-    url: "https://gis.earthdata.nasa.gov/image/rest/services/C2930761273-LARC_CLOUD/TEMPO_HCHO_L3_V03_HOURLY_VERTICAL_COLUMN/ImageServer",
-    variable: "HCHO",
-  },
-  'hchoMonthly': {
-    url: "https://gis.earthdata.nasa.gov/gp/rest/services/Hosted/TEMPO_HCHO_L3_V03_Monthly_Mean/ImageServer",
-    variable: "HCHO",
-  },
-  'hchoDailyMax': {
-    url: "https://gis.earthdata.nasa.gov/gp/rest/services/Hosted/TEMPO_HCHO_L3_V03_Daily_Maximum/ImageServer",
-    variable: "HCHO",
-  },
-} as Record<string, { url: string; variable: VariableNames }>;
-
-type MoleculeType = keyof typeof esriUrls;
-
 const whichMolecule = ref<MoleculeType>('no2');
 
 import { stretches, colorramps } from "./esri/ImageLayerConfig";
@@ -1620,10 +1638,10 @@ const colorbarOptions = {
 
 // computed
 const esriUrl = computed(() => {
-  return esriUrls[whichMolecule.value].url;
+  return ESRI_URLS[whichMolecule.value].url;
 });
 const esriVariable = computed(() => {
-  return esriUrls[whichMolecule.value].variable;
+  return ESRI_URLS[whichMolecule.value].variable;
 });
 
 // Create TempoDataService instance
@@ -1661,10 +1679,10 @@ function handleEsriTimeSelected(timestamp:number, _index: number) {
 }
 
 watch(whichMolecule, (newMolecule) => {
-  changeUrl(esriUrls[newMolecule].url, esriUrls[newMolecule].variable);
+  changeUrl(ESRI_URLS[newMolecule].url, ESRI_URLS[newMolecule].variable);
   // Update TempoDataService with new URL and variable
-  tempoDataService.setBaseUrl(esriUrls[newMolecule].url);
-  tempoDataService.setVariable(esriUrls[newMolecule].variable);
+  tempoDataService.setBaseUrl(ESRI_URLS[newMolecule].url);
+  tempoDataService.setVariable(ESRI_URLS[newMolecule].variable);
   getEsriTimeSteps();
   console.log(colorbarOptions[newMolecule].colormap.toLowerCase());
   colorMap.value = colorbarOptions[newMolecule].colormap.toLowerCase();
@@ -1713,6 +1731,7 @@ const selectedIndex = computed({
     }
   }
 });
+
 function setSelection(sel: UserSelectionType | null) {
   if (sel === null) {
     selection.value = null;
@@ -1728,13 +1747,20 @@ function setSelection(sel: UserSelectionType | null) {
   selectedIndex.value = idx;
   return selection.value;
 }
+
 function addUserSelection(sel: UserSelectionType) {
   selections.value = [...selections.value, sel];
   return sel;
 }
+
+function handleSelectionCreated(sel: UserSelectionType) {
+  addUserSelection(sel);
+  setSelection(sel);
+  createSelectionActive.value = false;
+}
+
 // Track total created selections for unique naming
 const selectionOptions = computed<SelectionOption[]>(() => ([null] as SelectionOption[]).concat(selections.value as SelectionOption[]));
-let selectionCount = 0; // for naming selections
 // Removed timeRangeCount/timeRangeNameMap and dedup logic; we'll just append custom ranges and always keep a current day option.
 let timeRangeCount = 0;
 const samplesGraph = ref(false);
@@ -1752,7 +1778,9 @@ const COLORS = [
 const { active: selectionActive, selectionInfo } = useRectangleSelection(map, "red");
 const loadingSamples = ref<string | false>(false);
 
-
+const createTimeRangeActive = ref(false);
+const createSelectionActive = ref(false);
+const openPanels = ref<number[]>([]);
 
 const testErrorAmount = 0.25e15;
 const _testError = { lower: testErrorAmount, upper: testErrorAmount };
@@ -1839,6 +1867,8 @@ function handleDateTimeRangeSelectionChange(timeRanges: MillisecondRange[], sele
   useCustomTimeRange.value = true;
   // Add to available list if new (compare by serialized range key)
   availableTimeRanges.value.push(tr); // always append
+
+  createTimeRangeActive.value = false;
   console.log(`Registered ${tr.name}: ${tr.description}`);
 }
 
@@ -1928,7 +1958,6 @@ async function fetchCenterPointDataForSelection(_sel: UserSelectionType) {
   
   const timeRanges = atleast1d(_sel.timeRange.range);
   
-  
   try {
     const data = await tempoDataService.fetchCenterPointData(_sel.region.geometryInfo, timeRanges);
     if (data) {
@@ -1943,15 +1972,6 @@ async function fetchCenterPointDataForSelection(_sel: UserSelectionType) {
   }
 }
 
-
-
-// Selection Composition 
-interface DraftUserSelection {
-  region?: RectangleSelectionType | null;
-  timeRange?: MillisecondRange | MillisecondRange[] | null;
-  molecule?: MoleculeType | null;
-}
-const draftUserSelection = ref<DraftUserSelection>({ region: null, timeRange: null, molecule: null });
 
 function createDraftSelection(info: RectangleSelectionInfo) {
   const color = COLORS[regionCount % COLORS.length];
@@ -1971,7 +1991,8 @@ function createDraftSelection(info: RectangleSelectionInfo) {
 
 
 const availableRegions = computed(() => regions.value);
-const availableMolecules = computed(() => moleculeOptions.map(o => ({ key: o.value as MoleculeType, title: o.title })));
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const availableMolecules = computed(() => MOLECULE_OPTIONS.map(o => ({ key: o.value as MoleculeType, title: o.title })));
 // Time ranges maintained as a list of TimeRange objects
 const availableTimeRanges = ref<TimeRange[]>([]);
 
@@ -2001,57 +2022,6 @@ watch(currentDayTimeRange, (val) => {
   }
 }, { immediate: true });
 
-// Public composition progress
-const creationProgress = computed(() => {
-  let count = 0;
-  if (draftUserSelection.value.region) count += 1;
-  if (draftUserSelection.value.timeRange) count += 1;
-  if (draftUserSelection.value.molecule) count += 1;
-  return { count, percent: (count / 3) * 100 };
-});
-
-function resetDraftSelection() {
-  draftUserSelection.value = { region: null, timeRange: null, molecule: null };
-}
-
-function composeSelection(): UserSelectionType | null {
-  // const color = COLORS[selectionCount % COLORS.length]; // we will use the color from the region
-  
-  const draft = draftUserSelection.value;
-  if (!draft.region || !draft.timeRange || !draft.molecule) {
-    console.error('Draft selection incomplete');
-    return null;
-  }
-  
-  selectionCount += 1;
-  
-  const timeRanges = atleast1d(draft.timeRange);
-  // Add to available list if new custom
-  const timeRange: TimeRange = { id: v4(), name: 'Selection Range', description: formatTimeRange(timeRanges), range: timeRanges.length === 1 ? timeRanges[0] : timeRanges };
-  const sel: UserSelectionType = {
-    id: v4(),
-    region: draft.region, // as { id: string; name: string; rectangle: RectangleSelectionInfo; color: string; layer?: unknown },
-    timeRange,
-    molecule: draft.molecule as MoleculeType,
-    name: `Selection ${selectionCount}`
-  };
-  addUserSelection(sel);
-  setSelection(sel);
-  resetDraftSelection();
-  return sel;
-}
-
-function setDraftSelectionRegion(region: RectangleSelectionType | null) {
-  (draftUserSelection.value.region as RectangleSelectionType | null) = region || null;
-}
-
-function setDraftSelectionMolecule(molecule: MoleculeType | null) {
-  draftUserSelection.value.molecule = molecule || null;
-}
-
-function setDraftSelectionTimeRange(range: MillisecondRange | MillisecondRange[] | null) {
-  draftUserSelection.value.timeRange = range || null;
-}
 
 // Options for time range dropdown sourced from availableTimeRanges (TimeRange objects)
 const timeRangeOptions = computed(() => availableTimeRanges.value.map(tr => ({ title: tr.description || tr.name, value: tr.range })));
@@ -2065,36 +2035,6 @@ watch(selections, (newSelections, oldSelections) => {
   // just log out the length difference
   console.log(`Selections changed: ${oldSelections.length} -> ${newSelections.length}`);
 });
-
-
-// Utility function to get time range display string
-function formatTimeRange(ranges: MillisecondRange | MillisecondRange[]): string {
-  if (Array.isArray(ranges)) {
-    if (ranges.length === 0) {
-      return 'No time range set';
-    }
-    
-    if (ranges.length === 1) {
-      const range = ranges[0];
-      return `${new Date(range.start).toLocaleDateString()} - ${new Date(range.end).toLocaleDateString()}`;
-    } else {
-      // For multiple ranges, show the full span
-      const allStarts = ranges.map(r => r.start);
-      const allEnds = ranges.map(r => r.end);
-      const minStart = Math.min(...allStarts);
-      const maxEnd = Math.max(...allEnds);
-      return `${new Date(minStart).toLocaleDateString()} - ${new Date(maxEnd).toLocaleDateString()} (${ranges.length} ranges)`;
-    }
-  } else {
-    return `${new Date(ranges.start).toLocaleDateString()} - ${new Date(ranges.end).toLocaleDateString()}`;
-  }
-}
-function getTimeRangeDisplay(sel: UserSelectionType): string {
-  if (!sel.timeRange || !sel.timeRange.range) {
-    return `No time range set for selection ${sel.name}`;
-  }
-  return formatTimeRange(sel.timeRange.range);
-}
 
 // Computed property for effective time range display
 const effectiveTimeRangeDisplay = computed(() => {
@@ -2804,6 +2744,15 @@ watch(singleDateSelected, (date: Date) => {
   userSelectedCalendarDates.push(date.getTime());
 });
 
+watch(openPanels, (open: number[]) => {
+  if (!open.includes(0)) {
+    createTimeRangeActive.value = false;
+  }
+  if (!open.includes(1)) {
+    selectionActive.value = false;
+  }
+});
+
 watch(selectionInfo, (info: RectangleSelectionInfo | null) => {
   if (info === null || map.value === null) {
     return;
@@ -2909,7 +2858,12 @@ html {
 
 
   -ms-overflow-style: none;
-  // scrollbar-width: none;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    width: 0;
+    height: 0
+  }
 }
 
 body {
@@ -3171,16 +3125,11 @@ ul {
     outline: 1px solid transparent;
   }
 
-  #user-options {
-    min-width: 200px;
+  #side-panel {
+    overflow-y: auto;
     margin-left: 1.5rem;
     grid-column: 3 / 4;
-    grid-row: 2 / 3;
-  }
-  
-  #sample-info {
-    grid-column: 3 / 4;
-    grid-row: 3 / 5;
+    grid-row: 2 / 6;
   }
 
   #logo-title {
@@ -3242,6 +3191,7 @@ ul {
   font-weight: normal;
   font-style: normal;
   background-color: transparent;
+  height: calc(100% - 4rem);
 }
 
 #title {
@@ -3260,7 +3210,6 @@ a[href="https://tempo.si.edu"]>img {
 }
 
 #information {
-  background-color: var(--info-background);
   border-radius: 10px;
   padding-inline: 1rem;
   // margin-right: 200px;
@@ -3599,7 +3548,7 @@ button:focus-visible,
 @media (max-width: 1180px) {
 
   .content-with-sidebars {
-    grid-template-columns: 0px auto auto;
+    grid-template-columns: 0px 0.7fr 0.3fr;
     grid-template-rows: 3.5rem var(--map-height) 78px .5fr .5fr;
 
     #when {
@@ -3625,11 +3574,6 @@ button:focus-visible,
       height: 70px !important;
       width: auto !important;
     }
-
-    #user-options {
-      width: 250px;
-    }
-
 
   }
 }
@@ -3662,51 +3606,19 @@ button:focus-visible,
   }
 
   .content-with-sidebars {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto 78px repeat(5, auto);
     gap: 10px;
     // padding-inline: 1rem;
 
-
-    #logo-title {
-      min-width: 0;
-      grid-column: 1 / 2;
-      grid-row: 1 / 2;
-    }
-
-    a[href="https://tempo.si.edu"]:has(img) {
-      grid-column: 1 / 2;
-      grid-row: 1 / 2;
-    }
-
     #menu-area {
-      grid-column: 1 / 2;
-      grid-row: 1 / 2;
       display: flex;
       flex-direction: column-reverse;
       gap: 1rem;
       align-items: flex-end;
     }
 
-    #map-container {
-      grid-column: 1 / 2;
-      grid-row: 2 / 3;
-    }
-
     #map-container #map-show-hide-controls {
       right: 5px
     }
-
-    #slider-row {
-      grid-column: 1 / 2;
-      grid-row: 3 / 4;
-    }
-
-    #user-options {
-      grid-column: 1 / 2;
-      grid-row: 4 / 5;
-    }
-
 
     #where {
       display: none;
@@ -3717,16 +3629,6 @@ button:focus-visible,
       display: none;
     }
 
-
-    #bottom-options {
-      grid-column: 1 / 2;
-      grid-row: 5 / 6;
-    }
-
-    #information {
-      grid-column: 1 / 2;
-      grid-row: 6 / 7;
-    }
 
     // #body-logos {
     //   grid-column: 1 / 2;
