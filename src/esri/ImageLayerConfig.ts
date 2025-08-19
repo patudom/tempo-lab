@@ -6,7 +6,7 @@
 import { type ImageMapLayer } from 'esri-leaflet';
 import { Variables } from './types';
 
-export type ColorRamps = "Magma" | "Inferno" | "Plasma" | "Viridis" | "Gray" | "Hillshade" | "Cividis";
+export type ColorRamps = "Magma" | "Inferno" | "Plasma" | "Viridis" | "Gray" | "Hillshade" | "Cividis" | "SVS" | "sargassum";
 
 type PixelType = Parameters<ImageMapLayer['setPixelType']>[0];
 
@@ -56,7 +56,19 @@ export const colorramps = {
   'HCHO': 'Viridis',
 } as Record<Variables, ColorRamps>;
 
+import { nonEsriColormaps } from '@/colormaps';
+
+
 export function _colorMapRule(colorRamp: ColorRamps): RasterFunctionObject {
+  if (Object.keys(nonEsriColormaps).includes((colorRamp as string).toLowerCase())) {
+    return {
+      'rasterFunction': 'Colormap',
+      'variableName': 'Raster',
+      'rasterFunctionArguments': {
+        'colorramp': nonEsriColormaps[colorRamp.toLowerCase()].esriColorRamp,
+      },
+    };
+  }
   return {
     'rasterFunction': 'Colormap',
     'variableName': 'Raster',
