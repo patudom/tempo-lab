@@ -993,21 +993,6 @@
                 :data="graphSelection ? [graphSelection] : []"
               />
             </cds-dialog>
-            
-            <!-- Time Range Selection -->
-            <div class="time-range-selection mt-3">
-              <v-card variant="outlined" class="pa-3">
-                <v-card-title class="text-subtitle-1 pa-0 mb-2">Time Range for New Selections</v-card-title>
-                
-                <!-- Effective time range display -->
-                <div class="mt-2">
-                  <v-chip size="small" :color="useCustomTimeRange ? 'success' : 'info'">
-                    {{ effectiveTimeRangeDisplay }}
-                  </v-chip>
-                </div>
-                
-              </v-card>
-            </div>
           </div>
         </div>
 
