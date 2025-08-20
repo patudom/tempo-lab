@@ -612,16 +612,7 @@
         <div id="side-panel">
           <div id="all-dates">
             <h2>Map View</h2>
-            <v-select
-              v-model="whichMolecule"
-              :items="MOLECULE_OPTIONS"
-              item-title="title"
-              item-value="value"
-              label="Molecule / Quantity"
-              hide-details
-              dense
-            ></v-select>
-            <div class="mt-2">
+            <div class="mt-2 pl-3">
               <h3>Select a Date</h3>
               <div class="d-flex flex-row align-center">
                 <v-radio-group v-model="radio">
@@ -738,6 +729,26 @@
                 <span v-else>Data Loaded</span>
               </v-progress-linear>
             </div>
+            <v-select
+              v-model="selectedTimezone"
+              label="Timezone"
+              :items="timezoneOptions"
+              item-title="name"
+              item-value="tz"
+              hide-details
+              dense
+              class="mt-3 pl-3"
+            ></v-select>
+            <v-select
+              v-model="whichMolecule"
+              :items="MOLECULE_OPTIONS"
+              item-title="title"
+              item-value="value"
+              label="Molecule / Quantity"
+              hide-details
+              dense
+              class="my-3 pl-3"
+            ></v-select>
           </div>
           <hr style="border-color: grey" class="my-3">
             <div>
@@ -863,14 +874,6 @@
           <hr style="border-color: grey">
 
           <div id="sample-info" v-if="selections" style="margin-top: 1em;">
-            <cds-dialog
-              v-model="showUserGuide"
-              title="User Guide"
-              button
-              >
-            <UserGuide/>
-            </cds-dialog>
-
             <!--
             <ListComponent 
               :selectionOptions="selectionOptions" 
@@ -1011,20 +1014,19 @@
                 
               </v-card>
             </div>
-  
           </div>
         </div>
 
         <hr style="border-color: grey;">
         <div id="bottom-options">
           <br>
-          <v-select
-            v-model="selectedTimezone"
-            label="Timezone"
-            :items="timezoneOptions"
-            item-title="name"
-            item-value="tz"
-          ></v-select>
+            <cds-dialog
+              v-model="showUserGuide"
+              title="User Guide"
+              button
+              >
+              <UserGuide/>
+            </cds-dialog>
           
           <v-checkbox
             v-if="false"
