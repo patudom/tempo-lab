@@ -1188,7 +1188,7 @@ const urlParams = new URLSearchParams(window.location.search);
 const showExtendedRangeFeatures = true; //hash.includes("extreme-events");
 const showSplashScreen = ref(new URLSearchParams(window.location.search).get("splash")?.toLowerCase() !== "false");
 const extendedRange = ref(window.location.hash.includes("extreme-events") || urlParams.get('extendedRange') === "true"); //showExtendedRangeFeatures || urlParams.get('extendedRange') === "true";
-const hideIntro = urlParams.get("hideintro") === "true";
+const hideIntro = "true";
 const WINDOW_DONTSHOWINTRO = hideIntro ? true : window.localStorage.getItem("dontShowIntro") === 'true';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore --> msPointerEnabled may not be defined in window.navigator
