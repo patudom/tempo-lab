@@ -322,7 +322,7 @@
             density="compact"
             color="var(--info-background)"
           >
-            <v-toolbar-title text="TEMPO Data Viewer"></v-toolbar-title>
+            <v-toolbar-title :text="`TEMPO Data Viewer: ${mapTitle}`"></v-toolbar-title>
             <v-spacer></v-spacer>
             <v-tooltip :text="selectionActive ? 'Cancel selection' : 'Select a region'">
               <template #activator="{ props }">
@@ -1013,7 +1013,7 @@
         </cds-dialog>
 
         <v-btn v-if="o3GraphData.length > 0" @click="showO3Graph = true">
-          Show HCHO Graph
+          Show Ozone Graph
         </v-btn>
         <cds-dialog
           title="Ozone Data"
@@ -1638,6 +1638,14 @@ const extendedRangeAvailable = computed(() => {
 
 
 const whichMolecule = ref<MoleculeType>('no2');
+
+const mapTitle = computed(() => {
+  const currentMolecule = MOLECULE_OPTIONS.find(m => m.value === whichMolecule.value);
+  if (!currentMolecule) {
+    return '';
+  }
+  return currentMolecule.title;
+});
 
 import { stretches, colorramps } from "./esri/ImageLayerConfig";
 
