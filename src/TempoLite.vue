@@ -902,7 +902,7 @@
                     </span>
                   </template>
                   <template #append>
-                    <v-tooltip
+                    <!-- <v-tooltip
                       text="Edit selection"
                       location="top"
                     >
@@ -914,7 +914,7 @@
                           @click="() => editSelection(sel)"
                         ></v-btn>
                       </template>
-                    </v-tooltip>
+                    </v-tooltip> -->
                     <v-tooltip
                       text="Get Selected Data"
                       location="top"
@@ -1942,7 +1942,7 @@ function clearSelectionSamples(sel: UserSelectionType) {
 }
 
 // edit the region of the given selection.
-function editSelection(sel: UserSelectionType | null) {
+function _editSelection(sel: UserSelectionType | null) {
   if (sel === null) {
     console.error("Cannot edit a null selection.");
     return;
