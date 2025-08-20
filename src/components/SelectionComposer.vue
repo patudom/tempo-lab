@@ -18,20 +18,6 @@
         variant="outlined"
       />
 
-      <!-- Molecule Picker -->
-      <v-select
-        :items="availableMolecules.map(m => ({ title: m.title, value: m.key }))"
-        :model-value="draftUserSelection.molecule"
-        @update:model-value="setDraftSelectionMolecule($event)"
-        label="Molecule"
-        :disabled="disabled?.molecule"
-        item-title="title"
-        item-value="value"
-        density="compact"
-        hide-details
-        variant="outlined"
-      />
-
       <!-- Time Range Picker: offer Effective (current day/custom) and any active custom ranges -->
       <v-select
         :items="timeRanges"
@@ -41,6 +27,20 @@
         :disabled="disabled?.timeRange"
         item-title="name"
         item-value="range"
+        density="compact"
+        hide-details
+        variant="outlined"
+      />
+
+      <!-- Molecule Picker -->
+      <v-select
+        :items="availableMolecules.map(m => ({ title: m.title, value: m.key }))"
+        :model-value="draftUserSelection.molecule"
+        @update:model-value="setDraftSelectionMolecule($event)"
+        label="Molecule"
+        :disabled="disabled?.molecule"
+        item-title="title"
+        item-value="value"
         density="compact"
         hide-details
         variant="outlined"
