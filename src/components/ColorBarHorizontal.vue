@@ -34,6 +34,11 @@ export default defineComponent({
       default: null
     },
     
+    cmapName: {
+      type: String,
+      default: 'none'
+    },
+    
     nsteps: {
       type: Number,
       default: 20
@@ -114,9 +119,9 @@ export default defineComponent({
         return;
       }
       // remove all the children of the colorbar
-      // while (colorbar.firstChild) {
-      //   colorbar.removeChild(colorbar.firstChild);
-      // }
+      while (colorbar.firstChild) {
+        colorbar.removeChild(colorbar.firstChild);
+      }
       const div = document.createElement('div');
       // const div = this.$el.querySelector('.colorbar-chunk');
       div.className = 'colorbar-chunk';
@@ -210,6 +215,9 @@ export default defineComponent({
       this.colorbarGradient();
     },
     cmap() {
+      this.colorbarGradient();
+    },
+    cmapName() {
       this.colorbarGradient();
     }
   }
