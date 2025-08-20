@@ -71,7 +71,7 @@ export function useImageOverlay(
   }
   
   function addLayer(map: M.Map) {
-    map.addLayer(layer);
+    map.addLayer(layer, 'stamen-toner-labels');
     return map.getLayer(overlayId);
   }
   
@@ -91,7 +91,7 @@ export function useImageOverlay(
     if (url && overlay.value) {
       overlay.value.updateImage({url: url});
       if (!overlay.value.map.getLayer(overlayId)) {
-        overlay.value.map.addLayer(layer);
+        overlay.value.map.addLayer(layer, 'stamen-toner-labels');
       }
     } else if (overlay.value) {
       overlay.value.map.removeLayer(overlayId);
