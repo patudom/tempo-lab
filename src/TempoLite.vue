@@ -182,7 +182,7 @@
 
       <h1 id="title">What is in the Air You Breathe?</h1>
       <!-- <cds-dialog
-        title="Timeseries"
+        title="Time Series"
         v-model="samplesGraph"
         :color="accentColor2"
         draggable
@@ -990,7 +990,7 @@
               </v-list>
 
               <cds-dialog
-                title="Timeseries Data"
+                title="Time-series Data"
                 v-model="showGraph"
               >
                 <timeseries-graph
