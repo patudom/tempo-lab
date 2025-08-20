@@ -1044,10 +1044,10 @@
         </cds-dialog>
 
         <v-btn v-if="o3GraphData.length > 0" @click="showO3Graph = true">
-          Show NO₂ Graph
+          Show HCHO Graph
         </v-btn>
         <cds-dialog
-          title="Nitrogen Dioxide Data"
+          title="Ozone Data"
           v-model="showO3Graph"
         >
           <timeseries-graph
@@ -1059,7 +1059,7 @@
           Show NO₂ Graph
         </v-btn>
         <cds-dialog
-          title="Nitrogen Dioxide Data"
+          title="Formaldehyde Data"
           v-model="showHCHOGraph"
         >
           <timeseries-graph
