@@ -916,7 +916,7 @@
                       </template>
                     </v-tooltip>
                     <v-tooltip
-                      text="Get NO₂ Samples"
+                      text="Get Selected Data"
                       location="top"
                     >
                       <template #activator="{ props }">
