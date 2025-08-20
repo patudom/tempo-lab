@@ -111,6 +111,7 @@ function renderPlot() {
         line: { width: 0 },
         showlegend: false,
         legendgroup: legendGroup,
+        name: data.name,
         marker: { color: regionColor },
       });
 
@@ -122,6 +123,7 @@ function renderPlot() {
         fill: "tonexty",
         showlegend: false,
         legendgroup: legendGroup,
+        name: data.name,
         marker: { color: regionColor },
       });
     }
@@ -165,9 +167,7 @@ watch(() => props.data.map(sel => Object.keys(sel.samples ?? {}).length), (newDa
   }
   console.log("Data changed, re-rendering plot");
   renderPlot();
-}, 
-{ immediate: true } // needed to force render in some situations
-);
+});
 </script>
 
 <style scoped>

@@ -1066,6 +1066,15 @@
           <SampleTable :samples="pointSampleResult" :error="pointSampleError" />
           <div v-if="pointSampleResult && Object.keys(pointSampleResult).length === 0" class="mt-2">No data for this point/time.</div>
         </cds-dialog>
+
+        <cds-dialog
+          title="Timeseries Data"
+          v-model="samplesGraph"
+        >
+          <timeseries-graph
+            :data="selections"
+          />
+        </cds-dialog>
       
       <div id="information">
         <div id="body-logos">
