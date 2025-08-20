@@ -1030,6 +1030,43 @@
               hide-details
             />
           </div>
+          
+        <v-btn v-if="no2GraphData.length > 0" @click="showNO2Graph = true">
+          Show NO₂ Graph
+        </v-btn>
+        <cds-dialog
+          title="Nitrogen Dioxide Data"
+          v-model="showNO2Graph"
+        >
+          <timeseries-graph
+            :data="no2GraphData.length>0 ? no2GraphData : []"
+          />
+        </cds-dialog>
+
+        <v-btn v-if="o3GraphData.length > 0" @click="showO3Graph = true">
+          Show NO₂ Graph
+        </v-btn>
+        <cds-dialog
+          title="Nitrogen Dioxide Data"
+          v-model="showO3Graph"
+        >
+          <timeseries-graph
+            :data="o3GraphData.length > 0 ? o3GraphData : []"
+          />
+        </cds-dialog>
+        
+        <v-btn v-if="hchoGraphData.length > 0" @click="showHCHOGraph = true">
+          Show NO₂ Graph
+        </v-btn>
+        <cds-dialog
+          title="Nitrogen Dioxide Data"
+          v-model="showHCHOGraph"
+        >
+          <timeseries-graph
+            :data="hchoGraphData.length > 0 ? hchoGraphData : []"
+          />
+        </cds-dialog>
+        
         </div>
       
 
@@ -1056,6 +1093,8 @@
             <div v-if="pointSampleResults[tableSelection.id] && Object.keys(pointSampleResults[tableSelection.id]).length === 0" class="mt-2">No data for this point/time.</div>
           </div>
         </cds-dialog>
+        
+        
 
       <div id="information">
         <div id="body-logos">
@@ -1720,6 +1759,23 @@ const showGraph = computed({
   }
 });
 
+const showNO2Graph = ref(false);
+const no2GraphData = computed(() =>{
+  return selections.value.filter(s => s.molecule.includes('no2') && selectionHasSamples(s));
+});
+
+// ozone version
+const showO3Graph = ref(false);
+const o3GraphData = computed(() =>{
+  return selections.value.filter(s => s.molecule.includes('o3') && selectionHasSamples(s));
+});
+
+// formaldehyde version
+const showHCHOGraph = ref(false);
+const hchoGraphData = computed(() =>{
+  return selections.value.filter(s => s.molecule.includes('hcho') && selectionHasSamples(s));
+});
+
 const selectedIndex = computed({
   get() {
     const selectedID = selection.value?.id;
@@ -1922,6 +1978,7 @@ async function fetchDataForSelection(sel: UserSelectionType) {
   const timeRanges = atleast1d(sel.timeRange.range);
   
   try {
+    tempoDataService.setBaseUrl(ESRI_URLS[sel.molecule].url);
     const data = await tempoDataService.fetchTimeseriesData(sel.region.geometryInfo, timeRanges);
     sel.samples = data.values;
     sel.errors = data.errors;
@@ -1938,15 +1995,16 @@ async function fetchDataForSelection(sel: UserSelectionType) {
 // fetchDataForSelection already handles UserSelection
 
 async function fetchCenterPointDataForSelection(sel: UserSelectionType) {
-  loadingSamples.value = _sel.name;
+  loadingSamples.value = sel.name;
   sampleErrors.value[sel.id] = null;
   
-  const timeRanges = atleast1d(_sel.timeRange.range);
+  const timeRanges = atleast1d(sel.timeRange.range);
   
   try {
-    const data = await tempoDataService.fetchCenterPointData(_sel.region.geometryInfo, timeRanges);
+    tempoDataService.setBaseUrl(ESRI_URLS[sel.molecule].url);
+    const data = await tempoDataService.fetchCenterPointData(sel.region.geometryInfo, timeRanges);
     if (data) {
-      _sel.samples = data.values;
+      sel.samples = data.values;
       loadingSamples.value = "finished";
       console.log(`Fetched center point data for ${timeRanges.length} time range(s)`);
       addTimeseriesLocationsToMap(data.locations);
