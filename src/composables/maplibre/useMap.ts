@@ -23,7 +23,26 @@ export function useMap(id="map", options: InitMapOptions, _showRoads: Ref<boolea
   // this is where our map will be
   const map = ref<M.Map | null>(null);
   
-  
+  async function addStates(map: M.Map) {
+    fetch("states.geojson")
+      .then(response => response.json())
+      .then(data => {
+        map.addSource('states-custom', {
+          'type': 'geojson',
+          'data': data
+        });
+        map.addLayer({
+          'id': 'states-custom',
+          'type': 'line',
+          'source': 'states-custom',
+          'paint': {
+            'line-color': 'black',
+            'line-width': 0.5,
+            'line-opacity': 0.8,
+          }
+        });
+      });
+  }
   
   async function addCoastlines(map: M.Map) {
     fetch("coastlines.geojson")
@@ -46,8 +65,9 @@ export function useMap(id="map", options: InitMapOptions, _showRoads: Ref<boolea
       });
   }
   
+  
+  
   function addLabels(map: M.Map) {
-    return; // Stamen does mesh well with current map style
     map.addSource('stamen-toner-labels', {
       type: 'raster',
       tiles: [`https://tiles.stadiamaps.com/tiles/stamen_toner_labels/{z}/{x}/{y}${retinaParam}.png`],
@@ -61,6 +81,8 @@ export function useMap(id="map", options: InitMapOptions, _showRoads: Ref<boolea
       minzoom: 0,
       maxzoom: 20
     });
+    
+    map.moveLayer('stamen-toner-labels');
   }
   
   function setupMap() {
@@ -71,6 +93,7 @@ export function useMap(id="map", options: InitMapOptions, _showRoads: Ref<boolea
     // See discussion here https://github.com/mapbox/mapbox-gl-js/issues/13203#issuecomment-2634013147
     const libreMap = map.value as unknown as M.Map;
     addCoastlines(libreMap);
+    addStates(libreMap);
     addLabels(libreMap);
     
     
@@ -107,11 +130,12 @@ export function useMap(id="map", options: InitMapOptions, _showRoads: Ref<boolea
   //   center: options.loc ? [options.loc[1], options.loc[0]] : [0, 0], // starting position [lng, lat]
   //   zoom: options.zoom ?? 1 // starting zoom
   // }  
+  // https://github.com/CartoDB/basemap-styles other "basemap" styles
   function createMap(): Ref<M.Map> {
     const _map = new M.Map({
       container: id,
       // style: 'https://tiles.openfreemap.org/styles/liberty', // style URL
-      style: 'https://demotiles.maplibre.org/style.json',
+      style: 'https://basemaps.cartocdn.com/gl/positron-nolabels-gl-style/style.json',
       center: options.loc ? [options.loc[1], options.loc[0]] : [0, 0], // starting position [lng, lat]
       zoom: options.zoom ?? 1, // starting zoom,
       attributionControl: false
