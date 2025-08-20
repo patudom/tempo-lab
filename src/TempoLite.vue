@@ -163,11 +163,11 @@
   <div
     id="main-content"
   > 
-  <marquee-alert 
-    v-if="smallSize && showExtendedRangeFeatures && extendedRangeAvailable" 
-    timeout="30000"
-    message="You can view data with an extend range for the 
-            duration of the LA fires. See the 🔥 button on the map"
+    <marquee-alert 
+      v-if="smallSize && showExtendedRangeFeatures && extendedRangeAvailable" 
+      timeout="30000"
+      message="You can view data with an extend range for the 
+              duration of the LA fires. See the 🔥 button on the map"
     />
     <div class="content-with-sidebars">
       <!-- tempo logo -->
@@ -299,7 +299,7 @@
         </v-btn>
       </div>
     </div>
-      <div id="where" class="big-label">where</div>
+    <div id="where" class="big-label">where</div>
       <div id="map-container">
         <colorbar-horizontal
           v-if="display.width.value <= 750"
@@ -610,8 +610,19 @@
         </div>
 
         <div id="side-panel">
-            <div id="all-dates">
-              <h2>Select a Date</h2>  
+          <div id="all-dates">
+            <h2>Map View</h2>
+            <v-select
+              v-model="whichMolecule"
+              :items="MOLECULE_OPTIONS"
+              item-title="title"
+              item-value="value"
+              label="Molecule / Quantity"
+              hide-details
+              dense
+            ></v-select>
+            <div class="mt-2">
+              <h3>Select a Date</h3>
               <div class="d-flex flex-row align-center">
                 <v-radio-group v-model="radio">
                   <date-picker
@@ -661,87 +672,74 @@
                   />
                 </v-radio-group>
               </div>        
-            <!-- create a list of the uniqueDays -->
-            <!-- <v-select
-              :modelValue="singleDateSelected"
-              :disabled="radio !== 0"
-              :items="uniqueDays"
-              item-title="title"
-              item-value="value"
-              label="Select a Date"
-              @update:model-value="(e) => { singleDateSelected = e;}"
-              hide-details
-              variant="solo"
-            ></v-select> -->
-            <!-- add buttons to increment and decrement the singledateselected -->
-            <div class="d-flex flex-row align-center my-2">
-              <v-tooltip :disabled="touchscreen" text="Previous Date">
-                <template v-slot:activator="{ props }">
-                  <v-btn
-                    v-bind="props"
-                    class="rounded-icon-wrapper"
-                    @click="moveBackwardOneDay"
-                    @keyup.enter="moveBackwardOneDay"
-                    :disabled="singleDateSelected === uniqueDays[0]"
-                    color="#009ade"
-                    variant="outlined"
-                    elevation="0"
-                    size="md"
-                  >
-                    <v-icon>mdi-chevron-double-left</v-icon>
-                  </v-btn>
-                </template>
-              </v-tooltip>
-              <v-spacer></v-spacer>
-              <v-tooltip :disabled="touchscreen" text="Get Data for latest available day">
-                <template v-slot:activator="{ props }">
-                  <v-btn
-                    v-bind="props"
-                    style="padding-inline: 4px;"
-                    @click="() => singleDateSelected = uniqueDays[uniqueDays.length - 1]"
-                    @keyup.enter="() => singleDateSelected = uniqueDays[uniqueDays.length - 1]"
-                    :disabled="singleDateSelected === uniqueDays[uniqueDays.length - 1]"
-                    color="#009ade"
-                    variant="outlined"
-                    elevation="0"
-                    size="md"
-                  >
-                    Latest Data
-                  </v-btn>
-                </template>
-              </v-tooltip>
-              <v-spacer></v-spacer>
-              <v-tooltip :disabled="touchscreen" text="Next Date">
-                <template v-slot:activator="{ props }">
-                  <v-btn
-                    v-bind="props"
-                    class="rounded-icon-wrapper"
-                    @click="moveForwardOneDay"
-                    @keyup.enter="moveForwardOneDay"
-                    :disabled="singleDateSelected === uniqueDays[uniqueDays.length - 1]"
-                    color="#009ade"
-                    variant="outlined"
-                    elevation="0"
-                    size="md"
-                  >
-                    <v-icon>mdi-chevron-double-right</v-icon>
-                  </v-btn>
-                </template>
-              </v-tooltip>
+              <!-- add buttons to increment and decrement the singledateselected -->
+              <div class="d-flex flex-row align-center my-2">
+                <v-tooltip :disabled="touchscreen" text="Previous Date">
+                  <template v-slot:activator="{ props }">
+                    <v-btn
+                      v-bind="props"
+                      class="rounded-icon-wrapper"
+                      @click="moveBackwardOneDay"
+                      @keyup.enter="moveBackwardOneDay"
+                      :disabled="singleDateSelected === uniqueDays[0]"
+                      color="#009ade"
+                      variant="outlined"
+                      elevation="0"
+                      size="md"
+                    >
+                      <v-icon>mdi-chevron-double-left</v-icon>
+                    </v-btn>
+                  </template>
+                </v-tooltip>
+                <v-spacer></v-spacer>
+                <v-tooltip :disabled="touchscreen" text="Get Data for latest available day">
+                  <template v-slot:activator="{ props }">
+                    <v-btn
+                      v-bind="props"
+                      style="padding-inline: 4px;"
+                      @click="() => singleDateSelected = uniqueDays[uniqueDays.length - 1]"
+                      @keyup.enter="() => singleDateSelected = uniqueDays[uniqueDays.length - 1]"
+                      :disabled="singleDateSelected === uniqueDays[uniqueDays.length - 1]"
+                      color="#009ade"
+                      variant="outlined"
+                      elevation="0"
+                      size="md"
+                    >
+                      Latest Data
+                    </v-btn>
+                  </template>
+                </v-tooltip>
+                <v-spacer></v-spacer>
+                <v-tooltip :disabled="touchscreen" text="Next Date">
+                  <template v-slot:activator="{ props }">
+                    <v-btn
+                      v-bind="props"
+                      class="rounded-icon-wrapper"
+                      @click="moveForwardOneDay"
+                      @keyup.enter="moveForwardOneDay"
+                      :disabled="singleDateSelected === uniqueDays[uniqueDays.length - 1]"
+                      color="#009ade"
+                      variant="outlined"
+                      elevation="0"
+                      size="md"
+                    >
+                      <v-icon>mdi-chevron-double-right</v-icon>
+                    </v-btn>
+                  </template>
+                </v-tooltip>
+              </div>
+              <v-progress-linear
+                v-if="loadedImagesProgress < 101"
+                v-model="loadedImagesProgress"
+                color="#092088"
+                height="20"
+              >
+                <span v-if="loadedImagesProgress < 100">Loading Data ({{ loadedImagesProgress.toFixed(0) }}%)</span>
+                <span v-else>Data Loaded</span>
+              </v-progress-linear>
             </div>
-            <v-progress-linear
-              v-if="loadedImagesProgress < 101"
-              v-model="loadedImagesProgress"
-              color="#092088"
-              height="20"
-            >
-            <span v-if="loadedImagesProgress < 100">Loading Data ({{ loadedImagesProgress.toFixed(0) }}%)</span>
-            <span v-else>Data Loaded</span>
-            </v-progress-linear>
-            <!-- <v-switch label="LA fires" v-model="showExtendedRange" /> -->
           </div>
-
-          <hr style="border-color: grey">
+          <hr style="border-color: grey" class="my-3">
             <div>
               <h2>Create a Selection</h2>
               <v-btn
@@ -858,21 +856,6 @@
                       </template>
                     </v-list-item>
                   </v-list>
-                </template>
-              </v-expansion-panel>
-              <v-expansion-panel
-                title="Molecule / Quantity"
-              >
-                <template #text>
-                  <v-select
-                    v-model="whichMolecule"
-                    :items="MOLECULE_OPTIONS"
-                    item-title="title"
-                    item-value="value"
-                    label="Molecule"
-                    hide-details
-                    dense
-                  ></v-select>
                 </template>
               </v-expansion-panel>
             </v-expansion-panels>
