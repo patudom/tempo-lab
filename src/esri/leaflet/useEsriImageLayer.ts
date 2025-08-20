@@ -1,14 +1,14 @@
 // src/composables/useEsriLayer.ts
 import { ref, watch, nextTick, MaybeRef, toRef, Ref } from 'vue';
 import { ImageMapLayer, imageMapLayer } from 'esri-leaflet';
-import { renderingRule, fetchEsriTimeSteps, extractTimeSteps, stretches, type VariableNames } from '../ImageLayerConfig';
+import { renderingRule, fetchEsriTimeSteps, extractTimeSteps, stretches, colorramps, type VariableNames, type RenderingRuleOptions, ColorRamps } from '../ImageLayerConfig';
 import { Map } from 'leaflet';
 export const no2Url = ref('https://gis.earthdata.nasa.gov/image/rest/services/C2930763263-LARC_CLOUD/TEMPO_NO2_L3_V03_HOURLY_TROPOSPHERIC_VERTICAL_COLUMN/ImageServer');
 
 
 
-export function useEsriLayer(url: string, variableName: VariableNames, timestamp: Ref<number>, opacity: MaybeRef<number>) {
-  let esriTimesteps: number[] = [];
+export function useEsriLayer(_url: string, variableName: VariableNames, timestamp: Ref<number>, opacity: MaybeRef<number>) {
+  const esriTimesteps = ref([] as number[]);
   const esriImageLayer = ref(null as ImageMapLayer | null);
 
   const opacityRef = toRef(opacity);
@@ -16,12 +16,20 @@ export function useEsriLayer(url: string, variableName: VariableNames, timestamp
   const noEsriData = ref(false);
   
   const variableNameRef = toRef(variableName);
+  
+  const urlRef = toRef(_url);
+  
+  const renderOptions = ref<RenderingRuleOptions>({
+    range: stretches[variableNameRef.value],
+    colormap: colorramps[variableNameRef.value],
+  });
 
 
   async function getEsriTimeSteps() {
-    fetchEsriTimeSteps(url, variableNameRef.value)
+    fetchEsriTimeSteps(urlRef.value, variableNameRef.value)
       .then((json) => {
-        esriTimesteps = extractTimeSteps(json);
+        esriTimesteps.value = extractTimeSteps(json);
+      }).then(() => {
         nextTick(updateEsriTimeRange);
       });
   }
@@ -29,12 +37,12 @@ export function useEsriLayer(url: string, variableName: VariableNames, timestamp
 
   function updateEsriTimeRange() {
     const now = timestamp.value;
-    if (esriTimesteps.length === 0) {
+    if (esriTimesteps.value.length === 0) {
       console.warn('No ESRI time steps available');
       return;
     }
     
-    const nearest = esriTimesteps.reduce((a, b) => Math.abs(b - now) < Math.abs(a - now) ? b : a);
+    const nearest = esriTimesteps.value.reduce((a, b) => Math.abs(b - now) < Math.abs(a - now) ? b : a);
     noEsriData.value = Math.abs((nearest - now) / (1000 * 60)) > 60;
     if (noEsriData.value) {
       console.error('nearest time is more than an hour away');
@@ -54,32 +62,73 @@ export function useEsriLayer(url: string, variableName: VariableNames, timestamp
 
 
   esriImageLayer.value = imageMapLayer({
-    url: url,
+    url: urlRef.value,
     format: 'png',
     opacity: opacityRef.value ?? 0.8,
   });
   
   if (esriImageLayer.value) {
     // esriImageLayer.value.setPixelType(renderingRule?.rasterFunctionArguments?.Raster?.outputPixelType ?? 'U8');
-    esriImageLayer.value.setRenderingRule(renderingRule(stretches[variableNameRef.value]));
+    esriImageLayer.value.setRenderingRule(renderingRule(renderOptions.value.range, renderOptions.value.colormap));
+    console.log('Initial rendering rule set:', renderOptions.value);
     updateEsriTimeRange();
   }
-
+  
+  const mapRef = ref<Map | null>(null);
 
   function addEsriSource(map: Map) {
     if (!map) return;
+    if (mapRef.value === null) {
+      mapRef.value = map;
+    }
     esriImageLayer.value?.addTo(map);
   }
   
   function changeUrl(newUrl: string, variableName: VariableNames) {
-    if (esriImageLayer.value) {
-      variableNameRef.value = variableName; // Default to NO2 if not provided
-      esriImageLayer.value.setRenderingRule(renderingRule(stretches[variableName]));
-      esriImageLayer.value.setUrl(newUrl);
+    console.log('Changed URL to:', newUrl);
+    if (esriImageLayer.value && mapRef.value) {
+      urlRef.value = newUrl;
+      esriImageLayer.value.remove(); // Remove the old layer
       
+      variableNameRef.value = variableName; // Default to NO2 if not provided
+      esriImageLayer.value = imageMapLayer({
+        url: newUrl,
+        format: 'png',
+        opacity: opacityRef.value ?? 0.8,
+      });
+      esriImageLayer.value.setRenderingRule(renderingRule(renderOptions.value.range, renderOptions.value.colormap));
+      addEsriSource(mapRef.value as Map);
+    }
+  }
+  
+  function updateStretch(vmin: number, vmax: number) {
+    if (esriImageLayer.value) {
+      esriImageLayer.value.setRenderingRule(renderingRule([vmin, vmax], renderOptions.value.colormap));
+      console.log('Updated stretch to ', vmin, vmax);
+    }
+  }
+  
+  function updateColormap(colormap: ColorRamps) {
+    if (esriImageLayer.value) {
+      esriImageLayer.value.setRenderingRule(renderingRule(renderOptions.value.range, colormap));
+      console.log('Updated colormap to ', colormap);
     }
   }
 
+  watch(() => renderOptions.value.range, (newRange) => {
+    updateStretch(newRange[0], newRange[1]);
+  });
+  watch(() => renderOptions.value.colormap, (newColormap) => {
+    updateColormap(newColormap);
+  });
+  
+  watch(variableNameRef, () => {
+    renderOptions.value.range = stretches[variableNameRef.value];
+    renderOptions.value.colormap = colorramps[variableNameRef.value];
+  });
+
+  
+  
   watch(timestamp, (_value: number) => {
     updateEsriTimeRange();
   }, { immediate: true });
@@ -106,5 +155,6 @@ export function useEsriLayer(url: string, variableName: VariableNames, timestamp
     updateEsriOpacity,
     addEsriSource,
     changeUrl,
+    renderOptions
   };
 }

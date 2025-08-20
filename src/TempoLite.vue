@@ -306,13 +306,15 @@
           label="Amount of NO2"
           backgroundColor="transparent"
           :nsteps="255"
-          :cmap="cmapNO2"
-          start-value="1"
-          :end-value="showingExtendedRange ? '300' : '150'"
+          :cmap="currentColormap"
+          :cmapName="colorMap"
+          :start-value="colorbarOptions[whichMolecule].stretch[0] / colorbarOptions[whichMolecule].cbarScale"
+          :end-value="colorbarOptions[whichMolecule].stretch[1] / colorbarOptions[whichMolecule].cbarScale"
           :extend="true"
         >
         <template v-slot:label>
-              <div style="text-align: center;">Amount of NO&#x2082;&nbsp;<span class="unit-label">(10&sup1;&#x2074; mol/cm&sup2;)</span></div>
+              <div v-if="Math.log10(colorbarOptions[whichMolecule].cbarScale) !== 0" style="text-align: center;">Amount of <span v-html="colorbarOptions[whichMolecule].label"></span><span class="unit-label">(10<sup>{{ Math.log10(colorbarOptions[whichMolecule].cbarScale)}}</sup> mol/cm<sup>2</sup>)</span></div>
+              <div v-else style="text-align: center;">Amount of <span v-html="colorbarOptions[whichMolecule].label"></span><span class="unit-label"> molecules/cm<sup>2</sup></span></div>
         </template>
         </colorbar-horizontal>
         <v-card id="map-contents" style="width:100%; height: 100%;">
@@ -564,13 +566,15 @@
           label="Amount of NO2"
           backgroundColor="transparent"
           :nsteps="255"
-          :cmap="cmapNO2"
-          start-value="1"
-          :end-value="showingExtendedRange ? '300' : '150'"
+          :cmap="currentColormap"
+          :cmapName="colorMap"
+          :start-value="colorbarOptions[whichMolecule].stretch[0] / colorbarOptions[whichMolecule].cbarScale"
+          :end-value="colorbarOptions[whichMolecule].stretch[1] / colorbarOptions[whichMolecule].cbarScale"
           :extend="true"
         >
           <template v-slot:label>
-              <div style="text-align: center;">Amount of NO&#x2082;<br><span class="unit-label">(10&sup1;&#x2074; molecules/cm&sup2;)</span></div>
+              <div v-if="Math.log10(colorbarOptions[whichMolecule].cbarScale) !== 0" style="text-align: center;">Amount of <span v-html="colorbarOptions[whichMolecule].label"></span><span class="unit-label">(10<sup>{{ Math.log10(colorbarOptions[whichMolecule].cbarScale)}}</sup> mol/cm<sup>2</sup>)</span></div>
+              <div v-else style="text-align: center;">Amount of <span v-html="colorbarOptions[whichMolecule].label"></span><span class="unit-label"> (molecules/cm<sup>2</sup>)</span></div>
           </template>
         </colorbar>
         
@@ -1129,7 +1133,8 @@ import { useDisplay } from 'vuetify';
 import { DatePickerInstance } from "@vuepic/vue-datepicker";
 import { v4 } from "uuid";
 import { getTimezoneOffset } from "date-fns-tz";
-import { cbarNO2 } from "./revised_cmap";
+// import { cbarNO2 } from "./revised_cmap";
+import { colormap } from "./colormaps/utils";
 import { MapBoxFeature, MapBoxFeatureCollection, geocodingInfoForSearch } from "./mapbox";
 import { _preloadImages } from "./PreloadImages";
 import changes from "./changes";
@@ -1169,8 +1174,8 @@ import { useRectangleSelection } from "./composables/maplibre/useRectangleSelect
 import { addRectangleLayer, updateRectangleBounds, removeRectangleLayer } from "./composables/maplibre/utils";
 import { useMultiMarker } from './composables/maplibre/useMultiMarker';
 import { useEsriLayer } from "./esri/maplibre/useEsriImageLayer";
-// import { useEsriLayer } from "./esri/maplibre/useEsriImageLayerPlain"; // do not use
 const zoomScale = 0.5; // for matplibre-gl
+// import { useEsriLayer } from "./esri/maplibre/useEsriImageLayerPlain"; // do not use
 
 const showImage = ref(false);
 
@@ -1358,6 +1363,7 @@ function zpad(n: number, width: number = 2, character: string = "0"): string {
  ************/
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { getTimestamps, getExtendedRangeTimestamps } from "./timestamps";
+import { AllAvailableColorMaps } from "./colormaps";
 import { ESRI_URLS, MOLECULE_OPTIONS, MoleculeType } from "./esri/utils";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const erdTimestamps = ref<number[]>([]);
@@ -1601,11 +1607,23 @@ const extendedRangeAvailable = computed(() => {
   return extendedRangeTimestampsSet.value.has(timestamp.value);
 });
 
-const showingExtendedRange = computed(() => {
-  return showExtendedRangeFeatures && showExtendedRange.value && extendedRangeAvailable.value;
-});
 
 const whichMolecule = ref<MoleculeType>('no2');
+
+import { stretches, colorramps } from "./esri/ImageLayerConfig";
+
+const colorbarOptions = {
+  'no2': {stretch: stretches['NO2_Troposphere'], cbarScale: 1e14, colormap: colorramps['NO2_Troposphere'] + '_r', label:'NO<sub>2</sub>&nbsp;&nbsp;'},
+  'no2Monthly': {stretch: stretches['NO2_Troposphere'], cbarScale: 1e14, colormap: colorramps['NO2_Troposphere'] + '_r', label: 'NO<sub>2</sub>&nbsp;&nbsp;'},
+  'no2DailyMax': {stretch: stretches['NO2_Troposphere'], cbarScale: 1e14, colormap: colorramps['NO2_Troposphere'] + '_r', label: 'NO<sub>2</sub>&nbsp;&nbsp;'},
+  'o3': {stretch: stretches['Ozone_Column_Amount'], cbarScale: 1, colormap: colorramps['Ozone_Column_Amount'] + '_r', label: 'Ozone&nbsp;'},
+  'hcho': {stretch: stretches['HCHO'], cbarScale: 1e14, colormap: colorramps['HCHO'] + '_r', label: 'Formaldehyde&nbsp;&nbsp;'},
+  'hchoMonthly': {stretch: stretches['HCHO'], cbarScale: 1e14, colormap: colorramps['HCHO'] + '_r', label: 'Formaldehyde&nbsp;&nbsp;'},
+  'hchoDailyMax': {stretch: stretches['HCHO'], cbarScale: 1e14, colormap: colorramps['HCHO'] + '_r', label: 'Formaldehyde&nbsp;&nbsp;'},
+};
+
+
+
 
 // computed
 const esriUrl = computed(() => {
@@ -1619,7 +1637,8 @@ const esriVariable = computed(() => {
 const tempoDataService = new TempoDataService(esriUrl.value, esriVariable.value);
 
 
-const {getEsriTimeSteps, addEsriSource, esriTimesteps, changeUrl} = useEsriLayer(
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const {getEsriTimeSteps, addEsriSource, esriTimesteps, changeUrl, renderOptions} = useEsriLayer(
   esriUrl.value,
   esriVariable.value,
   timestamp,
@@ -1637,6 +1656,7 @@ watch(esriTimesteps, (newSteps, _oldSteps) => {
     // appendTimestamps([newSteps]);
   }
 });
+// renderOptions.value.colormap = 'Plasma';
 
 function handleEsriTimeSelected(timestamp:number, _index: number) {
   const idx = timestamps.value.indexOf(timestamp);
@@ -1653,6 +1673,8 @@ watch(whichMolecule, (newMolecule) => {
   tempoDataService.setBaseUrl(ESRI_URLS[newMolecule].url);
   tempoDataService.setVariable(ESRI_URLS[newMolecule].variable);
   getEsriTimeSteps();
+  console.log(colorbarOptions[newMolecule].colormap.toLowerCase());
+  colorMap.value = colorbarOptions[newMolecule].colormap.toLowerCase();
 });
 
 const onMapReady = (map) => {
@@ -2145,10 +2167,17 @@ function updateURL() {
   }
 }
 
-function cmapNO2(x: number): string {
-  const rgb = cbarNO2(0, 1, x);
+
+const colorMap = ref<AllAvailableColorMaps>('None');
+colorMap.value = colorbarOptions[whichMolecule.value].colormap.toLowerCase();
+
+
+const currentColormap = computed(() => {return (x: number): string => {
+  // const rgb = cbarNO2(0, 1, x);
+  const rgb = colormap(colorMap.value, 0 ,1 ,x);
   return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]},1)`;
-}
+};
+});
 
 async function geocodingInfoForSearchLimited(searchText: string): Promise<MapBoxFeatureCollection | null> {
   return geocodingInfoForSearch(searchText, {
@@ -3324,6 +3353,20 @@ a {
 
   }
 }
+
+.colorbar-container sub {
+    vertical-align: sub !important;
+    line-height: 1.25  !important;
+  }
+
+.colorbar-container sup {
+    vertical-align: super  !important;
+    line-height: 1.25  !important;
+  }
+.colorbar-container sub ,
+.colorbar-container sup {
+    top: 0  !important;
+  }
 
 #slider-row {
   display: flex;
