@@ -785,14 +785,14 @@
                       </template>
                       {{ selectionActive ? "Cancel" : "Add Region" }}
                     </v-btn>
-                    <v-btn
+                    <!-- <v-btn
                       size="small"
                     >
                       <template #prepend>
                         <v-icon icon="mdi-plus"></v-icon>
                       </template>
                       Add Point
-                    </v-btn>
+                    </v-btn> -->
                   </div>
                   <v-list>
                     <v-list-item
