@@ -897,20 +897,6 @@
               @create-new="createNewSelection" 
             />
             -->
-            
-            <v-select
-              v-model="selection"
-              :items="selectionOptions"
-              label="Selection"
-              return-object
-            >
-              <template #selection="{ item }">
-                {{ item.value == null ? "None" : item.value.name }}
-              </template>
-              <template #item="{ item, props }">
-                <v-list-item :title="item.value == null ? 'None' : item.value.name" @click="typeof props.onClick === 'function' ? props.onClick($event) : undefined"></v-list-item>
-              </template>
-            </v-select>
 
             <v-list>
               <v-list-item
@@ -954,7 +940,7 @@
                     </template>
                   </v-tooltip>
                   <v-tooltip
-                    text="Get Center Point NO₂ Sample"
+                    text="Get Center Point Sample"
                     location="top"
                   >
                     <template #activator="{ props }">
@@ -966,17 +952,18 @@
                         @click="() => fetchCenterPointDataForSelection(sel)"
                       ></v-btn>
                     </template>
-                  </v-tooltip>
+                  </v-tooltip> 
                   <v-tooltip
-                    text="Remove selection"
+                    text="Show table"
                     location="top"
                   >
                     <template #activator="{ props }">
                       <v-btn
                         v-bind="props"
                         size="x-small"
-                        icon="mdi-trash-can"
-                        @click="() => deleteSelection(sel)"
+                        icon="mdi-table"
+                        :disabled="!sel.samples"
+                        @click="() => tableSelection = sel"
                       ></v-btn>
                     </template>
                   </v-tooltip>
@@ -994,20 +981,26 @@
                       ></v-btn>
                     </template>
                   </v-tooltip>
+                  <v-tooltip
+                    text="Remove selection"
+                    location="top"
+                  >
+                    <template #activator="{ props }">
+                      <v-btn
+                        v-bind="props"
+                        size="x-small"
+                        icon="mdi-trash-can"
+                        @click="() => deleteSelection(sel)"
+                      ></v-btn>
+                    </template>
+                  </v-tooltip>
                 </template>
               </v-list-item>
             </v-list>
 
-            <v-btn size="small" color="primary" @click="sampleDialog = true" :disabled="!haveSamples">
-              Show Tables
-            </v-btn>
-            
             <cds-dialog
               title="Timeseries Data"
-              :model-value="graphSelection !== null"
-              @update:model-value="(value: boolean) => {
-                if (!value) graphSelection = null;
-              }"
+              v-model="showGraph"
             >
               <timeseries-graph
                 :data="graphSelection ? [graphSelection] : []"
@@ -1067,7 +1060,7 @@
 
         <cds-dialog 
           title="NO₂ Samples" 
-          v-model="sampleDialog" 
+          v-model="showTable"
           >
           <div 
             v-if="loadingSamples === 'loading'" 
@@ -1078,13 +1071,15 @@
             >
             </v-progress-linear>
           </div>
-          
-          <div v-if="sampleError" class="text-red">Error: {{ sampleError }}</div>
-          <SampleTable :samples="selection?.samples ?? null" :error="sampleError" />
-          <div v-if="loadingPointSample === 'loading'" class="mt-2">Loading center point sample...</div>
-          <div v-if="pointSampleError" class="mt-2 text-red">Error: {{ pointSampleError }}</div>
-          <SampleTable :samples="pointSampleResult" :error="pointSampleError" />
-          <div v-if="pointSampleResult && Object.keys(pointSampleResult).length === 0" class="mt-2">No data for this point/time.</div>
+
+          <div v-if="tableSelection">
+            <div v-if="sampleErrors[tableSelection.id]" class="text-red">Error: {{ sampleErrors[tableSelection.id] }}</div>
+            <SampleTable :samples="tableSelection.samples ?? null" :error="sampleErrors[tableSelection.id]" />
+            <div v-if="loadingPointSample === 'loading'" class="mt-2">Loading center point sample...</div>
+            <div v-if="pointSampleErrors[tableSelection.id]" class="mt-2 text-red">Error: {{ pointSampleErrors[tableSelection.id] }}</div>
+            <SampleTable :samples="pointSampleResults[tableSelection.id]" :error="pointSampleErrors[tableSelection.id]" />
+            <div v-if="pointSampleResults[tableSelection.id] && Object.keys(pointSampleResults[tableSelection.id]).length === 0" class="mt-2">No data for this point/time.</div>
+          </div>
         </cds-dialog>
 
       <div id="information">
@@ -1723,10 +1718,33 @@ let regionCount = 0;
 
 // Selections now are UserSelection objects directly
 type UserSelectionType = UserSelection;
-type SelectionOption = UserSelectionType | null;
 const selections = ref<UserSelectionType[]>([]);
 const selection = ref<UserSelectionType | null>(null);
+const tableSelection = ref<UserSelectionType | null>(null);
 const graphSelection = ref<UserSelectionType | null>(null);
+
+const showTable = computed({
+  get() {
+    return tableSelection.value != null;
+  },
+  set(value: boolean) {
+    if (!value) {
+      tableSelection.value = null;
+    }
+  }
+});
+
+const showGraph = computed({
+  get() {
+    return graphSelection.value != null;
+  },
+  set(value: boolean) {
+    if (!value) {
+      graphSelection.value = null;
+    }
+  }
+});
+
 const selectedIndex = computed({
   get() {
     const selectedID = selection.value?.id;
@@ -1770,10 +1788,8 @@ function handleSelectionCreated(sel: UserSelectionType) {
 }
 
 // Track total created selections for unique naming
-const selectionOptions = computed<SelectionOption[]>(() => ([null] as SelectionOption[]).concat(selections.value as SelectionOption[]));
 // Removed timeRangeCount/timeRangeNameMap and dedup logic; we'll just append custom ranges and always keep a current day option.
 let timeRangeCount = 0;
-const haveSamples = computed(() => selections.value.some(s => s.samples));
 
 // Simple deterministic color palette (unused in composition now but kept for future region coloring if needed)
 const COLORS = [
@@ -1794,10 +1810,9 @@ const openPanels = ref<number[]>([]);
 const testErrorAmount = 0.25e15;
 const _testError = { lower: testErrorAmount, upper: testErrorAmount };
 
-const sampleError = ref<string | null>(null);
-const sampleDialog = ref(false);
-const pointSampleResult = ref<Record<number, { value: number | null; date: Date }> | null>(null);
-const pointSampleError = ref<string | null>(null);
+const sampleErrors = ref<Record<string, string>>({});
+const pointSampleErrors = ref<Record<string, string | null>>({});
+const pointSampleResults = ref<Record<string, Record<number, { value: number | null; date: Date }> | null>>({});
 const loadingPointSample = ref<string | false>(false);
 
 // UI state for time range management
@@ -1941,7 +1956,7 @@ function createNewSelection() {
 // Unified fetching methods
 async function fetchDataForSelection(sel: UserSelectionType) {
   loadingSamples.value = sel.name;
-  sampleError.value = null;
+  sampleErrors.value[sel.id] = null;
   
   const timeRanges = atleast1d(sel.timeRange.range);
   
@@ -1953,7 +1968,7 @@ async function fetchDataForSelection(sel: UserSelectionType) {
     console.log(`Fetched data for ${timeRanges.length} time range(s)`);
     addTimeseriesLocationsToMap(data.locations);
   } catch (error) {
-    sampleError.value = error instanceof Error ? error.message : String(error);
+    sampleErrors.value[sel.id] = error instanceof Error ? error.message : String(error);
     loadingSamples.value = "error";
   }
 }
@@ -1961,9 +1976,9 @@ async function fetchDataForSelection(sel: UserSelectionType) {
 // New: fetch data for composed UserSelection
 // fetchDataForSelection already handles UserSelection
 
-async function fetchCenterPointDataForSelection(_sel: UserSelectionType) {
+async function fetchCenterPointDataForSelection(sel: UserSelectionType) {
   loadingSamples.value = _sel.name;
-  sampleError.value = null;
+  sampleErrors.value[sel.id] = null;
   
   const timeRanges = atleast1d(_sel.timeRange.range);
   
@@ -1976,7 +1991,7 @@ async function fetchCenterPointDataForSelection(_sel: UserSelectionType) {
       addTimeseriesLocationsToMap(data.locations);
     }
   } catch (error) {
-    sampleError.value = error instanceof Error ? error.message : String(error);
+    sampleErrors.value[sel.id] = error instanceof Error ? error.message : String(error);
     loadingSamples.value = "error";
   }
 }
