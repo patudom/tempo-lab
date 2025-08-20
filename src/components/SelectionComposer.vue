@@ -21,16 +21,16 @@
       <!-- Time Range Picker: offer Effective (current day/custom) and any active custom ranges -->
       <v-select
         :items="timeRanges"
-        :model-value="draftUserSelection.timeRange"
-        @update:model-value="setDraftSelectionTimeRange($event)"
+        v-model="selectedTimeRange"
         label="Time Range"
         :disabled="disabled?.timeRange"
         item-title="name"
-        item-value="range"
         density="compact"
         hide-details
         variant="outlined"
-      />
+        return-object
+        >
+      </v-select>
 
       <!-- Molecule Picker -->
       <v-select
@@ -67,7 +67,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { v4 } from "uuid";
 
 import type { MappingBackends, RectangleSelection, TimeRange, UserSelection } from "../types";
@@ -77,6 +77,7 @@ import { atleast1d } from "../utils/atleast1d";
 import { formatTimeRange } from "../utils/timeRange";
 
 let selectionCount = 0; // for naming selections
+const selectedTimeRange = ref<TimeRange | null>(null);
 
 interface SelectionComposerProps {
   backend: MappingBackends;
@@ -151,5 +152,10 @@ function composeSelection(): UserSelection | null {
 
 function reset() {
   draftUserSelection.value = { region: null, timeRange: null, molecule: null };
+  selectedTimeRange.value = null;
 }
+
+watch(selectedTimeRange, (timeRange: TimeRange | null) => {
+  setDraftSelectionTimeRange(timeRange?.range ?? null);
+});
 </script>
