@@ -751,41 +751,21 @@
               class="mt-3 pl-3"
             ></v-select>
           </div>
-          <hr style="border-color: grey" class="my-3">
-            <div>
-              <h2>Create a Selection</h2>
-              <v-btn
-                size="small"
-                :active="createSelectionActive"
-                @click="createSelectionActive = !createSelectionActive"
-              >
-                <template #prepend>
-                  <v-icon v-if="!createSelectionActive" icon="mdi-plus"></v-icon>
-                </template>
-                {{ createSelectionActive ? "Cancel" : "Create Selection" }}
-              </v-btn>
-              <selection-composer
-                v-show="createSelectionActive"
-                :backend="BACKEND"
-                :time-ranges="availableTimeRanges"
-                :regions="availableRegions"
-                :disabled="{ region: selectionActive, timeRange: createTimeRangeActive }"
-                @create="handleSelectionCreated"
-              >
-              </selection-composer>
-            </div>
+
           <hr style="border-color: grey" class="my-3">
 
-          <div id="user-options">
+          <div id="add-region-time">
             <h2>Add Region/Time Range</h2>  
             <v-expansion-panels
               v-model="openPanels"
               variant="accordion"
               id="user-options-panels"
               multiple
+              class="pl-3"
             >
               <v-expansion-panel
                 title="Date/Time Range"
+                class="mt-3"
               >
                 <template #text>
                   <v-btn
@@ -817,6 +797,7 @@
               </v-expansion-panel>
               <v-expansion-panel
                 title="Regions"
+                class="mt-3"
               >
                 <template #text>
                   <div id="add-region-buttons">
@@ -871,162 +852,185 @@
                 </template>
               </v-expansion-panel>
             </v-expansion-panels>
+          </div>
 
           <hr style="border-color: grey" class="my-3">
 
-          <div id="sample-info" v-if="selections" style="margin-top: 1em;">
-            <!--
-            <ListComponent 
-              :selectionOptions="selectionOptions" 
-              v-model="selection" 
-              :selectionActive="selectionActive" 
-              @edit-selection="editSelection" 
-              @create-new="createNewSelection" 
-            />
-            -->
-
-            <v-list>
-              <v-list-item
-                v-for="sel in selections"
-                :title="sel.name"
-                :key="sel.id"
-                :color="sel.region.color"
-              >
-                <template #subtitle>
-                  <span v-if="sel.timeRange" class="text-caption">
-                    {{ sel.timeRange.description }}
-                  </span>
-                </template>
-                <template #append>
-                  <v-tooltip
-                    text="Edit selection"
-                    location="top"
-                  >
-                    <template #activator="{ props }">
-                      <v-btn
-                        v-bind="props"
-                        size="x-small"
-                        icon="mdi-pencil"
-                        @click="() => editSelection(sel)"
-                      ></v-btn>
-                    </template>
-                  </v-tooltip>
-                  <v-tooltip
-                    text="Get NO₂ Samples"
-                    location="top"
-                  >
-                    <template #activator="{ props }">
-                      <v-btn
-                        v-bind="props"
-                        size="x-small"
-                        :loading="loadingSamples === sel.name"
-                        :disabled="sel.samples != null"
-                        icon="mdi-download"
-                        @click="() => fetchDataForSelection(sel)"
-                      ></v-btn>
-                    </template>
-                  </v-tooltip>
-                  <v-tooltip
-                    text="Get Center Point Sample"
-                    location="top"
-                  >
-                    <template #activator="{ props }">
-                      <v-btn
-                        v-bind="props"
-                        size="x-small"
-                        :loading="loadingPointSample === sel.name"
-                        icon="mdi-image-filter-center-focus"
-                        @click="() => fetchCenterPointDataForSelection(sel)"
-                      ></v-btn>
-                    </template>
-                  </v-tooltip> 
-                  <v-tooltip
-                    text="Show table"
-                    location="top"
-                  >
-                    <template #activator="{ props }">
-                      <v-btn
-                        v-bind="props"
-                        size="x-small"
-                        icon="mdi-table"
-                        :disabled="!sel.samples"
-                        @click="() => tableSelection = sel"
-                      ></v-btn>
-                    </template>
-                  </v-tooltip>
-                  <v-tooltip
-                    text="Show graph"
-                    location="top"
-                  >
-                    <template #activator="{ props }">
-                      <v-btn
-                        v-bind="props"
-                        size="x-small"
-                        icon="mdi-chart-line"
-                        :disabled="!sel.samples"
-                        @click="() => graphSelection = sel"
-                      ></v-btn>
-                    </template>
-                  </v-tooltip>
-                  <v-tooltip
-                    text="Remove selection"
-                    location="top"
-                  >
-                    <template #activator="{ props }">
-                      <v-btn
-                        v-bind="props"
-                        size="x-small"
-                        icon="mdi-trash-can"
-                        @click="() => deleteSelection(sel)"
-                      ></v-btn>
-                    </template>
-                  </v-tooltip>
-                </template>
-              </v-list-item>
-            </v-list>
-
-            <cds-dialog
-              title="Timeseries Data"
-              v-model="showGraph"
+          <div id="selections">
+            <h2>Create a Selection</h2>
+            <v-btn
+              size="small"
+              :active="createSelectionActive"
+              @click="createSelectionActive = !createSelectionActive"
+              class="mt-3 ml-3"
             >
-              <timeseries-graph
-                :data="graphSelection ? [graphSelection] : []"
+              <template #prepend>
+                <v-icon v-if="!createSelectionActive" icon="mdi-plus"></v-icon>
+              </template>
+              {{ createSelectionActive ? "Cancel" : "Create Selection" }}
+            </v-btn>
+            <selection-composer
+              v-show="createSelectionActive"
+              :backend="BACKEND"
+              :time-ranges="availableTimeRanges"
+              :regions="availableRegions"
+              :disabled="{ region: selectionActive, timeRange: createTimeRangeActive }"
+              @create="handleSelectionCreated"
+            >
+            </selection-composer>
+            <div id="sample-info" v-if="selections.length>0" style="margin-top: 1em;" class="pl-3">
+              <!--
+              <ListComponent 
+                :selectionOptions="selectionOptions" 
+                v-model="selection" 
+                :selectionActive="selectionActive" 
+                @edit-selection="editSelection" 
+                @create-new="createNewSelection" 
               />
-            </cds-dialog>
+              -->
+
+              <v-list>
+                <v-list-item
+                  v-for="sel in selections"
+                  :title="sel.name"
+                  :key="sel.id"
+                  :color="sel.region.color"
+                >
+                  <template #subtitle>
+                    <span v-if="sel.timeRange" class="text-caption">
+                      {{ sel.timeRange.description }}
+                    </span>
+                  </template>
+                  <template #append>
+                    <v-tooltip
+                      text="Edit selection"
+                      location="top"
+                    >
+                      <template #activator="{ props }">
+                        <v-btn
+                          v-bind="props"
+                          size="x-small"
+                          icon="mdi-pencil"
+                          @click="() => editSelection(sel)"
+                        ></v-btn>
+                      </template>
+                    </v-tooltip>
+                    <v-tooltip
+                      text="Get NO₂ Samples"
+                      location="top"
+                    >
+                      <template #activator="{ props }">
+                        <v-btn
+                          v-bind="props"
+                          size="x-small"
+                          :loading="loadingSamples === sel.name"
+                          :disabled="sel.samples != null"
+                          icon="mdi-download"
+                          @click="() => fetchDataForSelection(sel)"
+                        ></v-btn>
+                      </template>
+                    </v-tooltip>
+                    <v-tooltip
+                      text="Get Center Point Sample"
+                      location="top"
+                    >
+                      <template #activator="{ props }">
+                        <v-btn
+                          v-bind="props"
+                          size="x-small"
+                          :loading="loadingPointSample === sel.name"
+                          icon="mdi-image-filter-center-focus"
+                          @click="() => fetchCenterPointDataForSelection(sel)"
+                        ></v-btn>
+                      </template>
+                    </v-tooltip> 
+                    <v-tooltip
+                      text="Show table"
+                      location="top"
+                    >
+                      <template #activator="{ props }">
+                        <v-btn
+                          v-bind="props"
+                          size="x-small"
+                          icon="mdi-table"
+                          :disabled="!sel.samples"
+                          @click="() => tableSelection = sel"
+                        ></v-btn>
+                      </template>
+                    </v-tooltip>
+                    <v-tooltip
+                      text="Show graph"
+                      location="top"
+                    >
+                      <template #activator="{ props }">
+                        <v-btn
+                          v-bind="props"
+                          size="x-small"
+                          icon="mdi-chart-line"
+                          :disabled="!sel.samples"
+                          @click="() => graphSelection = sel"
+                        ></v-btn>
+                      </template>
+                    </v-tooltip>
+                    <v-tooltip
+                      text="Remove selection"
+                      location="top"
+                    >
+                      <template #activator="{ props }">
+                        <v-btn
+                          v-bind="props"
+                          size="x-small"
+                          icon="mdi-trash-can"
+                          @click="() => deleteSelection(sel)"
+                        ></v-btn>
+                      </template>
+                    </v-tooltip>
+                  </template>
+                </v-list-item>
+              </v-list>
+
+              <cds-dialog
+                title="Timeseries Data"
+                v-model="showGraph"
+              >
+                <timeseries-graph
+                  :data="graphSelection ? [graphSelection] : []"
+                />
+              </cds-dialog>
+            </div>
+          </div>
+
+          <hr style="border-color: grey;" class="my-3">
+          <div id="bottom-options">
+            <br>
+              <cds-dialog
+                v-model="showUserGuide"
+                title="User Guide"
+                button
+                >
+                <UserGuide/>
+              </cds-dialog>
+            
+            <v-checkbox
+              v-if="false"
+              :disabled="!highresAvailable"
+              v-model="useHighRes"
+              @keyup.enter="useHighRes = !useHighRes"
+              label="Use High Resolution Data"
+              color="#c10124"
+              hide-details
+            />
+            <v-checkbox
+              v-if="showExtendedRangeFeatures && extendedRangeAvailable"
+              :disabled="!extendedRangeAvailable"
+              v-model="showExtendedRange"
+              @keyup.enter="showExtendedRange = !showExtendedRange"
+              label="Use Extended NO2 range"
+              color="#c10124"
+              hide-details
+            />
           </div>
         </div>
-
-        <hr style="border-color: grey;">
-        <div id="bottom-options">
-          <br>
-            <cds-dialog
-              v-model="showUserGuide"
-              title="User Guide"
-              button
-              >
-              <UserGuide/>
-            </cds-dialog>
-          
-          <v-checkbox
-            v-if="false"
-            :disabled="!highresAvailable"
-            v-model="useHighRes"
-            @keyup.enter="useHighRes = !useHighRes"
-            label="Use High Resolution Data"
-            color="#c10124"
-            hide-details
-          />
-          <v-checkbox
-            v-if="showExtendedRangeFeatures && extendedRangeAvailable"
-            :disabled="!extendedRangeAvailable"
-            v-model="showExtendedRange"
-            @keyup.enter="showExtendedRange = !showExtendedRange"
-            label="Use Extended NO2 range"
-            color="#c10124"
-            hide-details
-          />
-        </div>
-      </div>
       
 
         <cds-dialog 
@@ -1867,20 +1871,6 @@ function handleDateTimeRangeSelectionChange(timeRanges: MillisecondRange[], sele
   console.log(`Registered ${tr.name}: ${tr.description}`);
 }
 
-// Computed property for effective time range based on user selection
-const effectiveTimeRange = computed<MillisecondRange[]>(() => {
-  if (useCustomTimeRange.value && customTimeRange.value) {
-    return atleast1d(customTimeRange.value.range);
-  } else {
-    // Use current day as default
-    const day = new Date(singleDateSelected.value);
-    const start = day.setHours(0, 0, 0, 0);
-    const end = day.setHours(23, 59, 59, 999);
-    return [{ start, end }];
-  }
-});
-
-
 // Selection management handlers
 function activateSelectionMode() {
   // Activate selection mode
@@ -2029,11 +2019,6 @@ watch(timeRangeOptions, (newOptions,) => {
 watch(selections, (newSelections, oldSelections) => {
   // just log out the length difference
   console.log(`Selections changed: ${oldSelections.length} -> ${newSelections.length}`);
-});
-
-// Computed property for effective time range display
-const effectiveTimeRangeDisplay = computed(() => {
-  return formatTimeRange(effectiveTimeRange.value);
 });
 
 function deleteSelection(sel: UserSelectionType) {
@@ -3218,7 +3203,7 @@ a {
 
 
 // prevent overflows of the content
-#user-options {
+#add-region-time {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
