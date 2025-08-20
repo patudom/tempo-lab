@@ -1013,7 +1013,7 @@
         </cds-dialog>
 
         <v-btn v-if="o3GraphData.length > 0" @click="showO3Graph = true">
-          Show HCHO Graph
+          Show Ozone Graph
         </v-btn>
         <cds-dialog
           title="Ozone Data"
