@@ -954,7 +954,7 @@
                     </template>
                   </v-tooltip>
                   <v-tooltip
-                    text="Get Center Point NO₂ Sample"
+                    text="Get Center Point Sample"
                     location="top"
                   >
                     <template #activator="{ props }">
