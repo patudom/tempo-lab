@@ -1961,6 +1961,7 @@ async function fetchDataForSelection(sel: UserSelectionType) {
   const timeRanges = atleast1d(sel.timeRange.range);
   
   try {
+    tempoDataService.setBaseUrl(ESRI_URLS[sel.molecule].url);
     const data = await tempoDataService.fetchTimeseriesData(sel.region.geometryInfo, timeRanges);
     sel.samples = data.values;
     sel.errors = data.errors;
@@ -1977,15 +1978,16 @@ async function fetchDataForSelection(sel: UserSelectionType) {
 // fetchDataForSelection already handles UserSelection
 
 async function fetchCenterPointDataForSelection(sel: UserSelectionType) {
-  loadingSamples.value = _sel.name;
+  loadingSamples.value = sel.name;
   sampleErrors.value[sel.id] = null;
   
-  const timeRanges = atleast1d(_sel.timeRange.range);
+  const timeRanges = atleast1d(sel.timeRange.range);
   
   try {
-    const data = await tempoDataService.fetchCenterPointData(_sel.region.geometryInfo, timeRanges);
+    tempoDataService.setBaseUrl(ESRI_URLS[sel.molecule].url);
+    const data = await tempoDataService.fetchCenterPointData(sel.region.geometryInfo, timeRanges);
     if (data) {
-      _sel.samples = data.values;
+      sel.samples = data.values;
       loadingSamples.value = "finished";
       console.log(`Fetched center point data for ${timeRanges.length} time range(s)`);
       addTimeseriesLocationsToMap(data.locations);
