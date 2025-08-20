@@ -320,6 +320,7 @@
         <v-card id="map-contents" style="width:100%; height: 100%;">
           <v-toolbar
             density="compact"
+            color="var(--info-background)"
           >
             <v-toolbar-title text="TEMPO Data Viewer"></v-toolbar-title>
             <v-spacer></v-spacer>
@@ -610,7 +611,7 @@
         </div>
 
         <div id="side-panel">
-          <div id="all-dates">
+          <div id="map-view">
             <h2>Map View</h2>
             <div class="mt-2 pl-3">
               <h3>Select a Date</h3>
@@ -747,7 +748,7 @@
               label="Molecule / Quantity"
               hide-details
               dense
-              class="my-3 pl-3"
+              class="mt-3 pl-3"
             ></v-select>
           </div>
           <hr style="border-color: grey" class="my-3">
@@ -773,10 +774,10 @@
               >
               </selection-composer>
             </div>
-          <hr style="border-color: grey">
+          <hr style="border-color: grey" class="my-3">
 
           <div id="user-options">
-            <h2>Options</h2>  
+            <h2>Add Region/Time Range</h2>  
             <v-expansion-panels
               v-model="openPanels"
               variant="accordion"
@@ -871,7 +872,7 @@
               </v-expansion-panel>
             </v-expansion-panels>
 
-          <hr style="border-color: grey">
+          <hr style="border-color: grey" class="my-3">
 
           <div id="sample-info" v-if="selections" style="margin-top: 1em;">
             <!--
@@ -3245,7 +3246,7 @@ a {
   opacity: 1;
 }
 
-#all-dates {
+#map-view {
   padding-bottom: 0.5rem;
 }
 
