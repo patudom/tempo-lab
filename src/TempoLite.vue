@@ -764,38 +764,6 @@
               class="pl-3"
             >
               <v-expansion-panel
-                title="Date/Time Range"
-                class="mt-3"
-              >
-                <template #text>
-                  <v-btn
-                    size="small"
-                    :active="createTimeRangeActive"
-                    @click="createTimeRangeActive = !createTimeRangeActive"
-                  >
-                    <template #prepend>
-                      <v-icon v-if="!createTimeRangeActive" icon="mdi-plus"></v-icon>
-                    </template>
-                    {{ createTimeRangeActive ? "Cancel" : "Create Time Range" }}
-                  </v-btn>
-                  <date-time-range-selection
-                    v-if="createTimeRangeActive"
-                    :current-date="singleDateSelected"
-                    :selected-timezone="selectedTimezone"
-                    :allowed-dates="uniqueDays"
-                    @ranges-change="handleDateTimeRangeSelectionChange"
-                  />
-                  <v-list>
-                    <v-list-item
-                      v-for="(timeRange, index) in availableTimeRanges"
-                      :key="index"
-                      :title="timeRange.name"
-                      :subtitle="timeRange.description"
-                    ></v-list-item>
-                  </v-list>
-                </template>
-              </v-expansion-panel>
-              <v-expansion-panel
                 title="Regions"
                 class="mt-3"
               >
@@ -848,6 +816,38 @@
                         ></v-btn>
                       </template>
                     </v-list-item>
+                  </v-list>
+                </template>
+              </v-expansion-panel>
+              <v-expansion-panel
+                title="Date/Time Range"
+                class="mt-3"
+              >
+                <template #text>
+                  <v-btn
+                    size="small"
+                    :active="createTimeRangeActive"
+                    @click="createTimeRangeActive = !createTimeRangeActive"
+                  >
+                    <template #prepend>
+                      <v-icon v-if="!createTimeRangeActive" icon="mdi-plus"></v-icon>
+                    </template>
+                    {{ createTimeRangeActive ? "Cancel" : "Create Time Range" }}
+                  </v-btn>
+                  <date-time-range-selection
+                    v-if="createTimeRangeActive"
+                    :current-date="singleDateSelected"
+                    :selected-timezone="selectedTimezone"
+                    :allowed-dates="uniqueDays"
+                    @ranges-change="handleDateTimeRangeSelectionChange"
+                  />
+                  <v-list>
+                    <v-list-item
+                      v-for="(timeRange, index) in availableTimeRanges"
+                      :key="index"
+                      :title="timeRange.name"
+                      :subtitle="timeRange.description"
+                    ></v-list-item>
                   </v-list>
                 </template>
               </v-expansion-panel>
