@@ -4,14 +4,14 @@
   :style="cssVars"
 >
 
-<v-overlay
-  :model-value="inIntro"
-  :style="cssVars"
-  id="intro-background"
->
+  <v-overlay
+    :model-value="inIntro"
+    :style="cssVars"
+    id="intro-background"
+  >
 
-<v-dialog 
-  v-model="inIntro"
+      <v-dialog 
+        v-model="inIntro"
         >
         <div v-if="inIntro" id="introduction-overlay" class="elevation-10 gradient-background">
           <v-window v-model="introSlide">
@@ -980,19 +980,39 @@
                       ></v-btn>
                     </template>
                   </v-tooltip>
+                  <v-tooltip
+                    text="Show graph"
+                    location="top"
+                  >
+                    <template #activator="{ props }">
+                      <v-btn
+                        v-bind="props"
+                        size="x-small"
+                        icon="mdi-chart-line"
+                        :disabled="!sel.samples"
+                        @click="() => graphSelection = sel"
+                      ></v-btn>
+                    </template>
+                  </v-tooltip>
                 </template>
               </v-list-item>
             </v-list>
 
-            <v-btn size="small" color="primary" @click="samplesGraph = true" :disabled="!haveSamples">
-              Show Timeseries
-            </v-btn>
-            
             <v-btn size="small" color="primary" @click="sampleDialog = true" :disabled="!haveSamples">
               Show Tables
             </v-btn>
             
-            
+            <cds-dialog
+              title="Timeseries Data"
+              :model-value="graphSelection !== null"
+              @update:model-value="(value: boolean) => {
+                if (!value) graphSelection = null;
+              }"
+            >
+              <timeseries-graph
+                :data="graphSelection ? [graphSelection] : []"
+              />
+            </cds-dialog>
             
             <!-- Time Range Selection -->
             <div class="time-range-selection mt-3">
@@ -1067,15 +1087,6 @@
           <div v-if="pointSampleResult && Object.keys(pointSampleResult).length === 0" class="mt-2">No data for this point/time.</div>
         </cds-dialog>
 
-        <cds-dialog
-          title="Timeseries Data"
-          v-model="samplesGraph"
-        >
-          <timeseries-graph
-            :data="selections"
-          />
-        </cds-dialog>
-      
       <div id="information">
         <div id="body-logos">
           <a href="https://www.si.edu/" target="_blank" rel="noopener noreferrer" class="mr-1" 
@@ -1715,6 +1726,7 @@ type UserSelectionType = UserSelection;
 type SelectionOption = UserSelectionType | null;
 const selections = ref<UserSelectionType[]>([]);
 const selection = ref<UserSelectionType | null>(null);
+const graphSelection = ref<UserSelectionType | null>(null);
 const selectedIndex = computed({
   get() {
     const selectedID = selection.value?.id;
@@ -1761,7 +1773,6 @@ function handleSelectionCreated(sel: UserSelectionType) {
 const selectionOptions = computed<SelectionOption[]>(() => ([null] as SelectionOption[]).concat(selections.value as SelectionOption[]));
 // Removed timeRangeCount/timeRangeNameMap and dedup logic; we'll just append custom ranges and always keep a current day option.
 let timeRangeCount = 0;
-const samplesGraph = ref(false);
 const haveSamples = computed(() => selections.value.some(s => s.samples));
 
 // Simple deterministic color palette (unused in composition now but kept for future region coloring if needed)
