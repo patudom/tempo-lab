@@ -44,9 +44,6 @@
         variant="outlined"
         return-object
         >
-        <template #selection="{ item }">
-          {{ item.title }}
-        </template>
       </v-select>
 
       <v-progress-linear :model-value="creationProgress.percent" height="6" color="primary" rounded></v-progress-linear>
@@ -123,7 +120,6 @@ function setDraftSelectionMolecule(molecule: MoleculeType | null) {
 }
 
 function setDraftSelectionTimeRange(range: MillisecondRange | MillisecondRange[] | null) {
-  console.log("SETTING DRAFT SELECTION");
   draftUserSelection.value.timeRange = range || null;
 }
 
