@@ -902,7 +902,7 @@
                     </span>
                   </template>
                   <template #append>
-                    <v-tooltip
+                    <!-- <v-tooltip
                       text="Edit selection"
                       location="top"
                     >
@@ -914,7 +914,7 @@
                           @click="() => editSelection(sel)"
                         ></v-btn>
                       </template>
-                    </v-tooltip>
+                    </v-tooltip> -->
                     <v-tooltip
                       text="Get Selected Data"
                       location="top"
@@ -999,6 +999,42 @@
               </cds-dialog>
             </div>
           </div>
+          
+          <v-btn v-if="no2GraphData.length > 0" @click="showNO2Graph = true">
+          Show NO₂ Graph
+        </v-btn>
+        <cds-dialog
+          title="Nitrogen Dioxide Data"
+          v-model="showNO2Graph"
+        >
+          <timeseries-graph
+            :data="no2GraphData.length>0 ? no2GraphData : []"
+          />
+        </cds-dialog>
+
+        <v-btn v-if="o3GraphData.length > 0" @click="showO3Graph = true">
+          Show HCHO Graph
+        </v-btn>
+        <cds-dialog
+          title="Ozone Data"
+          v-model="showO3Graph"
+        >
+          <timeseries-graph
+            :data="o3GraphData.length > 0 ? o3GraphData : []"
+          />
+        </cds-dialog>
+        
+        <v-btn v-if="hchoGraphData.length > 0" @click="showHCHOGraph = true">
+          Show Formaldehyde Graph
+        </v-btn>
+        <cds-dialog
+          title="Formaldehyde Data"
+          v-model="showHCHOGraph"
+        >
+          <timeseries-graph
+            :data="hchoGraphData.length > 0 ? hchoGraphData : []"
+          />
+        </cds-dialog>
 
           <hr style="border-color: grey;" class="my-3">
           <div id="bottom-options">
@@ -1030,42 +1066,6 @@
               hide-details
             />
           </div>
-          
-        <v-btn v-if="no2GraphData.length > 0" @click="showNO2Graph = true">
-          Show NO₂ Graph
-        </v-btn>
-        <cds-dialog
-          title="Nitrogen Dioxide Data"
-          v-model="showNO2Graph"
-        >
-          <timeseries-graph
-            :data="no2GraphData.length>0 ? no2GraphData : []"
-          />
-        </cds-dialog>
-
-        <v-btn v-if="o3GraphData.length > 0" @click="showO3Graph = true">
-          Show NO₂ Graph
-        </v-btn>
-        <cds-dialog
-          title="Nitrogen Dioxide Data"
-          v-model="showO3Graph"
-        >
-          <timeseries-graph
-            :data="o3GraphData.length > 0 ? o3GraphData : []"
-          />
-        </cds-dialog>
-        
-        <v-btn v-if="hchoGraphData.length > 0" @click="showHCHOGraph = true">
-          Show NO₂ Graph
-        </v-btn>
-        <cds-dialog
-          title="Nitrogen Dioxide Data"
-          v-model="showHCHOGraph"
-        >
-          <timeseries-graph
-            :data="hchoGraphData.length > 0 ? hchoGraphData : []"
-          />
-        </cds-dialog>
         
         </div>
       
@@ -1942,7 +1942,7 @@ function clearSelectionSamples(sel: UserSelectionType) {
 }
 
 // edit the region of the given selection.
-function editSelection(sel: UserSelectionType | null) {
+function _editSelection(sel: UserSelectionType | null) {
   if (sel === null) {
     console.error("Cannot edit a null selection.");
     return;
