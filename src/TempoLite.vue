@@ -966,20 +966,7 @@
                         @click="() => fetchCenterPointDataForSelection(sel)"
                       ></v-btn>
                     </template>
-                  </v-tooltip>
-                  <v-tooltip
-                    text="Remove selection"
-                    location="top"
-                  >
-                    <template #activator="{ props }">
-                      <v-btn
-                        v-bind="props"
-                        size="x-small"
-                        icon="mdi-trash-can"
-                        @click="() => deleteSelection(sel)"
-                      ></v-btn>
-                    </template>
-                  </v-tooltip>
+                  </v-tooltip> 
                   <v-tooltip
                     text="Show graph"
                     location="top"
@@ -991,6 +978,19 @@
                         icon="mdi-chart-line"
                         :disabled="!sel.samples"
                         @click="() => graphSelection = sel"
+                      ></v-btn>
+                    </template>
+                  </v-tooltip>
+                  <v-tooltip
+                    text="Remove selection"
+                    location="top"
+                  >
+                    <template #activator="{ props }">
+                      <v-btn
+                        v-bind="props"
+                        size="x-small"
+                        icon="mdi-trash-can"
+                        @click="() => deleteSelection(sel)"
                       ></v-btn>
                     </template>
                   </v-tooltip>
