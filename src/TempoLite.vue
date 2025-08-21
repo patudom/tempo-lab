@@ -1763,7 +1763,7 @@ const graphSelectionTitle = computed(() => {
   }
   const molecule = graphSelection.value.molecule;
   const title = MOLECULE_OPTIONS.find(m => m.value === molecule)?.title || '';
-  return `${title} Time Series`;
+  return `${title} Time Series for ${graphSelection.value.name}`;
 });
 
 const showNO2Graph = ref(false);
