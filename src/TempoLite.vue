@@ -1036,9 +1036,7 @@
           />
         </cds-dialog>
         
-        <v-btn @click="showEditSelectionDialog = true">
-          Edit Selection Names
-        </v-btn>
+        
         <v-dialog
           v-model="showEditSelectionDialog"
           >
