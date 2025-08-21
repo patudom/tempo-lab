@@ -12,13 +12,14 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { onMounted, ref, watch } from "vue";
 import { v4 } from "uuid";
-import { PlotlyHTMLElement, newPlot, type Data, type Datum, type PlotMouseEvent } from "plotly.js-dist-min";
+import { PlotlyHTMLElement, newPlot, restyle, type Data, type Datum, type PlotMouseEvent } from "plotly.js-dist-min";
 
 import { AggValue, UserSelection } from "../types";
 
 
 interface TimeseriesProps {
   data: UserSelection[]; // composed selections
+  showErrors?: boolean;
 }
 
 const props = defineProps<TimeseriesProps>();
@@ -39,6 +40,7 @@ function datumToDate(datum: Datum): Date | null {
 }
 
 const legendGroups: Record<string, string> = {};
+const errorTraces: number[] = [];
 
 function renderPlot() {
   
@@ -84,7 +86,7 @@ function renderPlot() {
     });
 
     const errors = data.errors;
-    if (errors != null) {
+    if ((props.showErrors ?? true) && errors != null) {
       const upperY: (number | null)[] = [];
       const lowerY: (number | null)[] = [];
 
@@ -117,6 +119,7 @@ function renderPlot() {
         name: data.name,
         marker: { color: regionColor },
       });
+      errorTraces.push(plotlyData.length - 1);
 
       plotlyData.push({
         x: dataT,
@@ -129,6 +132,7 @@ function renderPlot() {
         name: data.name,
         marker: { color: regionColor },
       });
+      errorTraces.push(plotlyData.length - 1);
     }
   });
 
@@ -160,11 +164,18 @@ function renderPlot() {
   });
 }
 
+function updateErrorDisplay(visible: boolean) {
+  if (graph.value) {
+    restyle(graph.value, { visible }, errorTraces);
+  }
+}
+
 
 onMounted(() => {
   renderPlot();
 });
 
+watch(() => props.showErrors, updateErrorDisplay);
 
 watch(() => props.data.map(sel => Object.keys(sel.samples ?? {}).length), (newData) => {
   if (newData.length === 0) {
