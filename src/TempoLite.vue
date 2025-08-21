@@ -2192,9 +2192,9 @@ function deleteSelection(sel: UserSelectionType) {
     return;
   }
   const isSelected = selectedIndex.value === index;
-  if (map.value && sel.region.layer) {
-    removeRectangleLayer(map.value, sel.region.layer);
-  }
+  // if (map.value && sel.region.layer) {
+  //   removeRectangleLayer(map.value, sel.region.layer);
+  // }
   selections.value.splice(index, 1);
   if (isSelected) {
     if (index > 0) {
