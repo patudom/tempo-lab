@@ -138,6 +138,7 @@ function renderPlot() {
     width: 600,
     height: 400,
     yaxis: {
+      title: { text: "Molecules / cm<sup>2</sup>" },
       range: [0, axisMax],
     }
   };
