@@ -990,7 +990,7 @@
               </v-list>
 
               <cds-dialog
-                title="Time-series Data"
+                :title="graphSelectionTitle"
                 v-model="showGraph"
               >
                 <timeseries-graph
@@ -1402,49 +1402,6 @@ const newTimestamps = ref<number[]>([]);
 const cloudTimestamps = ref<number[]>([]);
 const fosterTimestamps = ref<number[]>([
   1698838920000,
-  1698841320000,
-  1698843720000,
-  1698846120000,
-  1698848520000,
-  1698852120000,
-  1698855720000,
-  1698859320000,
-  1698862920000,
-  1698866520000,
-  1698870120000,
-  1698873720000,
-  1698876120000,
-  1698878520000,
-  1698880920000,
-  1699011720000,
-  1699014120000,
-  1699016520000,
-  1699018920000,
-  1699021320000,
-  1699024920000,
-  1699028520000,
-  1699032120000,
-  1699035720000,
-  1699039320000,
-  1699042920000,
-  1699046520000,
-  1699048920000,
-  1699051320000,
-  1699053720000,
-  1711626180000,
-  1711628640000,
-  1711631040000,
-  1711633440000,
-  1711637040000,
-  1711640640000,
-  1711644240000,
-  1711647840000,
-  1711651440000,
-  1711655040000,
-  1711658640000,
-  1711662240000,
-  1711665840000,
-  1711668240000,
 ]);
 
 
@@ -1765,6 +1722,15 @@ const showGraph = computed({
       graphSelection.value = null;
     }
   }
+});
+
+const graphSelectionTitle = computed(() => {
+  if (!graphSelection.value) {
+    return '';
+  }
+  const molecule = graphSelection.value.molecule;
+  const title = MOLECULE_OPTIONS.find(m => m.value === molecule)?.title || '';
+  return `${title} Time Series`;
 });
 
 const showNO2Graph = ref(false);
