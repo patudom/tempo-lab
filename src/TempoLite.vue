@@ -902,7 +902,7 @@
                     </span>
                   </template>
                   <template #append>
-                    <!-- <v-tooltip
+                    <v-tooltip
                       text="Edit selection"
                       location="top"
                     >
@@ -914,7 +914,7 @@
                           @click="() => editSelection(sel)"
                         ></v-btn>
                       </template>
-                    </v-tooltip> -->
+                    </v-tooltip>
                     <v-tooltip
                       text="Get Selected Data"
                       location="top"
@@ -1035,6 +1035,39 @@
             :data="hchoGraphData.length > 0 ? hchoGraphData : []"
           />
         </cds-dialog>
+        
+        <v-btn @click="showEditSelectionDialog = true">
+          Edit Selection Names
+        </v-btn>
+        <v-dialog
+          v-model="showEditSelectionDialog"
+          >
+          <v-card
+            class="mx-auto px-3 py-2"
+            min-width="300px"
+            width="50%"
+          >
+            <v-card-title>New Name</v-card-title>
+            <v-text-field
+              label="Selection Name"
+              hide-details
+              dense
+              @update:model-value="(val: string) => {
+                setSelectionName(selection as UserSelectionType, val);
+              }"
+            ></v-text-field>
+            <v-card-actions>
+              <v-spacer></v-spacer>
+              <v-btn
+                :color="accentColor"
+                variant="flat"
+                @click="showEditSelectionDialog = false"
+              >Done</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+
+          
 
           <hr style="border-color: grey;" class="my-3">
           <div id="bottom-options">
@@ -1916,22 +1949,38 @@ function clearSelectionSamples(sel: UserSelectionType) {
 }
 
 // edit the region of the given selection.
-function _editSelection(sel: UserSelectionType | null) {
+const showEditSelectionDialog = ref(false);
+function editSelection(sel: UserSelectionType | null) {
   if (sel === null) {
     console.error("Cannot edit a null selection.");
     return;
   }
-  if (selectionHasSamples(sel)) {
-    console.error("Cannot edit selection with existing samples.");
-    return;
-  }
-  // Set the selection to edit
+  // if (selectionHasSamples(sel)) {
+  //   console.error("Cannot edit selection with existing samples.");
+  //   return;
+  // }
+  // // Set the selection to edit
   setSelection(sel);
   
-  // Activate selection mode to allow editing
-  selectionActive.value = true;
+  // // Activate selection mode to allow editing
+  // selectionActive.value = true;
   
-  console.log(`Editing selection: ${sel.name}`);
+  // console.log(`Editing selection: ${sel.name}`);
+  showEditSelectionDialog.value = true;
+}
+
+function setSelectionName(sel: UserSelectionType, newName: string) {
+  if (newName.trim() === '') {
+    console.error("Selection name cannot be empty.");
+    return;
+  }
+  const existing = selections.value.find(s => s.name === newName && s.id !== sel.id);
+  if (existing) {
+    console.error(`A selection with the name "${newName}" already exists.`);
+    return;
+  }
+  sel.name = newName;
+  console.log(`Renamed selection to: ${newName}`);
 }
 
 function createNewSelection() {
