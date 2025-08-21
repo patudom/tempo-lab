@@ -53,6 +53,7 @@ function renderPlot() {
     return;
   }
 
+  let min = 0;
   let max = 0;
   props.data.forEach(data => {
     const samples = data.samples;
@@ -70,6 +71,7 @@ function renderPlot() {
         dataV.push(point.value);
       }
     });
+    min = Math.min(min, Math.min(...dataV.filter((v): v is number => v !== null)));
     max = Math.max(max, Math.max(...dataV.filter((v): v is number => v !== null)));
 
     const legendGroup = v4();
@@ -100,8 +102,12 @@ function renderPlot() {
         const { lower, upper } = errs;
         const valueLower = value - lower;
         const valueHigher = value + upper;
-        lowerY.push(Math.min(valueLower, valueHigher));
-        upperY.push(Math.max(valueLower, valueHigher));
+        const low = Math.min(valueLower, valueHigher);
+        const high = Math.max(valueLower, valueHigher);
+        min = Math.min(min, low);
+        max = Math.max(max, high);
+        lowerY.push(low);
+        upperY.push(high);
       });
 
       plotlyData.push({
@@ -129,11 +135,14 @@ function renderPlot() {
     }
   });
 
+  const paddingFactor = 1.2;
+  const axisMin = Math.min(0, paddingFactor * min);
+  const axisMax = Math.max(1, paddingFactor * max);
   const layout = {
     width: 600,
     height: 400,
     yaxis: {
-      range: [0, 1.2 * max],
+      range: [axisMin, axisMax],
     }
   };
 
