@@ -41,11 +41,11 @@ function datumToDate(datum: Datum): Date | null {
 }
 
 const legendGroups: Record<string, string> = {};
-const errorTraces: number[] = [];
+let errorTraces: number[] = [];
 
 function renderPlot() {
 
-  console.log("RENDER PLOT");
+  errorTraces = [];
   
   const plotlyData: Data[] = [];
   if (props.data.length === 0) {
@@ -90,7 +90,7 @@ function renderPlot() {
     });
 
     const errors = data.errors;
-    if ((props.showErrors ?? true) && errors != null) {
+    if (errors != null) {
       const upperY: (number | null)[] = [];
       const lowerY: (number | null)[] = [];
 
@@ -122,6 +122,7 @@ function renderPlot() {
         legendgroup: legendGroup,
         name: data.name,
         marker: { color: regionColor },
+        visible: props.showErrors,
       });
       errorTraces.push(plotlyData.length - 1);
 
@@ -135,6 +136,7 @@ function renderPlot() {
         legendgroup: legendGroup,
         name: data.name,
         marker: { color: regionColor },
+        visible: props.showErrors,
       });
       errorTraces.push(plotlyData.length - 1);
     }
