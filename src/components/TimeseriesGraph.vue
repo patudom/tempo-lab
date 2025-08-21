@@ -10,7 +10,7 @@
 
 <script setup lang="ts">
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { onMounted, ref, watch } from "vue";
+import { onMounted, computed, ref, watch } from "vue";
 import { v4 } from "uuid";
 import { PlotlyHTMLElement, newPlot, restyle, type Data, type Datum, type PlotMouseEvent } from "plotly.js-dist-min";
 
@@ -23,6 +23,7 @@ interface TimeseriesProps {
 }
 
 const props = defineProps<TimeseriesProps>();
+const sampleKeyCounts = computed(() => props.data.map(sel => Object.keys(sel.samples ?? {}).length));
 
 const id = `timeseries-${v4()}`;
 
@@ -43,6 +44,8 @@ const legendGroups: Record<string, string> = {};
 const errorTraces: number[] = [];
 
 function renderPlot() {
+
+  console.log("RENDER PLOT");
   
   const plotlyData: Data[] = [];
   if (props.data.length === 0) {
@@ -81,6 +84,7 @@ function renderPlot() {
       y: dataV,
       mode: "lines+markers",
       legendgroup: legendGroup,
+      showlegend: true,
       name: data.name,
       marker: { color: regionColor },
     });
@@ -175,10 +179,16 @@ onMounted(() => {
   renderPlot();
 });
 
+
 watch(() => props.showErrors, updateErrorDisplay);
 
-watch(() => props.data.map(sel => Object.keys(sel.samples ?? {}).length), (newData) => {
-  if (newData.length === 0) {
+watch(sampleKeyCounts, (newCounts: number[], oldCounts: number[]) => {
+  const different = (newCounts.length != oldCounts.length) && 
+                    newCounts.some((value, index) => value !== oldCounts[index]);
+  if (!different) {
+    return;
+  }
+  if (newCounts.length === 0) {
     console.log("No data provided for timeseries graph");
     return;
   }

@@ -996,8 +996,16 @@
                 :title="graphSelectionTitle"
                 v-model="showGraph"
               >
+                <v-checkbox
+                  v-model="showErrorBands"
+                  label="Show Errors"
+                  density="compact"
+                  hide-details
+                >
+                </v-checkbox>
                 <timeseries-graph
                   :data="graphSelection ? [graphSelection] : []"
+                  :show-errors="showErrorBands"
                 />
               </cds-dialog>
             </div>
@@ -1010,6 +1018,13 @@
           title="Nitrogen Dioxide Data"
           v-model="showNO2Graph"
         >
+          <v-checkbox
+            v-model="showErrorBands"
+            label="Show Errors"
+            density="compact"
+            hide-details
+          >
+          </v-checkbox>
           <timeseries-graph
             :data="no2GraphData.length>0 ? no2GraphData : []"
           />
@@ -1022,6 +1037,13 @@
           title="Ozone Data"
           v-model="showO3Graph"
         >
+          <v-checkbox
+            v-model="showErrorBands"
+            label="Show Errors"
+            density="compact"
+            hide-details
+          >
+          </v-checkbox>
           <timeseries-graph
             :data="o3GraphData.length > 0 ? o3GraphData : []"
           />
@@ -1034,6 +1056,13 @@
           title="Formaldehyde Data"
           v-model="showHCHOGraph"
         >
+          <v-checkbox
+            v-model="showErrorBands"
+            label="Show Errors"
+            density="compact"
+            hide-details
+          >
+          </v-checkbox>
           <timeseries-graph
             :data="hchoGraphData.length > 0 ? hchoGraphData : []"
           />
@@ -1811,6 +1840,8 @@ const showHCHOGraph = ref(false);
 const hchoGraphData = computed(() =>{
   return selections.value.filter(s => s.molecule.includes('hcho') && selectionHasSamples(s));
 });
+
+const showErrorBands = ref(true);
 
 const selectedIndex = computed({
   get() {
