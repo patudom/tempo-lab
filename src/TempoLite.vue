@@ -803,16 +803,19 @@
                     >
                       <template #append>
                         <v-btn
+                          v-if="!selections.map(sel => sel.region.name).includes(region.name)"
                           variant="plain"
-                          v-tooltip="'Edit'"
+                          v-tooltip="'Edit Name'"
                           icon="mdi-pencil"
                           color="white"
+                          @click="() => editRegionName(region as RectangleSelectionType)"
                         ></v-btn>
                         <v-btn
                           variant="plain"
                           v-tooltip="'Delete'"
                           icon="mdi-delete"
                           color="white"
+                          @click="() => deleteRegion(region as RectangleSelectionType)"
                         ></v-btn>
                       </template>
                     </v-list-item>
@@ -902,8 +905,8 @@
                     </span>
                   </template>
                   <template #append>
-                    <!-- <v-tooltip
-                      text="Edit selection"
+                    <v-tooltip
+                      text="Change Selection Name"
                       location="top"
                     >
                       <template #activator="{ props }">
@@ -911,10 +914,10 @@
                           v-bind="props"
                           size="x-small"
                           icon="mdi-pencil"
-                          @click="() => editSelection(sel)"
+                          @click="() => editSelectionName(sel)"
                         ></v-btn>
                       </template>
-                    </v-tooltip> -->
+                    </v-tooltip>
                     <v-tooltip
                       text="Get Selected Data"
                       location="top"
@@ -990,7 +993,7 @@
               </v-list>
 
               <cds-dialog
-                title="Time-series Data"
+                :title="graphSelectionTitle"
                 v-model="showGraph"
               >
                 <timeseries-graph
@@ -1035,6 +1038,65 @@
             :data="hchoGraphData.length > 0 ? hchoGraphData : []"
           />
         </cds-dialog>
+        
+        
+        <v-dialog
+          v-model="showEditSelectionNameDialog"
+          >
+          <v-card
+            class="mx-auto px-3 py-2"
+            min-width="300px"
+            width="50%"
+          >
+            <v-card-title>New Name</v-card-title>
+            <v-text-field
+              label="Selection Name"
+              hide-details
+              dense
+              @update:model-value="(val: string) => {
+                setSelectionName(selection as UserSelectionType, val);
+              }"
+            ></v-text-field>
+            <v-card-actions>
+              <v-spacer></v-spacer>
+              <v-btn
+                :color="accentColor"
+                variant="flat"
+                @click="showEditSelectionNameDialog = false"
+              >Done</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+        
+        <v-dialog
+          v-model="showEditRegionNameDialog"
+          >
+          <v-card
+            class="mx-auto px-3 py-2"
+            min-width="300px"
+            width="50%"
+          >
+            <v-card-title>New Name</v-card-title>
+            <v-text-field
+              label="Region Name"
+              hide-details
+              dense
+              @update:model-value="(val: string) => {
+                setRegionName(regionBeingEdited as RectangleSelectionType, val);
+              }"
+            ></v-text-field>
+            <v-card-actions>
+              <v-spacer></v-spacer>
+              <v-btn
+                :color="accentColor"
+                variant="flat"
+                @click="showEditRegionNameDialog = false"
+              >Done</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+
+          
 
           <hr style="border-color: grey;" class="my-3">
           <div id="bottom-options">
@@ -1333,9 +1395,9 @@ let userSelectedNotableEvents: [string, string][] = [];
 const STORY_DATA_URL = `${API_BASE_URL}/tempo-lite/data`;
 const OPT_OUT_KEY = "tempo-lite-optout" as const;
 const UUID_KEY = "tempo-lite-uuid" as const;
-const storedOptOut = window.localStorage.getItem(OPT_OUT_KEY);
+const _storedOptOut = window.localStorage.getItem(OPT_OUT_KEY);
 const maybeUUID = window.localStorage.getItem(UUID_KEY);
-const optOut = typeof storedOptOut === "string" ? storedOptOut === "true" : null;
+const optOut = true; //typeof storedOptOut === "string" ? storedOptOut === "true" : null;
 const showPrivacyDialog = ref(false);
 const responseOptOut = ref(optOut);
 const existingUser = maybeUUID !== null;
@@ -1402,49 +1464,6 @@ const newTimestamps = ref<number[]>([]);
 const cloudTimestamps = ref<number[]>([]);
 const fosterTimestamps = ref<number[]>([
   1698838920000,
-  1698841320000,
-  1698843720000,
-  1698846120000,
-  1698848520000,
-  1698852120000,
-  1698855720000,
-  1698859320000,
-  1698862920000,
-  1698866520000,
-  1698870120000,
-  1698873720000,
-  1698876120000,
-  1698878520000,
-  1698880920000,
-  1699011720000,
-  1699014120000,
-  1699016520000,
-  1699018920000,
-  1699021320000,
-  1699024920000,
-  1699028520000,
-  1699032120000,
-  1699035720000,
-  1699039320000,
-  1699042920000,
-  1699046520000,
-  1699048920000,
-  1699051320000,
-  1699053720000,
-  1711626180000,
-  1711628640000,
-  1711631040000,
-  1711633440000,
-  1711637040000,
-  1711640640000,
-  1711644240000,
-  1711647840000,
-  1711651440000,
-  1711655040000,
-  1711658640000,
-  1711662240000,
-  1711665840000,
-  1711668240000,
 ]);
 
 
@@ -1767,6 +1786,15 @@ const showGraph = computed({
   }
 });
 
+const graphSelectionTitle = computed(() => {
+  if (!graphSelection.value) {
+    return '';
+  }
+  const molecule = graphSelection.value.molecule;
+  const title = MOLECULE_OPTIONS.find(m => m.value === molecule)?.title || '';
+  return `${title} Time Series for ${graphSelection.value.name}`;
+});
+
 const showNO2Graph = ref(false);
 const no2GraphData = computed(() =>{
   return selections.value.filter(s => s.molecule.includes('no2') && selectionHasSamples(s));
@@ -1950,6 +1978,7 @@ function clearSelectionSamples(sel: UserSelectionType) {
 }
 
 // edit the region of the given selection.
+const showEditSelectionNameDialog = ref(false);
 function _editSelection(sel: UserSelectionType | null) {
   if (sel === null) {
     console.error("Cannot edit a null selection.");
@@ -1959,13 +1988,39 @@ function _editSelection(sel: UserSelectionType | null) {
     console.error("Cannot edit selection with existing samples.");
     return;
   }
-  // Set the selection to edit
+  // // Set the selection to edit
   setSelection(sel);
   
-  // Activate selection mode to allow editing
+  // // Activate selection mode to allow editing
   selectionActive.value = true;
   
   console.log(`Editing selection: ${sel.name}`);
+}
+
+function editSelectionName(sel: UserSelectionType | null) {
+  if (sel === null) {
+    console.error("Cannot edit name of a null selection.");
+    return;
+  }
+  // Set the selection to edit
+  setSelection(sel);
+  
+  // Open dialog for renaming
+  showEditSelectionNameDialog.value = true;
+}
+
+function setSelectionName(sel: UserSelectionType, newName: string) {
+  if (newName.trim() === '') {
+    console.error("Selection name cannot be empty.");
+    return;
+  }
+  const existing = selections.value.find(s => s.name === newName && s.id !== sel.id);
+  if (existing) {
+    console.error(`A selection with the name "${newName}" already exists.`);
+    return;
+  }
+  sel.name = newName;
+  console.log(`Renamed selection to: ${newName}`);
 }
 
 function createNewSelection() {
@@ -2086,6 +2141,46 @@ watch(selections, (newSelections, oldSelections) => {
   // just log out the length difference
   console.log(`Selections changed: ${oldSelections.length} -> ${newSelections.length}`);
 });
+
+const showEditRegionNameDialog = ref(false);
+const regionBeingEdited = ref<RectangleSelectionType | null>(null);
+function editRegionName(region: RectangleSelectionType) {
+  console.log(`Editing region: ${region.name}`);
+  // Set the region to edit
+  const existing = (regions.value as RectangleSelectionType[]).find(r => r.id === region.id);
+  if (!existing) {
+    console.error(`Region with ID ${region.id} not found.`);
+    return;
+  }
+  regionBeingEdited.value = region;
+  // Open dialog for renaming
+  showEditRegionNameDialog.value = true;
+}
+function setRegionName(region: RectangleSelectionType, newName: string) {
+  if (newName.trim() === '') {
+    console.error("Region name cannot be empty.");
+    return;
+  }
+  const existing = (regions.value as RectangleSelectionType[]).find(r => r.name === newName && r.id !== region.id);
+  if (existing) {
+    console.error(`A region with the name "${newName}" already exists.`);
+    return;
+  }
+  region.name = newName;
+  console.log(`Renamed region to: ${newName}`);
+}
+
+function deleteRegion(region: RectangleSelectionType) {
+  const index = regions.value.findIndex(r => r.id === region.id);
+  if (index < 0) {
+    return;
+  }
+  if (map.value && region.layer) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    removeRectangleLayer(map.value, region.layer as any);
+  }
+  regions.value.splice(index, 1);
+}
 
 function deleteSelection(sel: UserSelectionType) {
   const index = selections.value.findIndex(s => s.id == sel.id);
