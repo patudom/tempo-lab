@@ -145,8 +145,6 @@ function composeSelection(): UserSelection | null {
     name: `Selection ${selectionCount}`
   };
   emit("create", sel);
-
-  reset();
   return sel;
 }
 
