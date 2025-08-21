@@ -803,16 +803,19 @@
                     >
                       <template #append>
                         <v-btn
+                          v-if="!selections.map(sel => sel.region.name).includes(region.name)"
                           variant="plain"
-                          v-tooltip="'Edit'"
+                          v-tooltip="'Edit Name'"
                           icon="mdi-pencil"
                           color="white"
+                          @click="() => editRegionName(region as RectangleSelectionType)"
                         ></v-btn>
                         <v-btn
                           variant="plain"
                           v-tooltip="'Delete'"
                           icon="mdi-delete"
                           color="white"
+                          @click="() => deleteRegion(region as RectangleSelectionType)"
                         ></v-btn>
                       </template>
                     </v-list-item>
@@ -903,7 +906,7 @@
                   </template>
                   <template #append>
                     <v-tooltip
-                      text="Edit selection"
+                      text="Change Selection Name"
                       location="top"
                     >
                       <template #activator="{ props }">
@@ -911,7 +914,7 @@
                           v-bind="props"
                           size="x-small"
                           icon="mdi-pencil"
-                          @click="() => editSelection(sel)"
+                          @click="() => editSelectionName(sel)"
                         ></v-btn>
                       </template>
                     </v-tooltip>
@@ -1038,7 +1041,7 @@
         
         
         <v-dialog
-          v-model="showEditSelectionDialog"
+          v-model="showEditSelectionNameDialog"
           >
           <v-card
             class="mx-auto px-3 py-2"
@@ -1059,7 +1062,35 @@
               <v-btn
                 :color="accentColor"
                 variant="flat"
-                @click="showEditSelectionDialog = false"
+                @click="showEditSelectionNameDialog = false"
+              >Done</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+        
+        <v-dialog
+          v-model="showEditRegionNameDialog"
+          >
+          <v-card
+            class="mx-auto px-3 py-2"
+            min-width="300px"
+            width="50%"
+          >
+            <v-card-title>New Name</v-card-title>
+            <v-text-field
+              label="Region Name"
+              hide-details
+              dense
+              @update:model-value="(val: string) => {
+                setRegionName(regionBeingEdited as RectangleSelectionType, val);
+              }"
+            ></v-text-field>
+            <v-card-actions>
+              <v-spacer></v-spacer>
+              <v-btn
+                :color="accentColor"
+                variant="flat"
+                @click="showEditRegionNameDialog = false"
               >Done</v-btn>
             </v-card-actions>
           </v-card>
@@ -1364,9 +1395,9 @@ let userSelectedNotableEvents: [string, string][] = [];
 const STORY_DATA_URL = `${API_BASE_URL}/tempo-lite/data`;
 const OPT_OUT_KEY = "tempo-lite-optout" as const;
 const UUID_KEY = "tempo-lite-uuid" as const;
-const storedOptOut = window.localStorage.getItem(OPT_OUT_KEY);
+const _storedOptOut = window.localStorage.getItem(OPT_OUT_KEY);
 const maybeUUID = window.localStorage.getItem(UUID_KEY);
-const optOut = typeof storedOptOut === "string" ? storedOptOut === "true" : null;
+const optOut = true; //typeof storedOptOut === "string" ? storedOptOut === "true" : null;
 const showPrivacyDialog = ref(false);
 const responseOptOut = ref(optOut);
 const existingUser = maybeUUID !== null;
@@ -1947,24 +1978,35 @@ function clearSelectionSamples(sel: UserSelectionType) {
 }
 
 // edit the region of the given selection.
-const showEditSelectionDialog = ref(false);
-function editSelection(sel: UserSelectionType | null) {
+const showEditSelectionNameDialog = ref(false);
+function _editSelection(sel: UserSelectionType | null) {
   if (sel === null) {
     console.error("Cannot edit a null selection.");
     return;
   }
-  // if (selectionHasSamples(sel)) {
-  //   console.error("Cannot edit selection with existing samples.");
-  //   return;
-  // }
+  if (selectionHasSamples(sel)) {
+    console.error("Cannot edit selection with existing samples.");
+    return;
+  }
   // // Set the selection to edit
   setSelection(sel);
   
   // // Activate selection mode to allow editing
-  // selectionActive.value = true;
+  selectionActive.value = true;
   
-  // console.log(`Editing selection: ${sel.name}`);
-  showEditSelectionDialog.value = true;
+  console.log(`Editing selection: ${sel.name}`);
+}
+
+function editSelectionName(sel: UserSelectionType | null) {
+  if (sel === null) {
+    console.error("Cannot edit name of a null selection.");
+    return;
+  }
+  // Set the selection to edit
+  setSelection(sel);
+  
+  // Open dialog for renaming
+  showEditSelectionNameDialog.value = true;
 }
 
 function setSelectionName(sel: UserSelectionType, newName: string) {
@@ -2099,6 +2141,46 @@ watch(selections, (newSelections, oldSelections) => {
   // just log out the length difference
   console.log(`Selections changed: ${oldSelections.length} -> ${newSelections.length}`);
 });
+
+const showEditRegionNameDialog = ref(false);
+const regionBeingEdited = ref<RectangleSelectionType | null>(null);
+function editRegionName(region: RectangleSelectionType) {
+  console.log(`Editing region: ${region.name}`);
+  // Set the region to edit
+  const existing = (regions.value as RectangleSelectionType[]).find(r => r.id === region.id);
+  if (!existing) {
+    console.error(`Region with ID ${region.id} not found.`);
+    return;
+  }
+  regionBeingEdited.value = region;
+  // Open dialog for renaming
+  showEditRegionNameDialog.value = true;
+}
+function setRegionName(region: RectangleSelectionType, newName: string) {
+  if (newName.trim() === '') {
+    console.error("Region name cannot be empty.");
+    return;
+  }
+  const existing = (regions.value as RectangleSelectionType[]).find(r => r.name === newName && r.id !== region.id);
+  if (existing) {
+    console.error(`A region with the name "${newName}" already exists.`);
+    return;
+  }
+  region.name = newName;
+  console.log(`Renamed region to: ${newName}`);
+}
+
+function deleteRegion(region: RectangleSelectionType) {
+  const index = regions.value.findIndex(r => r.id === region.id);
+  if (index < 0) {
+    return;
+  }
+  if (map.value && region.layer) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    removeRectangleLayer(map.value, region.layer as any);
+  }
+  regions.value.splice(index, 1);
+}
 
 function deleteSelection(sel: UserSelectionType) {
   const index = selections.value.findIndex(s => s.id == sel.id);
