@@ -135,7 +135,7 @@ function renderPlot() {
     }
   });
 
-  const paddingFactor = 1.2;
+  const paddingFactor = 1.1;
   const axisMin = Math.min(0, paddingFactor * min);
   const axisMax = Math.max(1, paddingFactor * max);
   const layout = {
