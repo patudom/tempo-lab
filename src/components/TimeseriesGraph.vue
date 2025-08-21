@@ -100,8 +100,11 @@ function renderPlot() {
         const { lower, upper } = errs;
         const valueLower = value - lower;
         const valueHigher = value + upper;
-        lowerY.push(Math.min(valueLower, valueHigher));
-        upperY.push(Math.max(valueLower, valueHigher));
+        const low = Math.min(valueLower, valueHigher);
+        const high = Math.max(valueLower, valueHigher);
+        max = Math.max(max, high);
+        lowerY.push(low);
+        upperY.push(high);
       });
 
       plotlyData.push({
@@ -129,11 +132,14 @@ function renderPlot() {
     }
   });
 
+  const paddingFactor = 1.1;
+  const axisMax = Math.max(1, paddingFactor * max);
   const layout = {
     width: 600,
     height: 400,
     yaxis: {
-      range: [0, 1.2 * max],
+      title: { text: "Molecules / cm<sup>2</sup>" },
+      range: [0, axisMax],
     }
   };
 
