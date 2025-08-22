@@ -1026,7 +1026,8 @@
           >
           </v-checkbox>
           <timeseries-graph
-            :data="no2GraphData.length>0 ? no2GraphData : []"
+            :data="no2GraphData.length > 0 ? no2GraphData : []"
+            :show-errors="showErrorBands"
           />
         </cds-dialog>
 
@@ -1046,6 +1047,7 @@
           </v-checkbox>
           <timeseries-graph
             :data="o3GraphData.length > 0 ? o3GraphData : []"
+            :show-errors="showErrorBands"
           />
         </cds-dialog>
         
@@ -1065,6 +1067,7 @@
           </v-checkbox>
           <timeseries-graph
             :data="hchoGraphData.length > 0 ? hchoGraphData : []"
+            :show-errors="showErrorBands"
           />
         </cds-dialog>
         
