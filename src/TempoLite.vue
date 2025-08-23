@@ -895,15 +895,18 @@
               <v-list>
                 <v-list-item
                   v-for="sel in selections"
+                  class="selection-item"
                   :key="sel.id"
                   :title="sel.name"
-                  :color="sel.region.color"
                   @click="() => openSelections[sel.id] = !openSelections[sel.id]"
+                  :style="{ 'background-color': `rgb(from ${sel.region.color} r g b / 0.35)` }"
+                  lines="2"
                 >
                   <template #subtitle>
-                    <span v-if="sel.timeRange" class="text-caption">
+                    <v-chip>{{ moleculeName(sel.molecule) }}</v-chip>
+                    <v-chip v-if="sel.timeRange" class="text-caption">
                       {{ sel.timeRange.description }}
-                    </span>
+                    </v-chip>
                   </template>
                   <template #default>
                     <v-expand-transition>
@@ -1669,8 +1672,11 @@ const extendedRangeAvailable = computed(() => {
   return extendedRangeTimestampsSet.value.has(timestamp.value);
 });
 
-
 const whichMolecule = ref<MoleculeType>('no2');
+
+function moleculeName(molecule: MoleculeType): string {
+  return MOLECULE_OPTIONS.find(m => m.value == molecule)?.title ?? "";
+}
 
 const mapTitle = computed(() => {
   const currentMolecule = MOLECULE_OPTIONS.find(m => m.value === whichMolecule.value);
