@@ -893,120 +893,130 @@
               -->
 
               <v-list>
-                <v-list-item
+                <v-hover
+                  v-slot="{ isHovering, props }"
                   v-for="sel in selections"
-                  class="selection-item"
                   :key="sel.id"
-                  :title="sel.name"
-                  @click="() => openSelections[sel.id] = !openSelections[sel.id]"
-                  :style="{ 'background-color': `rgb(from ${sel.region.color} r g b / 0.35)` }"
-                  lines="2"
                 >
-                  <template #subtitle>
-                    <v-chip>{{ moleculeName(sel.molecule) }}</v-chip>
-                    <v-chip v-if="sel.timeRange" class="text-caption">
-                      {{ sel.timeRange.description }}
-                    </v-chip>
-                  </template>
-                  <template #default>
-                    <v-expand-transition>
-                      <div
-                        class="selection-icons"
-                        v-show="openSelections[sel.id]"
-                      >
-                        <v-tooltip
-                          text="Change Selection Name"
-                          location="top"
+                  <v-list-item
+                    v-bind="props"
+                    class="selection-item"
+                    :title="sel.name"
+                    :style="{ 'background-color': `rgb(from ${sel.region.color} r g b / 0.35)` }"
+                    :ripple="touchscreen"
+                    @click="() => {
+                      if (touchscreen) {
+                        openSelection = (openSelection == sel.id) ? null : sel.id;
+                      }
+                    }"
+                    lines="two"
+                  >
+                    <template #subtitle>
+                      <v-chip>{{ moleculeName(sel.molecule) }}</v-chip>
+                      <v-chip v-if="sel.timeRange" class="text-caption">
+                        {{ sel.timeRange.description }}
+                      </v-chip>
+                    </template>
+                    <template #default>
+                      <v-expand-transition>
+                        <div
+                          class="selection-icons"
+                          v-show="touchscreen ? openSelection == sel.id : isHovering"
                         >
-                          <template #activator="{ props }">
-                            <v-btn
-                              v-bind="props"
-                              size="x-small"
-                              icon="mdi-pencil"
-                              @click="() => editSelectionName(sel)"
-                              variant="plain"
-                            ></v-btn>
-                          </template>
-                        </v-tooltip>
-                        <v-tooltip
-                          text="Get Selected Data"
-                          location="top"
-                        >
-                          <template #activator="{ props }">
-                            <v-btn
-                              v-bind="props"
-                              size="x-small"
-                              :loading="loadingSamples === sel.name"
-                              :disabled="sel.samples != null"
-                              icon="mdi-download"
-                              variant="plain"
-                              @click="() => fetchDataForSelection(sel)"
-                            ></v-btn>
-                          </template>
-                        </v-tooltip>
-                        <v-tooltip
-                          text="Get Center Point Sample"
-                          location="top"
-                        >
-                          <template #activator="{ props }">
-                            <v-btn
-                              v-bind="props"
-                              size="x-small"
-                              :loading="loadingPointSample === sel.name"
-                              icon="mdi-image-filter-center-focus"
-                              variant="plain"
-                              @click="() => fetchCenterPointDataForSelection(sel)"
-                            ></v-btn>
-                          </template>
-                        </v-tooltip> 
-                        <v-tooltip
-                          text="Show table"
-                          location="top"
-                        >
-                          <template #activator="{ props }">
-                            <v-btn
-                              v-bind="props"
-                              size="x-small"
-                              icon="mdi-table"
-                              :disabled="!sel.samples"
-                              variant="plain"
-                              @click="() => tableSelection = sel"
-                            ></v-btn>
-                          </template>
-                        </v-tooltip>
-                        <v-tooltip
-                          text="Show graph"
-                          location="top"
-                        >
-                          <template #activator="{ props }">
-                            <v-btn
-                              v-bind="props"
-                              size="x-small"
-                              icon="mdi-chart-line"
-                              :disabled="!sel.samples"
-                              variant="plain"
-                              @click="() => graphSelection = sel"
-                            ></v-btn>
-                          </template>
-                        </v-tooltip>
-                        <v-tooltip
-                          text="Remove selection"
-                          location="top"
-                        >
-                          <template #activator="{ props }">
-                            <v-btn
-                              v-bind="props"
-                              size="x-small"
-                              icon="mdi-trash-can"
-                              variant="plain"
-                              @click="() => deleteSelection(sel)"
-                            ></v-btn>
-                          </template>
-                        </v-tooltip>
-                      </div>
-                    </v-expand-transition>
-                  </template>
-                </v-list-item>
+                          <v-tooltip
+                            text="Change Selection Name"
+                            location="top"
+                          >
+                            <template #activator="{ props }">
+                              <v-btn
+                                v-bind="props"
+                                size="x-small"
+                                icon="mdi-pencil"
+                                @click="() => editSelectionName(sel)"
+                                variant="plain"
+                              ></v-btn>
+                            </template>
+                          </v-tooltip>
+                          <v-tooltip
+                            text="Get Selected Data"
+                            location="top"
+                          >
+                            <template #activator="{ props }">
+                              <v-btn
+                                v-bind="props"
+                                size="x-small"
+                                :loading="loadingSamples === sel.name"
+                                :disabled="sel.samples != null"
+                                icon="mdi-download"
+                                variant="plain"
+                                @click="() => fetchDataForSelection(sel)"
+                              ></v-btn>
+                            </template>
+                          </v-tooltip>
+                          <v-tooltip
+                            text="Get Center Point Sample"
+                            location="top"
+                          >
+                            <template #activator="{ props }">
+                              <v-btn
+                                v-bind="props"
+                                size="x-small"
+                                :loading="loadingPointSample === sel.name"
+                                icon="mdi-image-filter-center-focus"
+                                variant="plain"
+                                @click="() => fetchCenterPointDataForSelection(sel)"
+                              ></v-btn>
+                            </template>
+                          </v-tooltip> 
+                          <v-tooltip
+                            text="Show table"
+                            location="top"
+                          >
+                            <template #activator="{ props }">
+                              <v-btn
+                                v-bind="props"
+                                size="x-small"
+                                icon="mdi-table"
+                                :disabled="!sel.samples"
+                                variant="plain"
+                                @click="() => tableSelection = sel"
+                              ></v-btn>
+                            </template>
+                          </v-tooltip>
+                          <v-tooltip
+                            text="Show graph"
+                            location="top"
+                          >
+                            <template #activator="{ props }">
+                              <v-btn
+                                v-bind="props"
+                                size="x-small"
+                                icon="mdi-chart-line"
+                                :disabled="!sel.samples"
+                                variant="plain"
+                                @click="() => graphSelection = sel"
+                              ></v-btn>
+                            </template>
+                          </v-tooltip>
+                          <v-tooltip
+                            text="Remove selection"
+                            location="top"
+                          >
+                            <template #activator="{ props }">
+                              <v-btn
+                                v-bind="props"
+                                size="x-small"
+                                icon="mdi-trash-can"
+                                variant="plain"
+                                @click="() => deleteSelection(sel)"
+                              ></v-btn>
+                            </template>
+                          </v-tooltip>
+                        </div>
+                      </v-expand-transition>
+                    </template>
+                  </v-list-item>
+                </v-hover>
               </v-list>
 
               <cds-dialog
@@ -1897,7 +1907,7 @@ const loadingSamples = ref<string | false>(false);
 const createTimeRangeActive = ref(false);
 const createSelectionActive = ref(false);
 const openPanels = ref<number[]>([]);
-const openSelections = ref<Record<string,boolean>>({});
+const openSelection = ref<string | null>(null);
 
 const testErrorAmount = 0.25e15;
 const _testError = { lower: testErrorAmount, upper: testErrorAmount };
