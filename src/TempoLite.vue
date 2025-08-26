@@ -3026,7 +3026,6 @@ watch(rectangleInfo, (info: RectangleSelectionInfo | null) => {
   if (info === null || map.value === null) {
     return;
   }
-  console.log(info);
   const canCreate = (selection.value === null || selectedIndex.value === null) && !regionBeingEdited.value;
   if (canCreate) {
     createDraftSelection(info, 'rectangle');
@@ -3046,7 +3045,6 @@ watch(pointInfo, (info: PointSelectionInfo | null) => {
   if (info === null || map.value === null) {
     return;
   }
-  console.log(info);
   const canCreate = (selection.value === null || selectedIndex.value === null) && !regionBeingEdited.value;
   if (canCreate) {
     createDraftSelection(info, 'point');
