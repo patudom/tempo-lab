@@ -163,12 +163,6 @@
   <div
     id="main-content"
   > 
-    <marquee-alert 
-      v-if="smallSize && showExtendedRangeFeatures && extendedRangeAvailable" 
-      timeout="30000"
-      message="You can view data with an extend range for the 
-              duration of the LA fires. See the 🔥 button on the map"
-    />
     <div class="content-with-sidebars">
       <!-- tempo logo -->
       <div id="logo-title">
@@ -351,23 +345,23 @@
           </v-toolbar>
           <div id="map">
             <v-overlay
-              :modelValue="loadedImagesProgress < 100"
+              :modelValue="loadingEsriTimeSteps"
               style="z-index: 1000;"
               class="align-center justify-center"
               contained
               opacity=".8"
               >
               <div id="loading-circle-progress-container" class="d-flex flex-column align-center justify-center ga-2">
-                <label class="text-black" for="loading-circle-progress">Loading Data...</label>
+                <label class="text-white" for="loading-circle-progress">Fetching time steps from NASA Earthdata GIS service...</label>
                 <v-progress-circular
                   id="loading-circle-progress"
                   style="z-index: 1000;"
                   :size="100"
                   :width="15"
-                  :model-value="loadedImagesProgress"
+                  :indeterminate="loadingEsriTimeSteps"
                   color="#092088"
                 >
-                {{ loadedImagesProgress.toFixed(0) }}%
+                
               </v-progress-circular>
               </div>
             </v-overlay>
@@ -460,65 +454,6 @@
                   </p>
                   </info-button>
                 </div>
-                <div class="d-flex flex-row align-center justify-space-between">
-                <v-checkbox
-                  v-model="showClouds"
-                  @keyup.enter="showClouds = !showClouds"
-                  :disabled="!cloudDataAvailable"
-                  :label="cloudDataAvailable ? 'Show Cloud Mask' : 'No Cloud Data Available'"
-                  color="#c10124"
-                  hide-details
-                />
-                <info-button>
-                  <p>
-                    The cloud mask shows where the satellite could not measure NO<sub>2</sub> because of cloud cover. 
-                  </p>
-                </info-button>
-              </div>
-                <div class="d-flex flex-row align-center justify-space-between">
-                  <v-checkbox
-                  v-model="showImage"
-                  @keyup.enter="showImage = !showImage"
-                  color="#c10124"
-                  label="Show CDS Images (when available)"
-                  hide-details
-                />
-                <info-button>
-                  <p>
-                    Show or hide the post-processed NO<sub>2</sub> data layer.
-                  </p>
-                </info-button>
-              </div>
-                <div class="d-flex flex-row align-center justify-space-between">
-                  <v-checkbox
-                  :disabled="!highresAvailable"
-                  v-model="useHighRes"
-                  @keyup.enter="useHighRes = !useHighRes"
-                  label="Use High Resolution Data"
-                  color="#c10124"
-                  hide-details
-                />
-                <info-button>
-                  <p>
-                    By default we show data at 1/2 resolution for performance. 
-                  </p>
-                </info-button>
-              </div>
-                <div v-if="showExtendedRangeFeatures && extendedRangeAvailable" class="d-flex flex-row align-center justify-space-between">
-                  <v-checkbox
-                  :disabled="!extendedRangeAvailable"
-                  v-model="showExtendedRange"
-                  @keyup.enter="showExtendedRange = !showExtendedRange"
-                  label="Use Extended NO2 range"
-                  color="#c10124"
-                  hide-details
-                />
-                <info-button>
-                  <p>
-                    If data is available, show map with extended range of NO<sub>2</sub> values.
-                  </p>
-                </info-button>
-              </div>
             </v-card>
           </v-menu>
           <div id="location-and-sharing">
@@ -534,45 +469,7 @@
           ></location-search>
         </div>
         
-        <div id="la-fires">
-          <v-btn v-if="!smallSize && extendedRangeAvailable" @click="activateLAViewer" @keyup.enter="activateLAViewer" >
-            {{ extendedRangeAvailable ? (showExtendedRange ? "Showing extended range" : "Use extreme events range") : "No extended range images available for this date" }}
-          </v-btn>
-          <v-btn v-if="smallSize && showExtendedRangeFeatures && extendedRangeAvailable" @click="activateLAViewer" @keyup.enter="activateLAViewer" icon >
-            🔥
-          </v-btn>
-          <cds-dialog title="Extreme Events" v-model="showLADialog" :color="accentColor2">
-            <v-row>
-              <v-col>
-                <p>
-                  Some events like the January 2025 Los Angeles fires generate so much smoke 
-                  and pollution that NO<sub>2</sub> levels can greatly
-                    exceed the default range used in the color scale 
-                    for the TEMPO-lite viewer. To show more clearly where 
-                    the very highest levels of NO<sub>2</sub> are present, 
-                    you can use an extended color stretch.   
-                </p>
-                <p>
-                  By default we display values from 0.01-1.5&times;10<sup>16</sup> molecules per square centimeter, 
-                  check the box here to double the max of the range to 3&times;10<sup>16</sup> molecules per square centimeter. 
-                  The extended range will be available on dates with extreme events like the Los Angeles fire outbreaks.
-                </p>
-            
-            <v-checkbox v-model="showExtendedRange" label="Use extended data range"/>
-            
-            <!-- Note on clouds. Some times (such as January 19th) smoke is detected as "clouds" and so those pixels get removed. 
-            We (CosmicDS) currently do not have an algorithmic way retrieve the nitrogen dioxide column in these cases and so 
-            those pixels are masked out in the "cloud mask". -->
         
-              </v-col>
-            </v-row>
-            <v-row class="justify-center">
-
-              <v-btn :color="accentColor2" @click="goToLA" @keyup.enter="goToLA"> Go To Los Angeles</v-btn>
-
-            </v-row>
-          </cds-dialog>
-        </div>
         
         </v-card>
         <colorbar 
@@ -733,15 +630,7 @@
                   </template>
                 </v-tooltip>
               </div>
-              <v-progress-linear
-                v-if="loadedImagesProgress < 101"
-                v-model="loadedImagesProgress"
-                color="#092088"
-                height="20"
-              >
-                <span v-if="loadedImagesProgress < 100">Loading Data ({{ loadedImagesProgress.toFixed(0) }}%)</span>
-                <span v-else>Data Loaded</span>
-              </v-progress-linear>
+
             </div>
             <v-select
               v-model="selectedTimezone"
@@ -1199,25 +1088,6 @@
                 >
                 <UserGuide/>
               </cds-dialog>
-            
-            <v-checkbox
-              v-if="false"
-              :disabled="!highresAvailable"
-              v-model="useHighRes"
-              @keyup.enter="useHighRes = !useHighRes"
-              label="Use High Resolution Data"
-              color="#c10124"
-              hide-details
-            />
-            <v-checkbox
-              v-if="showExtendedRangeFeatures && extendedRangeAvailable"
-              :disabled="!extendedRangeAvailable"
-              v-model="showExtendedRange"
-              @keyup.enter="showExtendedRange = !showExtendedRange"
-              label="Use Extended NO2 range"
-              color="#c10124"
-              hide-details
-            />
           </div>
         
         </div>
@@ -1318,7 +1188,6 @@ import { getTimezoneOffset } from "date-fns-tz";
 // import { cbarNO2 } from "./revised_cmap";
 import { colormap } from "./colormaps/utils";
 import { MapBoxFeature, MapBoxFeatureCollection, geocodingInfoForSearch } from "./mapbox";
-import { _preloadImages } from "./PreloadImages";
 import changes from "./changes";
 import { useBounds } from './composables/useBounds';
 import { interestingEvents } from "./interestingEvents";
@@ -1348,6 +1217,7 @@ import TimeChips from "./components/TimeChips.vue";
 // Import Maplibre Composables
 import { useMap } from "./composables/maplibre/useMap";
 import { usezoomhome } from './composables/maplibre/useZoomHome';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { useImageOverlay } from "./composables/maplibre/useImageOverlay";
 import { useFieldOfRegard} from "./composables/maplibre/useFieldOfRegard";
 import { useLocationMarker } from "./composables/maplibre/useMarker";
@@ -1360,7 +1230,6 @@ import { useEsriLayer } from "./esri/maplibre/useEsriImageLayer";
 const zoomScale = 0.5; // for matplibre-gl
 // import { useEsriLayer } from "./esri/maplibre/useEsriImageLayerPlain"; // do not use
 
-const showImage = ref(false);
 
 const BACKEND: MappingBackends = "maplibre" as const;
 
@@ -1387,9 +1256,7 @@ type Timeout = ReturnType<typeof setTimeout>;
  *************/
 // const hash = window.location.hash;
 const urlParams = new URLSearchParams(window.location.search);
-const showExtendedRangeFeatures = true; //hash.includes("extreme-events");
 const showSplashScreen = ref(new URLSearchParams(window.location.search).get("splash")?.toLowerCase() !== "false");
-const extendedRange = ref(window.location.hash.includes("extreme-events") || urlParams.get('extendedRange') === "true"); //showExtendedRangeFeatures || urlParams.get('extendedRange') === "true";
 const hideIntro = "true";
 const WINDOW_DONTSHOWINTRO = hideIntro ? true : window.localStorage.getItem("dontShowIntro") === 'true';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -1539,6 +1406,7 @@ const mobile = computed(() => {
 });
 
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function zpad(n: number, width: number = 2, character: string = "0"): string {
   return n.toString().padStart(width, character);
 }
@@ -1546,26 +1414,11 @@ function zpad(n: number, width: number = 2, character: string = "0"): string {
 /************
  * TIMESTAMP SETUP
  ************/
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { getTimestamps, getExtendedRangeTimestamps } from "./timestamps";
 import { AllAvailableColorMaps } from "./colormaps";
 import { ESRI_URLS, MOLECULE_OPTIONS, MoleculeType } from "./esri/utils";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const erdTimestamps = ref<number[]>([]);
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const newTimestamps = ref<number[]>([]);
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const cloudTimestamps = ref<number[]>([]);
-const fosterTimestamps = ref<number[]>([
-  1698838920000,
-]);
 
-
-const timestamps = ref<number[]>(fosterTimestamps.value);
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const extendedRangeTimestamps = ref<number[]>([]);
-const showExtendedRange = ref(extendedRange.value);
-const useHighRes = ref(false);
+const initialDate = new Date();
+const timestamps = ref<number[]>([initialDate.getTime()]); // we need _something_ so that downstream steps have valid dates to initialize with. 
 const {
   timeIndex,
   timestamp,
@@ -1581,13 +1434,7 @@ const {
   nearestDateIndex } = useUniqueTimeSelection(timestamps);
 
 const timestampsLoaded = ref(false);
-const fosterTimestampsSet = ref(new Set(fosterTimestamps.value));
-const erdTimestampsSet = ref(new Set());
-const newTimestampsSet = ref(new Set());
-const cloudTimestampsSet = ref(new Set());
-const extendedRangeTimestampsSet = ref(new Set());
-const timestampsSet = ref(new Set(fosterTimestamps.value));
-const preprocessedTimestampSet = ref(new Set(fosterTimestamps.value));
+const timestampsSet = ref(new Set(timestamps.value));
 // append and Set timestamps
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function appendTimestamps(newTimestamps: number[][]) {
@@ -1596,37 +1443,7 @@ function appendTimestamps(newTimestamps: number[][]) {
     timestampsSet.value = new Set(timestamps.value);
   }
 }
-async function updateTimestamps() {
-  return Promise.all([
-    // getExtendedRangeTimestamps().then(ts => {
-    //   extendedRangeTimestamps.value = ts;
-    //   extendedRangeTimestampsSet.value = new Set(ts);
-    // }),
-    // getTimestamps().then((ts) => {
-    //   erdTimestamps.value = ts.early_release;
-    //   erdTimestampsSet.value = new Set(ts.early_release);
-    //   newTimestamps.value = ts.released;
-    //   newTimestampsSet.value = new Set(ts.released);
-    //   timestamps.value = timestamps.value.concat(erdTimestamps.value, newTimestamps.value).sort();
-    //   const _set = new Set(timestamps.value);
-    //   timestampsSet.value = _set;
-    //   preprocessedTimestampSet.value = _set;
-      
-    //   cloudTimestamps.value = ts.clouds;
-    //   cloudTimestampsSet.value = new Set(ts.clouds);
-    // })
-  ]);
-}
 
-
-updateTimestamps().then(() => { timestampsLoaded.value = true; })
-  .then(() => {
-    if (window.location.hash.includes("extreme-events")) {
-      nextTick(() => {
-        activateExtremeEvents();
-      });
-    }
-  });
 
 
 /************
@@ -1674,83 +1491,23 @@ const searchErrorMessage = ref<string | null>(null);
 const showControls = ref(false);
 const showCredits = ref(false);
 const showAboutData = ref(false);
-const loadedImagesProgress = ref(0);
 const showUserGuide = ref(false);
 
 const showLocationMarker = ref(true);
 const currentUrl = ref(window.location.href);
 const showChanges = ref(false);
-const showLADialog = ref(false);
 
 
-const imageName = computed(() => {
-  return getTempoFilename(date.value);
-});
 
-const imageUrl = computed(() => {
-  if (!showImage.value) {
-    return '';
-  }
-  
-  if (customImageUrl.value) {
-    return customImageUrl.value;
-  }
-  const url = getTempoDataUrl(timestamp.value);
-  if (url === null) { return ''; }
-  return url + imageName.value;
-});
+
+
 
 const showClouds = ref(false);
-const cloudUrl = computed(() => {
-  if (!showClouds.value) {
-    return '';
-  }
-
-  if (cloudTimestampsSet.value.has(timestamp.value)) {
-    return getCloudFilename(date.value);
-  }
-  return '';
-});
-
-
 const opacity = ref(0.9);
-const preload = ref(false);
-if (!preload.value) {
-  loadedImagesProgress.value = 100;
-}
-const customImageUrl = ref("");
-const cloudOverlay = useImageOverlay(cloudUrl, opacity, imageBounds, 'cloud-overlay');
-const imageOverlay = useImageOverlay(imageUrl, opacity, imageBounds, 'image-overlay');
 
-const cloudDataAvailable = computed(() => {
-  return cloudTimestampsSet.value.has(timestamp.value);
-});
+// const cloudOverlay = useImageOverlay(cloudUrl, opacity, imageBounds, 'cloud-overlay');
+// const imageOverlay = useImageOverlay(imageUrl, opacity, imageBounds, 'image-overlay');
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const whichDataSet = computed(() => {
-  if (fosterTimestampsSet.value.has(timestamp.value)) {
-    return 'TEMPO-lite';
-  }
-
-  if (erdTimestampsSet.value.has(timestamp.value)) {
-    return 'Early Release (V01)';
-  }
-
-  if (newTimestampsSet.value.has(timestamp.value)) {
-    return 'Level 3 (V03)';
-  }
-
-  return 'Unknown';
-});
-
-
-const highresAvailable = computed(() => {
-  return newTimestampsSet.value.has(timestamp.value);
-});
-
-const extendedRangeAvailable = computed(() => {
-  return extendedRangeTimestampsSet.value.has(timestamp.value);
-});
 
 const whichMolecule = ref<MoleculeType>('no2');
 
@@ -1794,7 +1551,7 @@ const tempoDataService = new TempoDataService(esriUrl.value, esriVariable.value)
 
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const {getEsriTimeSteps, addEsriSource, esriTimesteps, changeUrl, renderOptions} = useEsriLayer(
+const {getEsriTimeSteps, loadingEsriTimeSteps, addEsriSource, esriTimesteps, changeUrl, renderOptions} = useEsriLayer(
   esriUrl.value,
   esriVariable.value,
   timestamp,
@@ -1804,12 +1561,6 @@ getEsriTimeSteps();
 watch(esriTimesteps, (newSteps, _oldSteps) => {
   if (newSteps.length > 0) {
     timestamps.value = newSteps.sort();
-    // remove old steps from timestamps and timestampsSet
-    // const oldSet = new Set(oldSteps);
-    // const filtered = timestamps.value.filter(t => !oldSet.has(t));
-    // timestamps.value = filtered;
-    // timestampsSet.value = new Set(timestamps.value);
-    // appendTimestamps([newSteps]);
   }
 });
 // renderOptions.value.colormap = 'Plasma';
@@ -2330,7 +2081,6 @@ function deleteSelection(sel: UserSelectionType) {
 
 
 onMounted(() => {
-  window.addEventListener("hashchange", updateHash);
   showSplashScreen.value = false;
   createMap();
   
@@ -2342,13 +2092,9 @@ onMounted(() => {
     }
   });
 
-
+  
   singleDateSelected.value = uniqueDays.value[uniqueDays.value.length - 1];
-  if (map.value !== null) {
-    imageOverlay.addTo(map.value); 
-    cloudOverlay.addTo(map.value);
-  }
-
+  
   updateFieldOfRegard();
   addFieldOfRegard();
 
@@ -2404,33 +2150,18 @@ const thumbLabel = computed(() => {
 });
 
 
-function updateHash() {
-  if (window.location.hash.includes("extreme-events")) {
-    activateExtremeEvents();
-  }
-}
 
 
 function updateURL() {
   if (map.value) {
     const center = map.value.getCenter();
     let stateObj = null as Record<string, string> | null;
-    if (showExtendedRangeFeatures) {
-      stateObj = {
-        lat: `${center.lat.toFixed(4)}`,
-        lon: `${center.lng.toFixed(4)}`,
-        zoom: `${map.value.getZoom()}`,
-        t: `${timestamp.value}`,
-        extendedRange: `${showExtendedRange.value}`
-      };
-    } else {
-      stateObj = {
-        lat: `${center.lat.toFixed(4)}`,
-        lon: `${center.lng.toFixed(4)}`,
-        zoom: `${map.value.getZoom()}`,
-        t: `${timestamp.value}`
-      };
-    }
+    stateObj = {
+      lat: `${center.lat.toFixed(4)}`,
+      lon: `${center.lng.toFixed(4)}`,
+      zoom: `${map.value.getZoom()}`,
+      t: `${timestamp.value}`
+    };
     const url = new URL(location.origin);
     const searchParams = new URLSearchParams(stateObj ?? {});
     // const hash = window.location.hash;
@@ -2501,108 +2232,13 @@ function pause() {
 }
 
 
-function getCloudFilename(date: Date): string {
-  const filename = getTempoFilename(date);
-  if (useHighRes.value) {
-    return 'https://raw.githubusercontent.com/johnarban/tempo-data-holdings/main/clouds/images/' + filename;
-  } else {
-    return 'https://raw.githubusercontent.com/johnarban/tempo-data-holdings/main/clouds/images/resized_images/' + filename;
-  }
-}
-
-function findNearestImageTimestamp(esriTimestamp: number, toleranceMinutes: number = 2): number | null {
-  const toleranceMs = toleranceMinutes * 60 * 1000;
-  
-  // Check all timestamp sets for the nearest match within tolerance
-  
-  // Find the nearest timestamp within tolerance
-  let nearestTimestamp: number | null = null;
-  let minDifference = Infinity;
-  
-  for (const imageTimestamp of preprocessedTimestampSet.value) {
-    const difference = Math.abs(imageTimestamp - esriTimestamp);
-    if (difference <= toleranceMs && difference < minDifference) {
-      minDifference = difference;
-      nearestTimestamp = imageTimestamp;
-    }
-  }
-  
-  return nearestTimestamp;
-}
-
-function getTempoFilename(_date: Date): string {
-  const ts = findNearestImageTimestamp(_date.getTime());
-  if (ts === null) {
-    return '';
-  }
-  const date = new Date(ts);
-  return `tempo_${date.getUTCFullYear()}-${zpad(date.getUTCMonth() + 1)}-${zpad(date.getUTCDate())}T${zpad(date.getUTCHours())}h${zpad(date.getUTCMinutes())}m.png`;
-}
-
-
-
-function getTempoDataUrl(_timestamp: number): string | null {
-  const timestamp = findNearestImageTimestamp(_timestamp);
-  if (timestamp === null) {
-    return null;
-  }
-  if (showExtendedRange.value && extendedRangeTimestampsSet.value.has(timestamp)) {
-    if (useHighRes.value) {
-      return 'https://raw.githubusercontent.com/johnarban/tempo-data-holdings/main/data_range_0_300/released/images/';
-    }
-    return 'https://raw.githubusercontent.com/johnarban/tempo-data-holdings/main/data_range_0_300/released/images/resized_images/';
-  }
-  if (fosterTimestampsSet.value.has(timestamp)) {
-    return 'https://tempo-images-bucket.s3.amazonaws.com/tempo-lite/';
-  }
-
-  if (erdTimestampsSet.value.has(timestamp)) {
-    return 'https://raw.githubusercontent.com/johnarban/tempo-data-holdings/main/early_release/images/';
-  }
-
-  if (newTimestampsSet.value.has(timestamp)) {
-    if (useHighRes.value) {
-      return 'https://raw.githubusercontent.com/johnarban/tempo-data-holdings/main/released/images/';
-    }
-    return "https://raw.githubusercontent.com/johnarban/tempo-data-holdings/main/released/images/resized_images/";
-  }
-
-  return null;
-}
 
 
 
 
-function imagePreload() {
-  if (!preload.value) {
-    return;
-  }
-  // console.log('preloading images for ', this.thumbLabel);
-  const times = timestamps.value.slice(minIndex.value, maxIndex.value + 1).filter(ts => getTempoDataUrl(ts) !== null);
-  const images = times.map(ts => getTempoDataUrl(ts) + getTempoFilename(new Date(ts)));
-  const cloudImages = times.reduce((acc: string[], ts) => {
-    if (cloudTimestampsSet.value.has(ts)) {
-      acc.push(getCloudFilename(new Date(ts)));
-    }
-    return acc;
-  }, []);
-  images.push(...cloudImages);
-  if (images.length === 0) {
-    console.error('No images to preload');
-    return;
-  }
-  const promises = _preloadImages(images);
-  let loaded = 0;
-  loadedImagesProgress.value = 0;
-  promises.forEach((promise) => {
-    promise.then(() => {
-      loaded += 1;
-      loadedImagesProgress.value = (loaded / promises.length) * 100;
-    }).catch((err) => {
-      console.error('error loading image', err);
-    });
-  });
-}
+
+
+
 
 const locationsOfInterest = ref<Array<Array<{ latlng: LatLngPair; zoom: number; index?: number }>>>([]);
 function goToLocationOfInterst(index: number, subindex: number) {
@@ -2619,35 +2255,6 @@ function goToLocationOfInterst(index: number, subindex: number) {
   }
 }
 
-
-function goToLA() {
-  showLADialog.value = false;
-  const event = interestingEvents.filter(e => e.label == 'LA Wildfires (Jan 8, 2025)');
-  if (event !== undefined && map.value) {
-    const loi = event[0].locations;
-    setView(loi[0].latlng, loi[0].zoom * zoomScale); // Adjust zoom level for maplibre
-  }
-}
-
-
-function activateLAViewer() {
-  showLADialog.value = true;
-}
-
-
-function activateExtremeEvents() {
-  // Find the LA Wildfires event
-  const laWildfireIndex = interestingEvents.findIndex(
-    event => event.label?.includes("LA Wildfires")
-  );
-
-  if (laWildfireIndex !== -1) {
-    // Set the radio to select this event
-    radio.value = laWildfireIndex;
-    // Make sure extended range is on
-    showExtendedRange.value = true;
-  }
-}
 
 function onTimeSliderEnd(_value: number) {
   timeSliderUsedCount += 1; 
@@ -2841,17 +2448,7 @@ watch(responseOptOut, (optOut: boolean | null) => {
   }
 });
 
-watch(loadedImagesProgress, (val: number) => {
-  playing.value = false;
-  const btn = document.querySelector('#play-pause-button');
-  if (btn) {
-    if (val < 100) {
-      btn.setAttribute('disabled', 'true');
-    } else {
-      btn.removeAttribute('disabled');
-    }
-  }
-});
+
 
 watch(playing, (val: boolean) => {
   if (val) {
@@ -2862,18 +2459,6 @@ watch(playing, (val: boolean) => {
   }
 });
 
-watch(imageUrl, (_url: string) => {
-  updateFieldOfRegard();
-});
-
-// watch(cloudUrl, (_url: string) => {
-//   // nothing to do here.
-// });
-
-watch(useHighRes, () => {
-  hiResDataToggled = true;
-  imagePreload();
-});
 
 watch(showFieldOfRegard, (_show: boolean) => {
   fieldOfRegardToggled = true;
@@ -2924,7 +2509,6 @@ watch(singleDateSelected, (value: Date) => {
     const index = datesOfInterest.value.map(d => d.getTime()).indexOf(timestamp);
     radio.value = index < 0 ? null : index;
   }
-  imagePreload();
 });
 
 watch(sublocationRadio, (value: number | null) => {
@@ -2940,10 +2524,7 @@ watch(showChanges, (_value: boolean) => {
   }
 });
 
-watch(showExtendedRange, (_value: boolean) => {
-  updateURL();
-  imagePreload();
-});
+
 
 watch(showChanges, (show: boolean) => {
   const now = Date.now();

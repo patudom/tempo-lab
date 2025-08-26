@@ -19,6 +19,8 @@ export function useEsriLayer(_url: string, variableName: VariableNames, timestam
   
   const urlRef = toRef(_url);
   
+  const loadingEsriTimeSteps = ref(false);
+  
   const renderOptions = ref<RenderingRuleOptions>({
     range: stretches[variableNameRef.value],
     colormap: colorramps[variableNameRef.value],
@@ -26,11 +28,13 @@ export function useEsriLayer(_url: string, variableName: VariableNames, timestam
 
 
   async function getEsriTimeSteps() {
+    loadingEsriTimeSteps.value = true;
     fetchEsriTimeSteps(urlRef.value, variableNameRef.value)
       .then((json) => {
         esriTimesteps.value = extractTimeSteps(json);
       }).then(() => {
         nextTick(updateEsriTimeRange);
+        loadingEsriTimeSteps.value = false;
       });
   }
 
@@ -151,6 +155,7 @@ export function useEsriLayer(_url: string, variableName: VariableNames, timestam
     noEsriData,
     esriTimesteps,
     getEsriTimeSteps,
+    loadingEsriTimeSteps,
     updateEsriTimeRange,
     updateEsriOpacity,
     addEsriSource,
