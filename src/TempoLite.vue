@@ -523,7 +523,7 @@
         <div id="side-panel">
           <div id="map-view">
             <h2>Map View</h2>
-            <div class="mt-2 pl-3">
+            <div class="mt-2">
               <h3>Select a Date</h3>
               <div class="d-flex flex-row align-center">
                 <v-radio-group v-model="radio">
@@ -781,7 +781,7 @@
           <hr style="border-color: grey" class="my-3">
 
           <div id="selections">
-            <h2>Create a Selection</h2>
+            <h2>Create a Dataset</h2>
             <v-btn
               size="small"
               :active="createSelectionActive"
@@ -791,7 +791,7 @@
               <template #prepend>
                 <v-icon v-if="!createSelectionActive" icon="mdi-plus"></v-icon>
               </template>
-              {{ createSelectionActive ? "Cancel" : "Create Selection" }}
+              {{ createSelectionActive ? "Cancel" : "New Dataset" }}
             </v-btn>
             <selection-composer
               v-show="createSelectionActive"
@@ -800,19 +800,12 @@
               :regions="availableRegions"
               :disabled="{ region: rectangleSelectionActive, point: pointSelectionActive, timeRange: createTimeRangeActive }"
               @create="handleSelectionCreated"
+              :tempo-data-service="tempoDataService"
             >
             </selection-composer>
             <div id="sample-info" v-if="selections.length>0" style="margin-top: 1em;" class="pl-3">
-              <!--
-              <ListComponent 
-                :selectionOptions="selectionOptions" 
-                v-model="selection" 
-                :selectionActive="selectionActive" 
-                @edit-selection="editSelection" 
-                @create-new="createNewSelection" 
-              />
-              -->
 
+              <h3>My Datasets</h3>
               <v-list>
                 <v-hover
                   v-slot="{ isHovering, props }"
@@ -855,22 +848,6 @@
                                 icon="mdi-pencil"
                                 @click="() => editSelectionName(sel)"
                                 variant="plain"
-                              ></v-btn>
-                            </template>
-                          </v-tooltip>
-                          <v-tooltip
-                            text="Get Selected Data"
-                            location="top"
-                          >
-                            <template #activator="{ props }">
-                              <v-btn
-                                v-bind="props"
-                                size="x-small"
-                                :loading="loadingSamples === sel.name"
-                                :disabled="sel.samples != null"
-                                icon="mdi-download"
-                                variant="plain"
-                                @click="() => fetchDataForSelection(sel)"
                               ></v-btn>
                             </template>
                           </v-tooltip>
@@ -1762,11 +1739,6 @@ function clearTimeseriesMarkers() {
   timeseriesMarkerApi.clearMarkers();
 }
 
-function addTimeseriesLocationsToMap(timeseries: Array<{ x: number; y: number }>) {
-  // timeseriesMarkerApi.addMarkers(timeseries);
-  console.log(`Adding ${timeseries.length} timeseries locations to map`);
-}
-
 function selectionHasSamples(sel: UserSelectionType): boolean {
   return (sel.samples !== undefined) && Object.keys(sel.samples).length > 0;
 }
@@ -1898,26 +1870,6 @@ function createNewSelection(geometryType: 'rectangle' | 'point') {
 }
 
 
-async function fetchDataForSelection(sel: UserSelectionType) {
-  loadingSamples.value = sel.name;
-  sampleErrors.value[sel.id] = null;
-  
-  const timeRanges = atleast1d(sel.timeRange.range);
-  
-  try {
-    tempoDataService.setBaseUrl(ESRI_URLS[sel.molecule].url);
-    const data = await tempoDataService.fetchTimeseriesData(sel.region.geometryInfo, timeRanges);
-    sel.samples = data.values;
-    sel.errors = data.errors;
-    loadingSamples.value = "finished";
-    console.log(`Fetched data for ${timeRanges.length} time range(s)`);
-    addTimeseriesLocationsToMap(data.locations);
-  } catch (error) {
-    sampleErrors.value[sel.id] = error instanceof Error ? error.message : String(error);
-    loadingSamples.value = "error";
-  }
-}
-
 // New: fetch data for composed UserSelection
 // fetchDataForSelection already handles UserSelection
 
@@ -1934,7 +1886,6 @@ async function fetchCenterPointDataForSelection(sel: UserSelectionType) {
       sel.samples = data.values;
       loadingSamples.value = "finished";
       console.log(`Fetched center point data for ${timeRanges.length} time range(s)`);
-      addTimeseriesLocationsToMap(data.locations);
     }
   } catch (error) {
     sampleErrors.value[sel.id] = error instanceof Error ? error.message : String(error);
@@ -3133,7 +3084,13 @@ a {
 }
 
 #map-view {
-  padding-bottom: 0.5rem;
+  padding: 0.5rem 1rem;
+  border: 5px solid var(--info-background);
+  border-radius: 10px;
+
+  h2 {
+    margin: 0;
+  }
 }
 
 #locations-of-interest {

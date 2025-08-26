@@ -54,13 +54,23 @@
           :disabled="creationProgress.count < 3"
           @click="composeSelection"
           size="small"
-        >Create Selection</v-btn>
+          :loading="loading"
+        >
+          <template #loader>
+            <v-progress-linear
+              indeterminate
+            ></v-progress-linear>
+          </template>
+          Get Data
+        </v-btn>
         <v-btn
           color="secondary"
           variant="tonal"
           size="small"
           @click="reset"
-        >Reset</v-btn>
+        >
+          Reset
+        </v-btn>
       </div>
     </v-card-text>
   </v-card>
@@ -72,7 +82,8 @@ import { v4 } from "uuid";
 
 import type { MappingBackends, RectangleSelection, TimeRange, UserSelection } from "../types";
 import type { MillisecondRange } from "../types/datetime";
-import { type MoleculeType, MOLECULE_OPTIONS } from "../esri/utils";
+import type { TempoDataService } from "../esri/services/TempoDataService";
+import { type MoleculeType, ESRI_URLS, MOLECULE_OPTIONS } from "../esri/utils";
 import { atleast1d } from "../utils/atleast1d";
 import { formatTimeRange } from "../utils/timeRange";
 
@@ -84,6 +95,7 @@ interface SelectionComposerProps {
   timeRanges: TimeRange[];
   regions: RectangleSelectionType[];
   disabled?: { region?: boolean; timeRange?: boolean; molecule?: boolean };
+  tempoDataService: TempoDataService;
 }
 
 const props = defineProps<SelectionComposerProps>();
@@ -91,6 +103,9 @@ const props = defineProps<SelectionComposerProps>();
 const emit = defineEmits<{
   (event: "create", selection: UserSelection): void;
 }>();
+
+const loading = ref(false);
+const error = ref<string | null>(null);
 
 type RectangleSelectionType = RectangleSelection<typeof props.backend>;
 
@@ -123,7 +138,7 @@ function setDraftSelectionTimeRange(range: MillisecondRange | MillisecondRange[]
   draftUserSelection.value.timeRange = range || null;
 }
 
-function composeSelection(): UserSelection | null {
+async function composeSelection(): Promise<UserSelection | null> {
   // const color = COLORS[selectionCount % COLORS.length]; // we will use the color from the region
   
   const draft = draftUserSelection.value;
@@ -144,8 +159,28 @@ function composeSelection(): UserSelection | null {
     molecule: draft.molecule as MoleculeType,
     name: `Selection ${selectionCount}`
   };
-  emit("create", sel);
+  await fetchDataForSelection(sel);
+  if (error.value === null) {
+    emit("create", sel);
+  }
   return sel;
+}
+
+async function fetchDataForSelection(sel: UserSelection) {
+  const timeRanges = atleast1d(sel.timeRange.range);
+  
+  try {
+    props.tempoDataService.setBaseUrl(ESRI_URLS[sel.molecule].url);
+    error.value = null;
+    loading.value = true;
+    const data = await props.tempoDataService.fetchTimeseriesData(sel.region.geometryInfo, timeRanges);
+    sel.samples = data.values;
+    sel.errors = data.errors;
+    console.log(`Fetched data for ${timeRanges.length} time range(s)`);
+  } catch (err) {
+    error.value = "error";
+  }
+  loading.value = false;
 }
 
 function reset() {
@@ -157,3 +192,9 @@ watch(selectedTimeRange, (timeRange: TimeRange | null) => {
   setDraftSelectionTimeRange(timeRange?.range ?? null);
 });
 </script>
+
+<style scoped>
+.v-progress-linear {
+  width: 80%;
+}
+</style>
