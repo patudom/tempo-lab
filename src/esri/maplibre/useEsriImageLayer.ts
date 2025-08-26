@@ -11,6 +11,7 @@ interface UseEsriLayer {
   noEsriData: Ref<boolean>;
   esriTimesteps: Ref<number[]>;
   getEsriTimeSteps: () => void;
+  loadingEsriTimeSteps: Ref<boolean>;
   updateEsriOpacity: (value?: number | null | undefined) => void;
   updateEsriTimeRange: () => void;
   addEsriSource: (Map) => void;
@@ -29,6 +30,7 @@ export function useEsriLayer(url: string, variableName: VariableNames, timestamp
   const noEsriData = ref(false);
   const variableNameRef = toRef(variableName);
   const urlRef = toRef(url);
+  const loadingEsriTimeSteps = ref(false);
   const renderOptions = ref<RenderingRuleOptions>({
     range: stretches[variableNameRef.value],
     colormap: colorramps[variableNameRef.value],
@@ -122,11 +124,13 @@ export function useEsriLayer(url: string, variableName: VariableNames, timestamp
   }
   
   async function getEsriTimeSteps() {
+    loadingEsriTimeSteps.value = true;
     fetchEsriTimeSteps(urlRef.value, variableNameRef.value)
       .then((json) => {
         esriTimesteps.value = extractTimeSteps(json);
       }).then(() => {
         nextTick(updateEsriTimeRange);
+        loadingEsriTimeSteps.value = false;
       }).catch((error) => {
         console.error('Error fetching ESRI time steps:', error);
       });
@@ -201,6 +205,7 @@ export function useEsriLayer(url: string, variableName: VariableNames, timestamp
     noEsriData,
     esriTimesteps,
     getEsriTimeSteps,
+    loadingEsriTimeSteps,
     updateEsriOpacity,
     updateEsriTimeRange,
     addEsriSource,
