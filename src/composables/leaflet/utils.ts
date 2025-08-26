@@ -1,4 +1,4 @@
-import { LatLng, LatLngBounds, Map, Rectangle } from "leaflet";
+import { LatLng, LatLngBounds, Map, Rectangle, CircleMarker } from "leaflet";
 import { RectangleSelectionInfo } from "../../types";
 
 
@@ -37,4 +37,38 @@ export function removeRectangleLayer(
   rect: Rectangle
 ) {
   map.removeLayer(rect);
+}
+
+
+export function addPointLayer(
+  map: Map,
+  info: { x: number; y: number },
+  color: string,
+) {
+  const latlng = new LatLng(info.y, info.x);
+  const marker = new CircleMarker(latlng, {
+    radius: 6,
+    fillColor: color,
+    color: "white",
+    weight: 1,
+    opacity: 1,
+    fillOpacity: 0.8,
+  });
+  map.addLayer(marker);
+  return { layer: marker };
+}
+
+export function updatePointLocation(
+  marker: CircleMarker,
+  info: { x: number; y: number },
+) {
+  const latlng = new LatLng(info.y, info.x);
+  marker.setLatLng(latlng);
+}
+
+export function removePointLayer(
+  map: Map,
+  layer: CircleMarker,
+) {
+  map.removeLayer(layer);
 }

@@ -159,6 +159,10 @@ export class TempoDataService {
 
     // Handle multiple time ranges by combining them
     const timeString = `${timeRange.start},${timeRange.end}`;
+    
+    // log sample geometry type and time range
+    console.log(`Fetching samples for geometry type: ${geometryType}, time range: ${timeString}`);
+
 
     const params = {
       f: 'pjson' as const,
@@ -234,6 +238,8 @@ export class TempoDataService {
     return Promise.all(promises).then((results) => {
       const validResults = results.filter((result): result is RawSampleData => result !== null);
       const samples = validResults.map((result) => result.samples).flat();
+      console.log(`Total samples fetched across all time ranges: ${samples.length}`);
+      console.log(samples);
       return {
         samples,
         metadata: {
@@ -404,8 +410,9 @@ export class TempoDataService {
       if (sample === null) return 0;
       return Math.pow(sample - mean, 2);
     });
-    const variance = squaredDiffs.reduce((acc, val) => acc + val, 0) / validSamples.length;
+    // squared standard error of the mean = variance / n
+    const squaredSEM = squaredDiffs.reduce((acc, val) => acc + val, 0) / Math.pow(validSamples.length, 2);
     
-    return { lower: Math.sqrt(variance), upper: Math.sqrt(variance) };
+    return { lower: Math.sqrt(squaredSEM), upper: Math.sqrt(squaredSEM) };
   }
 } 
