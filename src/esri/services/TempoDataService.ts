@@ -404,8 +404,9 @@ export class TempoDataService {
       if (sample === null) return 0;
       return Math.pow(sample - mean, 2);
     });
-    const variance = squaredDiffs.reduce((acc, val) => acc + val, 0) / Math.pow(validSamples.length, 2);
+    // squared standard error of the mean = variance / n
+    const squaredSEM = squaredDiffs.reduce((acc, val) => acc + val, 0) / Math.pow(validSamples.length, 2);
     
-    return { lower: Math.sqrt(variance), upper: Math.sqrt(variance) };
+    return { lower: Math.sqrt(squaredSEM), upper: Math.sqrt(squaredSEM) };
   }
 } 
