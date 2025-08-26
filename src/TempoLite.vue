@@ -1327,7 +1327,7 @@ import { useLocationMarker } from "./composables/maplibre/useMarker";
 import { useRectangleSelection } from "./composables/maplibre/useRectangleSelection";
 import { addRectangleLayer, updateRectangleBounds, removeRectangleLayer } from "./composables/maplibre/utils";
 import { usePointSelection } from "./composables/maplibre/usePointSelection";
-import { addPointLayer, updatePointLocation, removePointLayer } from "./composables/maplibre/utils";}
+import { addPointLayer, updatePointLocation, removePointLayer } from "./composables/maplibre/utils";
 import { useMultiMarker } from './composables/maplibre/useMultiMarker';
 import { useEsriLayer } from "./esri/maplibre/useEsriImageLayer";
 const zoomScale = 0.5; // for matplibre-gl
