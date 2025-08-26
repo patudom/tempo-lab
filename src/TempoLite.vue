@@ -1998,7 +1998,6 @@ function deleteSelection(sel: UserSelectionType) {
 
 
 onMounted(() => {
-  window.addEventListener("hashchange", updateHash);
   showSplashScreen.value = false;
   createMap();
   
@@ -2068,12 +2067,6 @@ const thumbLabel = computed(() => {
 });
 
 
-function updateHash() {
-  // if (window.location.hash.includes("extreme-events")) {
-  //   return;
-  // }
-  return ; // no hashe to update
-}
 
 
 function updateURL() {
