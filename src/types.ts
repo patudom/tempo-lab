@@ -1,7 +1,7 @@
 // Types
 
-import L, { Rectangle } from 'leaflet';
-import M, { GeoJSONSource } from 'maplibre-gl';
+import L, { Rectangle, CircleMarker } from 'leaflet';
+import M, { GeoJSONSource, } from 'maplibre-gl';
 import { Ref, toValue } from 'vue';
 
 // eslint-disable-next-line @typescript-eslint/ban-types
@@ -48,8 +48,8 @@ export type MapType<T extends MappingBackends> =
   T extends 'maplibre' ? M.Map :
   never;
 
-export type RectangleType<T extends MappingBackends> =
-  T extends 'leaflet' ? Rectangle :
+export type RegionType<T extends MappingBackends> =
+  T extends 'leaflet' ? Rectangle | CircleMarker :
   T extends 'maplibre' ? GeoJSONSource:
   never;
 
@@ -114,6 +114,30 @@ export interface PointSelectionInfo {
   y: number;
 }
 
+// Unified selection types
+export type SelectionGeometry = RectangleSelectionInfo | PointSelectionInfo;
+
+export interface RectangleSelection<T extends MappingBackends> {
+  id: string;
+  name: string;
+  geometryInfo: RectangleSelectionInfo; // renamed from rectangle for future shape generalization
+  geometryType: 'rectangle';
+  color: string;
+  layer: RegionType<T>;
+  source?: GeoJSONSource;
+}
+
+// Add to types.ts
+export interface PointSelection<T extends MappingBackends> {
+  id: string;
+  name: string;
+  geometryInfo: PointSelectionInfo;
+  geometryType: 'point';
+  color: string;
+  layer: RegionType<T>; // Reuse the same layer type
+  source?: GeoJSONSource;
+}
+
 export type AggValue = {
   value: number | null;
   date: Date;
@@ -127,15 +151,6 @@ export interface DataPointError {
 export interface MillisecondRange {
   start: number;
   end: number;
-}
-
-export interface RectangleSelection<T extends MappingBackends> {
-  id: string;
-  name: string;
-  geometryInfo: RectangleSelectionInfo; // renamed from rectangle for future shape generalization
-  color: string;
-  layer?: RectangleType<T>;
-  source?: GeoJSONSource;
 }
 
 

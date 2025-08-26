@@ -159,6 +159,10 @@ export class TempoDataService {
 
     // Handle multiple time ranges by combining them
     const timeString = `${timeRange.start},${timeRange.end}`;
+    
+    // log sample geometry type and time range
+    console.log(`Fetching samples for geometry type: ${geometryType}, time range: ${timeString}`);
+
 
     const params = {
       f: 'pjson' as const,
@@ -234,6 +238,8 @@ export class TempoDataService {
     return Promise.all(promises).then((results) => {
       const validResults = results.filter((result): result is RawSampleData => result !== null);
       const samples = validResults.map((result) => result.samples).flat();
+      console.log(`Total samples fetched across all time ranges: ${samples.length}`);
+      console.log(samples);
       return {
         samples,
         metadata: {

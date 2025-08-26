@@ -1,7 +1,7 @@
 import { GeoJSONSource, Map } from "maplibre-gl";
 import { v4 } from "uuid";
 
-import { RectangleSelectionInfo } from "../../types";
+import { RectangleSelectionInfo, PointSelectionInfo } from "../../types";
 
 const layerGetter = (m: Map, id: string) => m.getLayer(id);
 export type LayerType = Exclude<ReturnType<typeof layerGetter>, undefined>;
@@ -76,6 +76,71 @@ export function updateRectangleBounds(
 }
 
 export function removeRectangleLayer(
+  map: Map,
+  layer: LayerType,
+) {
+  map.removeLayer(layer.id);
+  map.removeSource(layer.id);
+}
+
+// Point layer utilities
+export function addPointLayer(
+  map: Map,
+  info: PointSelectionInfo,
+  color: string,
+) {
+  const uuid = v4();
+  const geoJson: GeoJSON.FeatureCollection = {
+    type: "FeatureCollection",
+    features: [{
+      type: "Feature",
+      geometry: {
+        type: "Point",
+        coordinates: [info.x, info.y],
+      },
+      properties: {},
+    }],
+  };
+
+  map.addSource(uuid, {
+    type: "geojson",
+    data: geoJson,
+  });
+  const source = map.getSource(uuid) as GeoJSONSource;
+
+  map.addLayer({
+    id: uuid,
+    type: "circle",
+    source: uuid,
+    paint: {
+      "circle-radius": 8,
+      "circle-color": color,
+      "circle-stroke-color": "white",
+      "circle-stroke-width": 2,
+    }
+  });
+
+  return { layer: source };
+}
+
+export function updatePointLocation(
+  source: GeoJSONSource,
+  info: PointSelectionInfo,
+) {
+  source.getData().then(data => {
+    const geoJson = data as GeoJSON.FeatureCollection;
+    geoJson.features[0] = {
+      ...geoJson.features[0],
+      geometry: {
+        type: "Point",
+        coordinates: [info.x, info.y],
+      }
+    };
+    source.setData(geoJson);
+  });
+}
+
+export function removePointLayer(
   map: Map,
   layer: LayerType,
 ) {
