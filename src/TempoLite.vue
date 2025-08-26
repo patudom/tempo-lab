@@ -324,14 +324,27 @@
           >
             <v-toolbar-title :text="`TEMPO Data Viewer: ${mapTitle}`"></v-toolbar-title>
             <v-spacer></v-spacer>
-            <v-tooltip :text="selectionActive ? 'Cancel selection' : 'Select a region'">
+            <v-tooltip :text="rectangleSelectionActive ? 'Cancel selection' : 'Select a region'">
               <template #activator="{ props }">
                 <v-btn
                   v-bind="props"
                   icon="mdi-select"
-                  :color="selectionActive ? 'info' : 'default'"
-                  :variant="selectionActive ? 'tonal' : 'text'"
-                  @click="activateSelectionMode"
+                  :color="rectangleSelectionActive ? 'info' : 'default'"
+                  :variant="rectangleSelectionActive ? 'tonal' : 'text'"
+                  :disabled="pointSelectionActive"
+                  @click="activateRectangleSelectionMode"
+                ></v-btn>
+              </template>
+            </v-tooltip>
+            <v-tooltip :text="pointSelectionActive ? 'Cancel selection' : 'Select a point'">
+              <template #activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  icon="mdi-plus"
+                  :color="pointSelectionActive ? 'info' : 'default'"
+                  :variant="pointSelectionActive ? 'tonal' : 'text'"
+                  :disabled="rectangleSelectionActive"
+                  @click="activatePointSelectionMode"
                 ></v-btn>
               </template>
             </v-tooltip>
@@ -771,28 +784,38 @@
                   <div id="add-region-buttons">
                     <v-btn
                       size="small"
-                      :active="selectionActive"
+                      :active="rectangleSelectionActive"
+                      :disabled="pointSelectionActive"
                       @click="() => {
-                        if (selectionActive) {
-                          selectionActive = false;
+                        if (rectangleSelectionActive) {
+                          rectangleSelectionActive = false;
                         } else {
-                          createNewSelection();
+                          createNewSelection('rectangle');
                         }
                       }"
                     >
                       <template #prepend>
-                        <v-icon v-if="!selectionActive" icon="mdi-plus"></v-icon>
+                        <v-icon v-if="!rectangleSelectionActive" icon="mdi-select"></v-icon>
                       </template>
-                      {{ selectionActive ? "Cancel" : "Add Region" }}
+                      {{ rectangleSelectionActive ? "Cancel" : "Add Region" }}
                     </v-btn>
-                    <!-- <v-btn
+                    <v-btn
                       size="small"
+                      :active="pointSelectionActive"
+                      :disabled="rectangleSelectionActive"
+                      @click="() => {
+                        if (pointSelectionActive) {
+                          pointSelectionActive = false;
+                        } else {
+                          createNewSelection('point');
+                        }
+                      }"
                     >
                       <template #prepend>
-                        <v-icon icon="mdi-plus"></v-icon>
+                        <v-icon v-if="!pointSelectionActive" icon="mdi-plus"></v-icon>
                       </template>
-                      Add Point
-                    </v-btn> -->
+                      {{ pointSelectionActive ? "Cancel" : "Add Point" }}
+                    </v-btn>
                   </div>
                   <v-list>
                     <v-list-item
@@ -802,20 +825,29 @@
                       :style="{ 'background-color': region.color }"
                     >
                       <template #append>
+                        <!-- New: Edit Geometry button (disabled if any selection using region has samples) -->
+                        <v-btn
+                          variant="plain"
+                          :icon="region.geometryType === 'rectangle' ? 'mdi-select' : 'mdi-plus'"
+                          color="white"
+                          :disabled="regionHasSamples(region as UnifiedRegionType)"
+                          v-tooltip="regionHasSamples(region as UnifiedRegionType) ? 'Cannot edit geometry after samples are fetched for a selection using this region' : 'Edit Geometry'"
+                          @click="() => editRegionGeometry(region as UnifiedRegionType)"
+                        ></v-btn>
                         <v-btn
                           v-if="!selections.map(sel => sel.region.name).includes(region.name)"
                           variant="plain"
                           v-tooltip="'Edit Name'"
                           icon="mdi-pencil"
                           color="white"
-                          @click="() => editRegionName(region as RectangleSelectionType)"
+                          @click="() => editRegionName(region as UnifiedRegionType)"
                         ></v-btn>
                         <v-btn
                           variant="plain"
                           v-tooltip="'Delete'"
                           icon="mdi-delete"
                           color="white"
-                          @click="() => deleteRegion(region as RectangleSelectionType)"
+                          @click="() => deleteRegion(region as UnifiedRegionType)"
                         ></v-btn>
                       </template>
                     </v-list-item>
@@ -877,7 +909,7 @@
               :backend="BACKEND"
               :time-ranges="availableTimeRanges"
               :regions="availableRegions"
-              :disabled="{ region: selectionActive, timeRange: createTimeRangeActive }"
+              :disabled="{ region: rectangleSelectionActive, point: pointSelectionActive, timeRange: createTimeRangeActive }"
               @create="handleSelectionCreated"
             >
             </selection-composer>
@@ -1184,7 +1216,7 @@
             <div v-if="loadingPointSample === 'loading'" class="mt-2">Loading center point sample...</div>
             <div v-if="pointSampleErrors[tableSelection.id]" class="mt-2 text-red">Error: {{ pointSampleErrors[tableSelection.id] }}</div>
             <SampleTable :samples="pointSampleResults[tableSelection.id]" :error="pointSampleErrors[tableSelection.id]" />
-            <div v-if="pointSampleResults[tableSelection.id] && Object.keys(pointSampleResults[tableSelection.id]).length === 0" class="mt-2">No data for this point/time.</div>
+            <div v-if="pointSampleResults[tableSelection.id] && Object.keys(pointSampleResults[tableSelection.id] ?? {}).length === 0" class="mt-2">No data for this point/time.</div>
           </div>
         </cds-dialog>
         
@@ -1263,8 +1295,7 @@ import { _preloadImages } from "./PreloadImages";
 import changes from "./changes";
 import { useBounds } from './composables/useBounds';
 import { interestingEvents } from "./interestingEvents";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { AggValue, LatLngPair, InitMapOptions, RectangleSelectionInfo, RectangleSelection, RectangleType, MappingBackends, TimeRange, UserSelection } from "./types";
+import { LatLngPair, InitMapOptions, RectangleSelectionInfo, PointSelectionInfo, PointSelection, RectangleSelection, MappingBackends, TimeRange, UserSelection } from "./types";
 import type { MillisecondRange } from "./types/datetime";
 import UserGuide from "./components/UserGuide.vue";
 import SampleTable from "./components/SampleTable.vue";
@@ -1295,6 +1326,8 @@ import { useFieldOfRegard} from "./composables/maplibre/useFieldOfRegard";
 import { useLocationMarker } from "./composables/maplibre/useMarker";
 import { useRectangleSelection } from "./composables/maplibre/useRectangleSelection";
 import { addRectangleLayer, updateRectangleBounds, removeRectangleLayer } from "./composables/maplibre/utils";
+import { usePointSelection } from "./composables/maplibre/usePointSelection";
+import { addPointLayer, updatePointLocation, removePointLayer } from "./composables/maplibre/utils";}
 import { useMultiMarker } from './composables/maplibre/useMultiMarker';
 import { useEsriLayer } from "./esri/maplibre/useEsriImageLayer";
 const zoomScale = 0.5; // for matplibre-gl
@@ -1305,6 +1338,8 @@ const showImage = ref(false);
 const BACKEND: MappingBackends = "maplibre" as const;
 
 type RectangleSelectionType = RectangleSelection<typeof BACKEND>;
+type PointSelectionType = PointSelection<typeof BACKEND>;
+type UnifiedRegionType = RectangleSelectionType | PointSelectionType;
 
 
 import { TempoDataService } from "./esri/services/TempoDataService";
@@ -1652,7 +1687,10 @@ const cloudUrl = computed(() => {
 
 
 const opacity = ref(0.9);
-const preload = ref(true);
+const preload = ref(false);
+if (!preload.value) {
+  loadedImagesProgress.value = 100;
+}
 const customImageUrl = ref("");
 const cloudOverlay = useImageOverlay(cloudUrl, opacity, imageBounds, 'cloud-overlay');
 const imageOverlay = useImageOverlay(imageUrl, opacity, imageBounds, 'image-overlay');
@@ -1786,8 +1824,8 @@ const {
 } = useLocationMarker(map,  showLocationMarker.value);
 
 
-const regions = ref<RectangleSelectionType[]>([]);
-let regionCount = 0;
+const regions = ref<UnifiedRegionType[]>([]);
+let selectionCount = 0;
 
 // Selections now are UserSelection objects directly
 type UserSelectionType = UserSelection;
@@ -1905,7 +1943,9 @@ const COLORS = [
 ];
 
 // implement rectangle and point
-const { active: selectionActive, selectionInfo } = useRectangleSelection(map, "red");
+const { active: rectangleSelectionActive, selectionInfo: rectangleInfo } = useRectangleSelection(map, "red");
+const { active: pointSelectionActive, selectionInfo: pointInfo } = usePointSelection(map, false);
+
 const loadingSamples = ref<string | false>(false);
 
 const createTimeRangeActive = ref(false);
@@ -1915,7 +1955,7 @@ const openPanels = ref<number[]>([]);
 const testErrorAmount = 0.25e15;
 const _testError = { lower: testErrorAmount, upper: testErrorAmount };
 
-const sampleErrors = ref<Record<string, string>>({});
+const sampleErrors = ref<Record<string, string | null>>({});
 const pointSampleErrors = ref<Record<string, string | null>>({});
 const pointSampleResults = ref<Record<string, Record<number, { value: number | null; date: Date }> | null>>({});
 const loadingPointSample = ref<string | false>(false);
@@ -1946,16 +1986,25 @@ function addTimeseriesLocationsToMap(timeseries: Array<{ x: number; y: number }>
 }
 
 function selectionHasSamples(sel: UserSelectionType): boolean {
-  console.log(`Checking if selection ${sel.name} has samples:`, sel.samples);
-  const has = (sel.samples !== undefined) && Object.keys(sel.samples).length > 0;
-  if (has) {
-    console.log(`Selection ${sel.name} has samples.`);
-  } else {
-    console.log(`Selection ${sel.name} does not have samples.`);
-  }
-  return has;
+  return (sel.samples !== undefined) && Object.keys(sel.samples).length > 0;
 }
 
+// Type Guards
+function isRectangleSelection(selection: UnifiedRegionType): selection is RectangleSelectionType {
+  return selection.geometryType === 'rectangle';
+}
+
+function isPointSelection(selection: UnifiedRegionType): selection is PointSelectionType {
+  return selection.geometryType === 'point';
+}
+
+function regionHasSamples(region: UnifiedRegionType): boolean {
+  const sel = selections.value.find(s => s.region.id === region.id);
+  if (!sel) {
+    return false;
+  }
+  return selectionHasSamples(sel);
+}
 
 
 // Replace primitive customTimeRange with TimeRange object
@@ -2002,9 +2051,12 @@ function handleDateTimeRangeSelectionChange(timeRanges: MillisecondRange[], sele
 }
 
 // Selection management handlers
-function activateSelectionMode() {
-  // Activate selection mode
-  selectionActive.value = !selectionActive.value;
+function activateRectangleSelectionMode() {
+  rectangleSelectionActive.value = !rectangleSelectionActive.value;
+}
+
+function activatePointSelectionMode() {
+  pointSelectionActive.value = !pointSelectionActive.value;
 }
 
 // clear all the data from the current selection
@@ -2016,25 +2068,20 @@ function clearSelectionSamples(sel: UserSelectionType) {
 }
 
 // edit the region of the given selection.
-const showEditSelectionNameDialog = ref(false);
-function _editSelection(sel: UserSelectionType | null) {
-  if (sel === null) {
-    console.error("Cannot edit a null selection.");
+function editRegionGeometry(region: UnifiedRegionType) {
+  if (regionHasSamples(region)) {
     return;
   }
-  if (selectionHasSamples(sel)) {
-    console.error("Cannot edit selection with existing samples.");
-    return;
+  regionBeingEdited.value = region;
+  if (isRectangleSelection(region)) {
+    rectangleSelectionActive.value = true;
+  } else if (isPointSelection(region)) {
+    pointSelectionActive.value = true;
   }
-  // // Set the selection to edit
-  setSelection(sel);
-  
-  // // Activate selection mode to allow editing
-  selectionActive.value = true;
-  
-  console.log(`Editing selection: ${sel.name}`);
+  console.log(`Editing geometry for ${region.geometryType}: ${region.name}`);
 }
 
+const showEditSelectionNameDialog = ref(false);
 function editSelectionName(sel: UserSelectionType | null) {
   if (sel === null) {
     console.error("Cannot edit name of a null selection.");
@@ -2061,17 +2108,14 @@ function setSelectionName(sel: UserSelectionType, newName: string) {
   console.log(`Renamed selection to: ${newName}`);
 }
 
-function createNewSelection() {
+function createNewSelection(geometryType: 'rectangle' | 'point') {
   // Clear current selection to force new selection creation
   setSelection(null);
-  
-  // Activate selection mode
-  selectionActive.value = true;
-  
-  console.log('Creating new selection');
+  rectangleSelectionActive.value = geometryType === 'rectangle';
+  pointSelectionActive.value = geometryType === 'point';
 }
 
-// Unified fetching methods
+
 async function fetchDataForSelection(sel: UserSelectionType) {
   loadingSamples.value = sel.name;
   sampleErrors.value[sel.id] = null;
@@ -2117,19 +2161,27 @@ async function fetchCenterPointDataForSelection(sel: UserSelectionType) {
 }
 
 
-function createDraftSelection(info: RectangleSelectionInfo) {
-  const color = COLORS[regionCount % COLORS.length];
-  regionCount += 1;
-  const { layer } = addRectangleLayer(map.value!, info, color);
-  const newRegion: RectangleSelectionType = {
+function createDraftSelection(info: RectangleSelectionInfo | PointSelectionInfo, geometryType: 'rectangle' | 'point') {
+  const color = COLORS[selectionCount % COLORS.length];
+  selectionCount += 1;
+  
+  const isRect = geometryType === 'rectangle';
+  const { layer } = isRect ? 
+    addRectangleLayer(map.value!, info as RectangleSelectionInfo, color)
+    : addPointLayer(map.value!, info as PointSelectionInfo, color);
+
+
+  const newSelection = {
     id: v4(),
-    name: `Region ${regionCount}`,
+    name: `${isRect ? 'Region' : 'Point'} ${selectionCount}`,
     geometryInfo: info,
+    geometryType: geometryType,
     color,
-    layer: layer as RectangleSelectionType['layer']
-  };
-  regions.value = [...(regions.value as RectangleSelectionType[]), newRegion];
-  console.log(`Created region ${newRegion.name}`);
+    layer: layer
+  } as UnifiedRegionType;
+  
+  regions.value = [...regions.value, newSelection];
+  console.log(`Created ${geometryType} ${newSelection.name}`);
 }
 
 
@@ -2181,41 +2233,44 @@ watch(selections, (newSelections, oldSelections) => {
 });
 
 const showEditRegionNameDialog = ref(false);
-const regionBeingEdited = ref<RectangleSelectionType | null>(null);
-function editRegionName(region: RectangleSelectionType) {
-  console.log(`Editing region: ${region.name}`);
+const regionBeingEdited = ref<UnifiedRegionType | null>(null);
+function editRegionName(region: UnifiedRegionType) {
+  console.log(`Editing ${region.geometryType}: ${region.name}`);
   // Set the region to edit
-  const existing = (regions.value as RectangleSelectionType[]).find(r => r.id === region.id);
+  const existing = (regions.value as UnifiedRegionType[]).find(r => r.id === region.id);
   if (!existing) {
-    console.error(`Region with ID ${region.id} not found.`);
+    console.error(`Selection with ID ${region.id} not found.`);
     return;
   }
   regionBeingEdited.value = region;
   // Open dialog for renaming
   showEditRegionNameDialog.value = true;
 }
-function setRegionName(region: RectangleSelectionType, newName: string) {
+function setRegionName(region: UnifiedRegionType, newName: string) {
   if (newName.trim() === '') {
     console.error("Region name cannot be empty.");
     return;
   }
-  const existing = (regions.value as RectangleSelectionType[]).find(r => r.name === newName && r.id !== region.id);
+  const existing = (regions.value as UnifiedRegionType[]).find(r => r.name === newName && r.id !== region.id);
   if (existing) {
     console.error(`A region with the name "${newName}" already exists.`);
     return;
   }
   region.name = newName;
-  console.log(`Renamed region to: ${newName}`);
+  console.log(`Renamed ${region.geometryType} region to: ${newName}`);
 }
 
-function deleteRegion(region: RectangleSelectionType) {
+function deleteRegion(region: UnifiedRegionType) {
   const index = regions.value.findIndex(r => r.id === region.id);
   if (index < 0) {
     return;
   }
   if (map.value && region.layer) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    removeRectangleLayer(map.value, region.layer as any);
+    if (isRectangleSelection(region)) {
+      removeRectangleLayer(map.value, region.layer);
+    } else if (isPointSelection(region)) {
+      removePointLayer(map.value, region.layer);
+    }
   }
   regions.value.splice(index, 1);
 }
@@ -2928,40 +2983,77 @@ watch(openPanels, (open: number[]) => {
     createTimeRangeActive.value = false;
   }
   if (!open.includes(1)) {
-    selectionActive.value = false;
+    rectangleSelectionActive.value = false;
   }
 });
 
-watch(selectionInfo, (info: RectangleSelectionInfo | null) => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function handleSelectionRegionEdit(info: RectangleSelectionInfo) { 
+
+  // Update the existing selection
+  const currentSelection = selections.value[selectedIndex.value];
+  currentSelection.region.geometryInfo = info;
+  currentSelection.samples = undefined; // Clear existing data
+  // explicit type
+  const rect = currentSelection.region.layer as RectangleSelectionType['layer'];
+  if (rect) {
+    updateRectangleBounds(rect, info);
+  }
+    
+  console.log(`Updated existing selection: ${currentSelection.name} (time range unchanged)`);
+}
+
+function handleRegionEdit(info: RectangleSelectionInfo | PointSelectionInfo) {
+  if (regionBeingEdited.value) {
+    regionBeingEdited.value.geometryInfo = info;
+    const layer = regionBeingEdited.value.layer;
+    if (layer) {
+      if (isRectangleSelection(regionBeingEdited.value as UnifiedRegionType)) {
+        updateRectangleBounds(layer as RectangleSelectionType['layer'], info as RectangleSelectionInfo);
+      } else if (isPointSelection(regionBeingEdited.value as UnifiedRegionType)) {
+        updatePointLocation(layer as PointSelectionType['layer'], info as PointSelectionInfo);
+      }
+    }
+    console.log(`Updated ${regionBeingEdited.value.geometryType}: ${regionBeingEdited.value.name}`);
+  } else {
+    console.error('No selection is currently being edited.');
+  }
+  showEditRegionNameDialog.value = false;
+  regionBeingEdited.value = null;
+}
+
+watch(rectangleInfo, (info: RectangleSelectionInfo | null) => {
   if (info === null || map.value === null) {
     return;
   }
-  
-  if (selection.value === null || selectedIndex.value === null) {
-    createDraftSelection(info);
-    // // Create a new region only (no selection yet)
-    // regionCount += 1;
-    // const color = COLORS[(regionCount - 1) % COLORS.length];
-    // const { layer } = addRectangleLayer(map.value, info, color);
-    // regions.value = [...regions.value, region];
-    // draftUserSelection.value.region = region; // pre-fill draft with new region
-    // console.log(`Created region ${region.name}`);
+  console.log(info);
+  const canCreate = (selection.value === null || selectedIndex.value === null) && !regionBeingEdited.value;
+  if (canCreate) {
+    createDraftSelection(info, 'rectangle');
+    rectangleSelectionActive.value = false;
   } else {
-    // Update the existing selection
-    const currentSelection = selections.value[selectedIndex.value];
-    currentSelection.region.geometryInfo = info;
-    currentSelection.samples = undefined; // Clear existing data
-    // explicit type
-    const rect = currentSelection.region.layer as RectangleSelectionType['layer'];
-    if (rect) {
-      updateRectangleBounds(rect, info);
-    }
-    
-    console.log(`Updated existing selection: ${currentSelection.name} (time range unchanged)`);
+    handleRegionEdit(info);
   }
   
-  // Deactivate selection mode
-  selectionActive.value = false;
+  // do not permit editing a region on a selection
+  // handleSelectionRegionEdit(info);
+  
+
+});
+
+// Add watcher for point selection
+watch(pointInfo, (info: PointSelectionInfo | null) => {
+  if (info === null || map.value === null) {
+    return;
+  }
+  console.log(info);
+  const canCreate = (selection.value === null || selectedIndex.value === null) && !regionBeingEdited.value;
+  if (canCreate) {
+    createDraftSelection(info, 'point');
+    pointSelectionActive.value = false;
+  } else {
+    handleRegionEdit(info);
+  }
 });
 
 // Watch for time range mode changes and update custom time range if needed
