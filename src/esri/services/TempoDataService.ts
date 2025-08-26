@@ -404,7 +404,7 @@ export class TempoDataService {
       if (sample === null) return 0;
       return Math.pow(sample - mean, 2);
     });
-    const variance = squaredDiffs.reduce((acc, val) => acc + val, 0) / validSamples.length;
+    const variance = squaredDiffs.reduce((acc, val) => acc + val, 0) / Math.pow(validSamples.length, 2);
     
     return { lower: Math.sqrt(variance), upper: Math.sqrt(variance) };
   }
