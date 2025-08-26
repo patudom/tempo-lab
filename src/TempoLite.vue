@@ -826,16 +826,16 @@
                     >
                       <template #append>
                         <!-- New: Edit Geometry button (disabled if any selection using region has samples) -->
-                        <v-btn
+                        <!-- <v-btn
                           variant="plain"
                           :icon="region.geometryType === 'rectangle' ? 'mdi-select' : 'mdi-plus'"
                           color="white"
                           :disabled="regionHasSamples(region as UnifiedRegionType)"
                           v-tooltip="regionHasSamples(region as UnifiedRegionType) ? 'Cannot edit geometry after samples are fetched for a selection using this region' : 'Edit Geometry'"
                           @click="() => editRegionGeometry(region as UnifiedRegionType)"
-                        ></v-btn>
+                        ></v-btn> -->
                         <v-btn
-                          v-if="!selections.map(sel => sel.region.name).includes(region.name)"
+                          
                           variant="plain"
                           v-tooltip="'Edit Name'"
                           icon="mdi-pencil"
@@ -2068,7 +2068,7 @@ function clearSelectionSamples(sel: UserSelectionType) {
 }
 
 // edit the region of the given selection.
-function editRegionGeometry(region: UnifiedRegionType) {
+function _editRegionGeometry(region: UnifiedRegionType) {
   if (regionHasSamples(region)) {
     return;
   }
