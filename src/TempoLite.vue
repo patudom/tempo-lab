@@ -920,6 +920,7 @@
               <cds-dialog
                 :title="graphSelectionTitle"
                 v-model="showGraph"
+                title-color="#F44336"
               >
                 <v-checkbox
                   v-model="showErrorBands"

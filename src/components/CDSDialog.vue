@@ -24,21 +24,20 @@
       ref="card"
       class="cds-dialog-card"
     >
-      <font-awesome-icon 
-        class="cds-dialog-close-icon cds-touch-pad"
-        icon="square-xmark" 
-        size="xl" 
-        @click="showDialog = false" 
-        @keyup.enter="showDialog = false" 
-        :color="color" 
-        tabindex="0"
-        ></font-awesome-icon>
-        
-      <v-card-title tabindex="0">
-        <h3> 
-          {{title}} 
-        </h3>
-      </v-card-title>
+        <v-toolbar
+          density="compact"
+          :color="titleColor"
+        >
+          <v-toolbar-title :text="title"></v-toolbar-title>
+          <v-spacer></v-spacer>
+          <v-btn
+            class="cds-dialog-close-icon"
+            icon="mdi-close"
+            @click="showDialog = false"
+            @keyup:enter="showDialog = false"
+          >
+          </v-btn>
+        </v-toolbar>
       
       <v-card-text>
         
@@ -61,6 +60,7 @@ interface CDSDialogProps {
   title: string;
   modelValue?: boolean;
   color?: string;
+  titleColor?: string;
   shortTitle?: string;
   draggable?: boolean;
   button?: boolean;
@@ -72,6 +72,7 @@ const props = withDefaults(defineProps<CDSDialogProps>(), {
   shortTitle: "",
   draggable: false,
   button: false,
+  titleColor: "primary",
 });
 
 const emit = defineEmits<{
@@ -135,20 +136,7 @@ watch(() => props.modelValue, value => {
 }
 
 .cds-dialog-close-icon {
-  position: absolute;
-  right: 16px;
   cursor: pointer;
-}
-
-/* pad the touch area by 0.5em */
-.cds-dialog-touch-pad {
-  padding: 0.5em;
-  margin: -0.5em;
-}
-
-
-.v-dialog.cds-dialog > .v-overlay__content > .v-card {
-  padding: 1rem;
 }
 
 .v-dialog.cds-dialog > .v-overlay__content {
