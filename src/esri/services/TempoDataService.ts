@@ -7,7 +7,8 @@ import type {
   EsriGetSamplesSample, 
   Variables, 
   EsriInterpolationMethod, 
-  CEsriTimeseries 
+  CEsriTimeseries, 
+  EsriImageServiceSpec,
 } from '../types';
 import type { AggValue, DataPointError, MillisecondRange } from "../../types";
 
@@ -112,10 +113,17 @@ function stringifyEsriGetSamplesParameters(params: {
 export class TempoDataService {
   private baseUrl: string;
   private variable: Variables;
+  private metadataCache: EsriImageServiceSpec | null = null;
   
   constructor(baseUrl: string, variable: Variables = "NO2_Troposphere") {
     this.baseUrl = baseUrl;
     this.variable = variable;
+    this.getServiceMetadata().then((metadata) => {
+      this.metadataCache = metadata;
+      console.log('Service metadata loaded:', metadata);
+    }).catch((error) => {
+      console.error('Failed to load service metadata:', error);
+    });
   }
 
   // ============================================================================
@@ -138,6 +146,20 @@ export class TempoDataService {
     return this.baseUrl;
   }
 
+
+  async getServiceMetadata(): Promise<EsriImageServiceSpec> {
+    const url = `${this.baseUrl}?f=json`;
+    return fetch(url)
+      .then((response) => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+      })
+      .catch((error) => {
+        console.error('Error fetching service metadata:', error);
+        throw error;
+      });
+  }
+  
   // ============================================================================
   // CORE DATA FETCHING
   // ============================================================================
