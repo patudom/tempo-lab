@@ -654,286 +654,284 @@
             ></v-select>
           </div>
 
-          <hr style="border-color: grey" class="my-3">
-
-          <div id="add-region-time">
-            <h2>Add Region/Time Range</h2>  
-            <v-expansion-panels
-              v-model="openPanels"
-              variant="accordion"
-              id="user-options-panels"
-              multiple
-              class="pl-3"
-            >
-              <v-expansion-panel
-                title="Regions"
-                class="mt-3"
+          <div id="dataset-sections">
+            <div id="add-region-time">
+              <h2>Add Region/Time Range</h2>  
+              <v-expansion-panels
+                v-model="openPanels"
+                variant="accordion"
+                id="user-options-panels"
+                multiple
+                class="pl-3"
               >
-                <template #text>
-                  <div id="add-region-buttons">
+                <v-expansion-panel
+                  title="Regions"
+                  class="mt-3"
+                >
+                  <template #text>
+                    <div id="add-region-buttons">
+                      <v-btn
+                        size="small"
+                        :active="rectangleSelectionActive"
+                        :disabled="pointSelectionActive"
+                        @click="() => {
+                          if (rectangleSelectionActive) {
+                            rectangleSelectionActive = false;
+                          } else {
+                            createNewSelection('rectangle');
+                          }
+                        }"
+                      >
+                        <template #prepend>
+                          <v-icon v-if="!rectangleSelectionActive" icon="mdi-select"></v-icon>
+                        </template>
+                        {{ rectangleSelectionActive ? "Cancel" : "Add Region" }}
+                      </v-btn>
+                      <v-btn
+                        size="small"
+                        :active="pointSelectionActive"
+                        :disabled="rectangleSelectionActive"
+                        @click="() => {
+                          if (pointSelectionActive) {
+                            pointSelectionActive = false;
+                          } else {
+                            createNewSelection('point');
+                          }
+                        }"
+                      >
+                        <template #prepend>
+                          <v-icon v-if="!pointSelectionActive" icon="mdi-plus"></v-icon>
+                        </template>
+                        {{ pointSelectionActive ? "Cancel" : "Add Point" }}
+                      </v-btn>
+                    </div>
+                    <v-list>
+                      <v-list-item
+                        v-for="(region, index) in availableRegions"
+                        :key="index"
+                        :title="region.name"
+                        :style="{ 'background-color': region.color }"
+                      >
+                        <template #append>
+                          <!-- New: Edit Geometry button (disabled if any selection using region has samples) -->
+                          <!-- <v-btn
+                            variant="plain"
+                            :icon="region.geometryType === 'rectangle' ? 'mdi-select' : 'mdi-plus'"
+                            color="white"
+                            :disabled="regionHasSamples(region as UnifiedRegionType)"
+                            v-tooltip="regionHasSamples(region as UnifiedRegionType) ? 'Cannot edit geometry after samples are fetched for a selection using this region' : 'Edit Geometry'"
+                            @click="() => editRegionGeometry(region as UnifiedRegionType)"
+                          ></v-btn> -->
+                          <v-btn
+                            
+                            variant="plain"
+                            v-tooltip="'Edit Name'"
+                            icon="mdi-pencil"
+                            color="white"
+                            @click="() => editRegionName(region as UnifiedRegionType)"
+                          ></v-btn>
+                          <v-btn
+                            variant="plain"
+                            v-tooltip="'Delete'"
+                            icon="mdi-delete"
+                            color="white"
+                            @click="() => deleteRegion(region as UnifiedRegionType)"
+                          ></v-btn>
+                        </template>
+                      </v-list-item>
+                    </v-list>
+                  </template>
+                </v-expansion-panel>
+                <v-expansion-panel
+                  title="Date/Time Range"
+                  class="mt-3"
+                >
+                  <template #text>
                     <v-btn
                       size="small"
-                      :active="rectangleSelectionActive"
-                      :disabled="pointSelectionActive"
-                      @click="() => {
-                        if (rectangleSelectionActive) {
-                          rectangleSelectionActive = false;
-                        } else {
-                          createNewSelection('rectangle');
-                        }
-                      }"
+                      :active="createTimeRangeActive"
+                      @click="createTimeRangeActive = !createTimeRangeActive"
                     >
                       <template #prepend>
-                        <v-icon v-if="!rectangleSelectionActive" icon="mdi-select"></v-icon>
+                        <v-icon v-if="!createTimeRangeActive" icon="mdi-plus"></v-icon>
                       </template>
-                      {{ rectangleSelectionActive ? "Cancel" : "Add Region" }}
+                      {{ createTimeRangeActive ? "Cancel" : "Create Time Range" }}
                     </v-btn>
-                    <v-btn
-                      size="small"
-                      :active="pointSelectionActive"
-                      :disabled="rectangleSelectionActive"
-                      @click="() => {
-                        if (pointSelectionActive) {
-                          pointSelectionActive = false;
-                        } else {
-                          createNewSelection('point');
-                        }
-                      }"
-                    >
-                      <template #prepend>
-                        <v-icon v-if="!pointSelectionActive" icon="mdi-plus"></v-icon>
-                      </template>
-                      {{ pointSelectionActive ? "Cancel" : "Add Point" }}
-                    </v-btn>
-                  </div>
-                  <v-list>
+                    <date-time-range-selection
+                      v-if="createTimeRangeActive"
+                      :current-date="singleDateSelected"
+                      :selected-timezone="selectedTimezone"
+                      :allowed-dates="uniqueDays"
+                      @ranges-change="handleDateTimeRangeSelectionChange"
+                    />
+                    <v-list>
+                      <v-list-item
+                        v-for="(timeRange, index) in availableTimeRanges"
+                        :key="index"
+                        :title="timeRange.name"
+                        :subtitle="timeRange.description"
+                      ></v-list-item>
+                    </v-list>
+                  </template>
+                </v-expansion-panel>
+              </v-expansion-panels>
+            </div>
+
+            <div id="selections">
+              <h2>Create a Dataset</h2>
+              <v-btn
+                size="small"
+                :active="createSelectionActive"
+                @click="createSelectionActive = !createSelectionActive"
+                class="mt-3 ml-3"
+              >
+                <template #prepend>
+                  <v-icon v-if="!createSelectionActive" icon="mdi-plus"></v-icon>
+                </template>
+                {{ createSelectionActive ? "Cancel" : "New Dataset" }}
+              </v-btn>
+              <selection-composer
+                v-show="createSelectionActive"
+                :backend="BACKEND"
+                :time-ranges="availableTimeRanges"
+                :regions="availableRegions"
+                :disabled="{ region: rectangleSelectionActive, point: pointSelectionActive, timeRange: createTimeRangeActive }"
+                @create="handleSelectionCreated"
+                :tempo-data-service="tempoDataService"
+              >
+              </selection-composer>
+              <div id="sample-info" v-if="selections.length>0" style="margin-top: 1em;" class="pl-3">
+
+                <h3>My Datasets</h3>
+                <v-list>
+                  <v-hover
+                    v-slot="{ isHovering, props }"
+                    v-for="sel in selections"
+                    :key="sel.id"
+                  >
                     <v-list-item
-                      v-for="(region, index) in availableRegions"
-                      :key="index"
-                      :title="region.name"
-                      :style="{ 'background-color': region.color }"
+                      v-bind="props"
+                      class="selection-item"
+                      :title="sel.name"
+                      :style="{ 'background-color': `rgb(from ${sel.region.color} r g b / 0.35)` }"
+                      :ripple="touchscreen"
+                      @click="() => {
+                        if (touchscreen) {
+                          openSelection = (openSelection == sel.id) ? null : sel.id;
+                        }
+                      }"
+                      lines="two"
                     >
-                      <template #append>
-                        <!-- New: Edit Geometry button (disabled if any selection using region has samples) -->
-                        <!-- <v-btn
-                          variant="plain"
-                          :icon="region.geometryType === 'rectangle' ? 'mdi-select' : 'mdi-plus'"
-                          color="white"
-                          :disabled="regionHasSamples(region as UnifiedRegionType)"
-                          v-tooltip="regionHasSamples(region as UnifiedRegionType) ? 'Cannot edit geometry after samples are fetched for a selection using this region' : 'Edit Geometry'"
-                          @click="() => editRegionGeometry(region as UnifiedRegionType)"
-                        ></v-btn> -->
-                        <v-btn
-                          
-                          variant="plain"
-                          v-tooltip="'Edit Name'"
-                          icon="mdi-pencil"
-                          color="white"
-                          @click="() => editRegionName(region as UnifiedRegionType)"
-                        ></v-btn>
-                        <v-btn
-                          variant="plain"
-                          v-tooltip="'Delete'"
-                          icon="mdi-delete"
-                          color="white"
-                          @click="() => deleteRegion(region as UnifiedRegionType)"
-                        ></v-btn>
+                      <template #subtitle>
+                        <v-chip>{{ moleculeName(sel.molecule) }}</v-chip>
+                        <v-chip v-if="sel.timeRange" class="text-caption">
+                          {{ sel.timeRange.description }}
+                        </v-chip>
+                      </template>
+                      <template #default>
+                        <v-expand-transition>
+                          <div
+                            class="selection-icons"
+                            v-show="touchscreen ? openSelection == sel.id : isHovering"
+                          >
+                            <v-tooltip
+                              text="Change Selection Name"
+                              location="top"
+                            >
+                              <template #activator="{ props }">
+                                <v-btn
+                                  v-bind="props"
+                                  size="x-small"
+                                  icon="mdi-pencil"
+                                  @click="() => editSelectionName(sel)"
+                                  variant="plain"
+                                ></v-btn>
+                              </template>
+                            </v-tooltip>
+                            <v-tooltip
+                              text="Get Center Point Sample"
+                              location="top"
+                            >
+                              <template #activator="{ props }">
+                                <v-btn
+                                  v-bind="props"
+                                  size="x-small"
+                                  :loading="loadingPointSample === sel.name"
+                                  icon="mdi-image-filter-center-focus"
+                                  variant="plain"
+                                  @click="() => fetchCenterPointDataForSelection(sel)"
+                                ></v-btn>
+                              </template>
+                            </v-tooltip> 
+                            <v-tooltip
+                              text="Show table"
+                              location="top"
+                            >
+                              <template #activator="{ props }">
+                                <v-btn
+                                  v-bind="props"
+                                  size="x-small"
+                                  icon="mdi-table"
+                                  :disabled="!sel.samples"
+                                  variant="plain"
+                                  @click="() => tableSelection = sel"
+                                ></v-btn>
+                              </template>
+                            </v-tooltip>
+                            <v-tooltip
+                              text="Show graph"
+                              location="top"
+                            >
+                              <template #activator="{ props }">
+                                <v-btn
+                                  v-bind="props"
+                                  size="x-small"
+                                  icon="mdi-chart-line"
+                                  :disabled="!sel.samples"
+                                  variant="plain"
+                                  @click="() => graphSelection = sel"
+                                ></v-btn>
+                              </template>
+                            </v-tooltip>
+                            <v-tooltip
+                              text="Remove selection"
+                              location="top"
+                            >
+                              <template #activator="{ props }">
+                                <v-btn
+                                  v-bind="props"
+                                  size="x-small"
+                                  icon="mdi-trash-can"
+                                  variant="plain"
+                                  @click="() => deleteSelection(sel)"
+                                ></v-btn>
+                              </template>
+                            </v-tooltip>
+                          </div>
+                        </v-expand-transition>
                       </template>
                     </v-list-item>
-                  </v-list>
-                </template>
-              </v-expansion-panel>
-              <v-expansion-panel
-                title="Date/Time Range"
-                class="mt-3"
-              >
-                <template #text>
-                  <v-btn
-                    size="small"
-                    :active="createTimeRangeActive"
-                    @click="createTimeRangeActive = !createTimeRangeActive"
+                  </v-hover>
+                </v-list>
+
+                <cds-dialog
+                  :title="graphSelectionTitle"
+                  v-model="showGraph"
+                  title-color="#F44336"
+                >
+                  <v-checkbox
+                    v-model="showErrorBands"
+                    label="Show Errors"
+                    density="compact"
+                    hide-details
                   >
-                    <template #prepend>
-                      <v-icon v-if="!createTimeRangeActive" icon="mdi-plus"></v-icon>
-                    </template>
-                    {{ createTimeRangeActive ? "Cancel" : "Create Time Range" }}
-                  </v-btn>
-                  <date-time-range-selection
-                    v-if="createTimeRangeActive"
-                    :current-date="singleDateSelected"
-                    :selected-timezone="selectedTimezone"
-                    :allowed-dates="uniqueDays"
-                    @ranges-change="handleDateTimeRangeSelectionChange"
+                  </v-checkbox>
+                  <timeseries-graph
+                    :data="graphSelection ? [graphSelection] : []"
+                    :show-errors="showErrorBands"
                   />
-                  <v-list>
-                    <v-list-item
-                      v-for="(timeRange, index) in availableTimeRanges"
-                      :key="index"
-                      :title="timeRange.name"
-                      :subtitle="timeRange.description"
-                    ></v-list-item>
-                  </v-list>
-                </template>
-              </v-expansion-panel>
-            </v-expansion-panels>
-          </div>
-
-          <hr style="border-color: grey" class="my-3">
-
-          <div id="selections">
-            <h2>Create a Dataset</h2>
-            <v-btn
-              size="small"
-              :active="createSelectionActive"
-              @click="createSelectionActive = !createSelectionActive"
-              class="mt-3 ml-3"
-            >
-              <template #prepend>
-                <v-icon v-if="!createSelectionActive" icon="mdi-plus"></v-icon>
-              </template>
-              {{ createSelectionActive ? "Cancel" : "New Dataset" }}
-            </v-btn>
-            <selection-composer
-              v-show="createSelectionActive"
-              :backend="BACKEND"
-              :time-ranges="availableTimeRanges"
-              :regions="availableRegions"
-              :disabled="{ region: rectangleSelectionActive, point: pointSelectionActive, timeRange: createTimeRangeActive }"
-              @create="handleSelectionCreated"
-              :tempo-data-service="tempoDataService"
-            >
-            </selection-composer>
-            <div id="sample-info" v-if="selections.length>0" style="margin-top: 1em;" class="pl-3">
-
-              <h3>My Datasets</h3>
-              <v-list>
-                <v-hover
-                  v-slot="{ isHovering, props }"
-                  v-for="sel in selections"
-                  :key="sel.id"
-                >
-                  <v-list-item
-                    v-bind="props"
-                    class="selection-item"
-                    :title="sel.name"
-                    :style="{ 'background-color': `rgb(from ${sel.region.color} r g b / 0.35)` }"
-                    :ripple="touchscreen"
-                    @click="() => {
-                      if (touchscreen) {
-                        openSelection = (openSelection == sel.id) ? null : sel.id;
-                      }
-                    }"
-                    lines="two"
-                  >
-                    <template #subtitle>
-                      <v-chip>{{ moleculeName(sel.molecule) }}</v-chip>
-                      <v-chip v-if="sel.timeRange" class="text-caption">
-                        {{ sel.timeRange.description }}
-                      </v-chip>
-                    </template>
-                    <template #default>
-                      <v-expand-transition>
-                        <div
-                          class="selection-icons"
-                          v-show="touchscreen ? openSelection == sel.id : isHovering"
-                        >
-                          <v-tooltip
-                            text="Change Selection Name"
-                            location="top"
-                          >
-                            <template #activator="{ props }">
-                              <v-btn
-                                v-bind="props"
-                                size="x-small"
-                                icon="mdi-pencil"
-                                @click="() => editSelectionName(sel)"
-                                variant="plain"
-                              ></v-btn>
-                            </template>
-                          </v-tooltip>
-                          <v-tooltip
-                            text="Get Center Point Sample"
-                            location="top"
-                          >
-                            <template #activator="{ props }">
-                              <v-btn
-                                v-bind="props"
-                                size="x-small"
-                                :loading="loadingPointSample === sel.name"
-                                icon="mdi-image-filter-center-focus"
-                                variant="plain"
-                                @click="() => fetchCenterPointDataForSelection(sel)"
-                              ></v-btn>
-                            </template>
-                          </v-tooltip> 
-                          <v-tooltip
-                            text="Show table"
-                            location="top"
-                          >
-                            <template #activator="{ props }">
-                              <v-btn
-                                v-bind="props"
-                                size="x-small"
-                                icon="mdi-table"
-                                :disabled="!sel.samples"
-                                variant="plain"
-                                @click="() => tableSelection = sel"
-                              ></v-btn>
-                            </template>
-                          </v-tooltip>
-                          <v-tooltip
-                            text="Show graph"
-                            location="top"
-                          >
-                            <template #activator="{ props }">
-                              <v-btn
-                                v-bind="props"
-                                size="x-small"
-                                icon="mdi-chart-line"
-                                :disabled="!sel.samples"
-                                variant="plain"
-                                @click="() => graphSelection = sel"
-                              ></v-btn>
-                            </template>
-                          </v-tooltip>
-                          <v-tooltip
-                            text="Remove selection"
-                            location="top"
-                          >
-                            <template #activator="{ props }">
-                              <v-btn
-                                v-bind="props"
-                                size="x-small"
-                                icon="mdi-trash-can"
-                                variant="plain"
-                                @click="() => deleteSelection(sel)"
-                              ></v-btn>
-                            </template>
-                          </v-tooltip>
-                        </div>
-                      </v-expand-transition>
-                    </template>
-                  </v-list-item>
-                </v-hover>
-              </v-list>
-
-              <cds-dialog
-                :title="graphSelectionTitle"
-                v-model="showGraph"
-                title-color="#F44336"
-              >
-                <v-checkbox
-                  v-model="showErrorBands"
-                  label="Show Errors"
-                  density="compact"
-                  hide-details
-                >
-                </v-checkbox>
-                <timeseries-graph
-                  :data="graphSelection ? [graphSelection] : []"
-                  :show-errors="showErrorBands"
-                />
-              </cds-dialog>
+                </cds-dialog>
+              </div>
             </div>
           </div>
           
@@ -1054,14 +1052,12 @@
           </v-card>
         </v-dialog>
 
-          
-
-          <hr style="border-color: grey;" class="my-3">
           <div id="bottom-options">
             <br>
               <cds-dialog
                 v-model="showUserGuide"
                 title="User Guide"
+                color="var(--tempo-red)"
                 button
                 >
                 <UserGuide/>
@@ -2653,6 +2649,7 @@ watch(useCustomTimeRange, (useCustom) => {
   --smithsonian-yellow: #ffcc33;
   --info-background: #092088;
   --map-height: 500px;
+  --tempo-red: #b60e32;
 }
 
 .dp__theme_dark {
@@ -3054,6 +3051,12 @@ a {
   color: var(--accent-color-2);
 }
 
+#dataset-sections {
+  padding: 0.5rem 1rem;
+  border: 5px solid var(--tempo-red);
+  border-radius: 10px;
+  margin: 10px;
+}
 
 // prevent overflows of the content
 #add-region-time {
@@ -3086,6 +3089,7 @@ a {
 
 #map-view {
   padding: 0.5rem 1rem;
+  margin: 10px;
   border: 5px solid var(--info-background);
   border-radius: 10px;
 
