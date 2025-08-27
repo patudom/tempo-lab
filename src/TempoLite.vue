@@ -1088,6 +1088,11 @@
                 >
                 <UserGuide/>
               </cds-dialog>
+              
+              <v-btn
+                @click="showDataSamplingMarkers = !showDataSamplingMarkers"
+                >{{ showDataSamplingMarkers ? 'Hide' : 'Show' }} Data Sampling Markers
+              </v-btn>
           </div>
         
         </div>
@@ -1753,19 +1758,32 @@ const timeseriesMarkerApi = useMultiMarker(map, {
   fillColor: '#ff0000',
   fillOpacity: 0.8,
   opacity: 1,
-  radius: 10,
+  radius: 1,
   outlineColor: '#ff0000',
 });
 
+const showDataSamplingMarkers = ref(true);
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function clearTimeseriesMarkers() {
   timeseriesMarkerApi.clearMarkers();
 }
 
-function addTimeseriesLocationsToMap(timeseries: Array<{ x: number; y: number }>) {
-  // timeseriesMarkerApi.addMarkers(timeseries);
-  console.log(`Adding ${timeseries.length} timeseries locations to map`);
-}
+
+
+watch(showDataSamplingMarkers, (newVal) => {
+  if (!newVal) {
+    clearTimeseriesMarkers();
+  }
+  if (newVal) {
+    const locations = selections.value
+      .filter(sel => selectionHasSamples(sel))
+      .map(sel => sel.locations ?? [])
+      .flat();
+    
+    timeseriesMarkerApi.addMarkers(locations);
+  }
+  
+});
 
 function selectionHasSamples(sel: UserSelectionType): boolean {
   return (sel.samples !== undefined) && Object.keys(sel.samples).length > 0;
@@ -1909,9 +1927,9 @@ async function fetchDataForSelection(sel: UserSelectionType) {
     const data = await tempoDataService.fetchTimeseriesData(sel.region.geometryInfo, timeRanges);
     sel.samples = data.values;
     sel.errors = data.errors;
+    sel.locations = data.locations;
     loadingSamples.value = "finished";
     console.log(`Fetched data for ${timeRanges.length} time range(s)`);
-    addTimeseriesLocationsToMap(data.locations);
   } catch (error) {
     sampleErrors.value[sel.id] = error instanceof Error ? error.message : String(error);
     loadingSamples.value = "error";
@@ -1932,9 +1950,9 @@ async function fetchCenterPointDataForSelection(sel: UserSelectionType) {
     const data = await tempoDataService.fetchCenterPointData(sel.region.geometryInfo, timeRanges);
     if (data) {
       sel.samples = data.values;
+      sel.locations = data.locations;
       loadingSamples.value = "finished";
       console.log(`Fetched center point data for ${timeRanges.length} time range(s)`);
-      addTimeseriesLocationsToMap(data.locations);
     }
   } catch (error) {
     sampleErrors.value[sel.id] = error instanceof Error ? error.message : String(error);
