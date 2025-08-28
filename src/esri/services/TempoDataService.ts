@@ -12,6 +12,7 @@ import type {
 } from '../types';
 import type { AggValue, DataPointError, MillisecondRange } from "../../types";
 import {nanmean, diff} from './array_math';
+import { EsriSampler } from './sampling';
 
 // ============================================================================
 // TYPES
@@ -203,7 +204,7 @@ export class TempoDataService {
     return this.updateMetadataCache();
   }
   
-  
+
   // ============================================================================
   // CORE DATA FETCHING
   // ============================================================================
@@ -398,7 +399,7 @@ export class TempoDataService {
   // ============================================================================
   // CONVENIENCE METHODS
   // ============================================================================
-
+  
   getTimeSeriesStatistics(jsonData: RawSampleData) {
     const samples = jsonData.samples || [];
     
@@ -446,6 +447,13 @@ export class TempoDataService {
     timeRanges: TimeRanges,
     options: FetchOptions = {}
   ): Promise<TimeSeriesData> {
+    if (this.isRectBounds(geometry) && this.meta) {
+      const sampler = new EsriSampler(this.meta, geometry);
+      const sampleCount = options.sampleCount || 30;
+      console.log(`Requested sample count: ${sampleCount}`);
+      options.sampleCount = sampler.getSamplingSpecificationFromSampleCount(sampleCount).count;
+      console.log(`Using sample count: ${options.sampleCount}`);
+    }
     const rawData = await this.fetchSamples(geometry, timeRanges, options);
     const stats = this.getTimeSeriesStatistics(rawData);
     console.log(`Data is sampled from ${stats.numUniqueLocations} unique locations with a total of ${stats.totalValues} values.`);

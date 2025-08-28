@@ -467,6 +467,10 @@
             @set-location="setLocationFromSearch"
             @error="(error: string) => searchErrorMessage = error"
           ></location-search>
+          <v-btn
+                @click="showDataSamplingMarkers = !showDataSamplingMarkers"
+                >{{ showDataSamplingMarkers ? 'Hide' : 'Show' }} Data Sampling Markers
+              </v-btn>
         </div>
         
         
@@ -1062,7 +1066,7 @@
               hide-details
               dense
               @update:model-value="(val: string) => {
-                setRegionName(regionBeingEdited as RectangleSelectionType, val);
+                setRegionName(regionBeingEdited as UnifiedRegionType, val);
               }"
             ></v-text-field>
             <v-card-actions>
@@ -1088,11 +1092,6 @@
                 >
                 <UserGuide/>
               </cds-dialog>
-              
-              <v-btn
-                @click="showDataSamplingMarkers = !showDataSamplingMarkers"
-                >{{ showDataSamplingMarkers ? 'Hide' : 'Show' }} Data Sampling Markers
-              </v-btn>
           </div>
         
         </div>
@@ -1768,19 +1767,59 @@ function clearTimeseriesMarkers() {
   timeseriesMarkerApi.clearMarkers();
 }
 
+const samplingPreviewMarkers = useMultiMarker(map, {
+  shape: 'circle',
+  color: '#0000ff',
+  fillColor: '#0000ff',
+  fillOpacity: 0.5,
+  opacity: 1,
+  radius: 1,
+  outlineColor: '#0000ff',
+  label: 'predicted-samples-locations'
+});
 
 
-watch(showDataSamplingMarkers, (newVal) => {
-  if (!newVal) {
+watch([showDataSamplingMarkers, () => selections.value.map(s => selectionHasSamples(s))], (newVal) => {
+  if (!newVal[0]) {
     clearTimeseriesMarkers();
   }
-  if (newVal) {
+  if (newVal[0]) {
     const locations = selections.value
       .filter(sel => selectionHasSamples(sel))
       .map(sel => sel.locations ?? [])
       .flat();
     
     timeseriesMarkerApi.addMarkers(locations);
+  }
+  
+});
+
+import { EsriSampler } from "./esri/services/sampling";
+const showSamplingPreviewMarkers = ref(true);
+// const sampler = new EsriSampler( tempoDataService.meta,);
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+const sampler =  ref<EsriSampler>(null);
+tempoDataService.withMetadataCache().then(meta => {
+  sampler.value = new EsriSampler(meta);
+});
+watch([showSamplingPreviewMarkers, regions], (newVal) => {
+  const show = newVal[0];
+  const regs = newVal[1];
+  samplingPreviewMarkers.clearMarkers();
+  let locations: {x: number, y:number}[] = [];
+  if (sampler.value && show && regs.length > 0) {
+    regs.forEach(r => {
+      if (r.geometryType === 'rectangle') {
+        sampler.value.setGeometry(r.geometryInfo);
+        if (tempoDataService.meta) {
+          sampler.value.setMetadata(tempoDataService.meta);
+        }
+        locations = [...locations, ...sampler.value.getSampleLocationsGrid(maxSampleCount.value)];
+        // samplingPreviewMarkers.addMarkers(locations);
+      }
+    });
+    samplingPreviewMarkers.addMarkers(locations);
   }
   
 });
@@ -1915,6 +1954,8 @@ function createNewSelection(geometryType: 'rectangle' | 'point') {
   pointSelectionActive.value = geometryType === 'point';
 }
 
+// 30 is the value we have been using
+const maxSampleCount = ref(30);
 
 async function fetchDataForSelection(sel: UserSelectionType) {
   loadingSamples.value = sel.name;
@@ -1924,7 +1965,11 @@ async function fetchDataForSelection(sel: UserSelectionType) {
   
   try {
     tempoDataService.setBaseUrl(ESRI_URLS[sel.molecule].url);
-    const data = await tempoDataService.fetchTimeseriesData(sel.region.geometryInfo, timeRanges);
+    const data = await tempoDataService.fetchTimeseriesData(
+      sel.region.geometryInfo,
+      timeRanges,
+      { sampleCount: maxSampleCount.value }
+    );
     sel.samples = data.values;
     sel.errors = data.errors;
     sel.locations = data.locations;
@@ -1947,7 +1992,11 @@ async function fetchCenterPointDataForSelection(sel: UserSelectionType) {
   
   try {
     tempoDataService.setBaseUrl(ESRI_URLS[sel.molecule].url);
-    const data = await tempoDataService.fetchCenterPointData(sel.region.geometryInfo, timeRanges);
+    const data = await tempoDataService.fetchCenterPointData(
+      sel.region.geometryInfo,
+      timeRanges,
+      { sampleCount: maxSampleCount.value }
+    );
     if (data) {
       sel.samples = data.values;
       sel.locations = data.locations;
