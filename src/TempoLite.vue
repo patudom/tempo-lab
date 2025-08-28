@@ -2585,8 +2585,22 @@ function handleRegionEdit(info: RectangleSelectionInfo | PointSelectionInfo) {
   regionBeingEdited.value = null;
 }
 
+function rectangleIsDegenerate(info: RectangleSelectionInfo): boolean {
+  return info.xmax === info.xmin || info.ymax === info.ymin;
+}
 watch(rectangleInfo, (info: RectangleSelectionInfo | null) => {
   if (info === null || map.value === null) {
+    rectangleSelectionActive.value = false;
+    return;
+  }
+  if (rectangleIsDegenerate(info)) {
+    // make it a point selection instead
+    // TODO: only implement when we have a solution to only do this on a double-click
+    // pointInfo.value = {
+    //   x: info.xmin,
+    //   y: info.ymin
+    // };
+    rectangleSelectionActive.value = false;
     return;
   }
   const canCreate = (selection.value === null || selectedIndex.value === null) && !regionBeingEdited.value;
@@ -2607,6 +2621,7 @@ watch(rectangleInfo, (info: RectangleSelectionInfo | null) => {
 // Add watcher for point selection
 watch(pointInfo, (info: PointSelectionInfo | null) => {
   if (info === null || map.value === null) {
+    pointSelectionActive.value = false;
     return;
   }
   const canCreate = (selection.value === null || selectedIndex.value === null) && !regionBeingEdited.value;
