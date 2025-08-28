@@ -568,7 +568,6 @@
                     v-if="whichMolecule.toLowerCase().includes('month')"
                     :timestamps="esriTimesteps"
                     @select="handleEsriTimeSelected($event.value, $event.index)"
-                    reverse
                     use-utc
                     date-only
                   />
