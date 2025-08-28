@@ -14,7 +14,7 @@ export const useUniqueTimeSelection = (timestamps: Ref<number[]>) => {
   const maxIndex = ref<number>(0);
   
   const mode = ref<'single' | 'all'>('single');
-  const defaultInit = ref<'first' | 'last'>('first');
+  const initialTimeSelection = ref<'first' | 'last'>('first');
 
   function getOneDaysTimestamps(date: Date) {
     if (isBad(date)) {
@@ -49,7 +49,7 @@ export const useUniqueTimeSelection = (timestamps: Ref<number[]>) => {
     if (mod.length > 0) {
       minIndex.value = mod[0].idx;
       maxIndex.value = mod[mod.length - 1].idx;
-      timeIndex.value = defaultInit.value === 'first' ? minIndex.value : maxIndex.value;
+      timeIndex.value = initialTimeSelection.value === 'first' ? minIndex.value : maxIndex.value;
     } else {
       console.warn("No timestamps found for the given date.");
     }
@@ -154,7 +154,7 @@ export const useUniqueTimeSelection = (timestamps: Ref<number[]>) => {
     minIndex,
     uniqueDays,
     mode,
-    defaultInit,
+    initialTimeSelection,
     uniqueDaysIndex,
     setNearestDate,
     getUniqueDayIndex,

@@ -566,10 +566,12 @@
                   <!-- time chips to select time specifically for esri times -->
                   <time-chips
                     v-if="whichMolecule.toLowerCase().includes('month')"
-                    :timestamps="esriTimesteps"
+                    :timestamps="esriTimesteps.slice(minIndex, maxIndex + 1)"
                     @select="handleEsriTimeSelected($event.value, $event.index)"
-                    use-utc
-                    date-only
+                    :selected-index="timeIndex - minIndex"
+                    :use-utc="whichMolecule.toLowerCase().includes('month')"
+                    :date-only="whichMolecule.toLowerCase().includes('month')"
+                    :hour-only="!whichMolecule.toLowerCase().includes('month')"
                   />
                 </v-radio-group>
               </div>        
@@ -1497,6 +1499,7 @@ const mapTitle = computed(() => {
 });
 
 import { stretches, colorramps } from "./esri/ImageLayerConfig";
+import { min } from "date-fns";
 
 const colorbarOptions = {
   'no2': {stretch: stretches['NO2_Troposphere'], cbarScale: 1e14, colormap: colorramps['NO2_Troposphere'] + '_r', label:'NO<sub>2</sub>&nbsp;&nbsp;'},
