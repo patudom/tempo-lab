@@ -1969,7 +1969,7 @@ function editRegionName(region: UnifiedRegionType) {
   // Set the region to edit
   const existing = (regions.value as UnifiedRegionType[]).find(r => r.id === region.id);
   if (!existing) {
-    console.error(`Selection with ID ${region.id} not found.`);
+    console.error(`Region with ID ${region.id} not found.`);
     return;
   }
   regionBeingEdited.value = region;
@@ -1979,6 +1979,7 @@ function editRegionName(region: UnifiedRegionType) {
 function setRegionName(region: UnifiedRegionType, newName: string) {
   if (newName.trim() === '') {
     console.error("Region name cannot be empty.");
+    regionBeingEdited.value = null;
     return;
   }
   const existing = (regions.value as UnifiedRegionType[]).find(r => r.name === newName && r.id !== region.id);
@@ -1988,6 +1989,7 @@ function setRegionName(region: UnifiedRegionType, newName: string) {
   }
   region.name = newName;
   console.log(`Renamed ${region.geometryType} region to: ${newName}`);
+  regionBeingEdited.value = null;
 }
 
 function deleteRegion(region: UnifiedRegionType) {
@@ -2563,6 +2565,7 @@ function handleSelectionRegionEdit(info: RectangleSelectionInfo) {
   console.log(`Updated existing selection: ${currentSelection.name} (time range unchanged)`);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function handleRegionEdit(info: RectangleSelectionInfo | PointSelectionInfo) {
   if (regionBeingEdited.value) {
     regionBeingEdited.value.geometryInfo = info;
@@ -2591,7 +2594,8 @@ watch(rectangleInfo, (info: RectangleSelectionInfo | null) => {
     createDraftSelection(info, 'rectangle');
     rectangleSelectionActive.value = false;
   } else {
-    handleRegionEdit(info);
+    return;
+    // handleRegionEdit(info);
   }
   
   // do not permit editing a region on a selection
@@ -2610,7 +2614,8 @@ watch(pointInfo, (info: PointSelectionInfo | null) => {
     createDraftSelection(info, 'point');
     pointSelectionActive.value = false;
   } else {
-    handleRegionEdit(info);
+    return;
+    // handleRegionEdit(info);
   }
 });
 
