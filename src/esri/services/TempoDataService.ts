@@ -11,6 +11,7 @@ import type {
   EsriImageServiceSpec,
 } from '../types';
 import type { AggValue, DataPointError, MillisecondRange } from "../../types";
+import {nanmean, diff} from './array_math';
 
 // ============================================================================
 // TYPES
@@ -355,6 +356,44 @@ export class TempoDataService {
   // CONVENIENCE METHODS
   // ============================================================================
 
+  getTimeSeriesStatistics(jsonData: RawSampleData) {
+    const samples = jsonData.samples || [];
+    
+    const uniqueLocations = new Set();
+    const uniqueLatitudes = new Set<number>();
+    const uniqueLongitudes = new Set<number>();
+    const valuesPerLocation = {};
+    
+    for (const sample of samples) {
+      const location = {x: sample.x, y: sample.y};
+      const locString = `${location.x},${location.y}`;
+      if (location) {
+        // Use a string representation for unique locations in the Set
+        uniqueLocations.add(locString);
+        uniqueLatitudes.add(location.y);
+        uniqueLongitudes.add(location.x);
+      }
+      
+      valuesPerLocation[locString] = (valuesPerLocation[locString] || 0) + 1;
+
+    }
+    
+    const totalValues = samples.length;
+    const numUniqueLocations = uniqueLocations.size;
+    
+    const latitudeSpacing = diff([...uniqueLatitudes].sort());
+    const longitudeSpacing = diff([...uniqueLongitudes].sort());
+    
+    
+    
+    return {
+      numUniqueLocations,
+      totalValues,
+      valuesPerLocation,
+      latitudeSpacing: nanmean(latitudeSpacing),
+      longitudeSpacing: nanmean(longitudeSpacing),
+    };
+  }
   
   /**
    * Fetch and aggragate any valid geometry data (rectangle or point)
@@ -365,6 +404,10 @@ export class TempoDataService {
     options: FetchOptions = {}
   ): Promise<TimeSeriesData> {
     const rawData = await this.fetchSamples(geometry, timeRanges, options);
+    const stats = this.getTimeSeriesStatistics(rawData);
+    console.log(`Data is sampled from ${stats.numUniqueLocations} unique locations with a total of ${stats.totalValues} values.`);
+    
+    console.log(`Approximate spacing between unique locations: ${stats.latitudeSpacing?.toFixed(4)}° latitude, ${stats.longitudeSpacing?.toFixed(4)}° longitude`);
     return this.aggregateByTime(rawData.samples);
   }
   
