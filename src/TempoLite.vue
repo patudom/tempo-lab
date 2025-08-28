@@ -467,10 +467,6 @@
             @set-location="setLocationFromSearch"
             @error="(error: string) => searchErrorMessage = error"
           ></location-search>
-          <v-btn
-                @click="showDataSamplingMarkers = !showDataSamplingMarkers"
-                >{{ showDataSamplingMarkers ? 'Hide' : 'Show' }} Data Sampling Markers
-              </v-btn>
         </div>
         
         

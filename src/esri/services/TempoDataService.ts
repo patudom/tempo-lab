@@ -238,7 +238,7 @@ export class TempoDataService {
       geometry: esriGeometry,
       geometryType: geometryType,
       time: timeString,
-      sampleCount: options.sampleCount || 100, // 100 is the Esri default
+      sampleCount: options.sampleCount || 30, // 100 is the Esri default. 30 has been our default
       ...options
     };
 
