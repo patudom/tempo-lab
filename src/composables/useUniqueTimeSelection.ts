@@ -12,6 +12,8 @@ export const useUniqueTimeSelection = (timestamps: Ref<number[]>) => {
   const singleDateSelected = ref<Date>(new Date());
   const minIndex = ref<number>(0);
   const maxIndex = ref<number>(0);
+  
+  const mode = ref<'single' | 'all'>('single');
 
   function getOneDaysTimestamps(date: Date) {
     if (isBad(date)) {
@@ -25,13 +27,24 @@ export const useUniqueTimeSelection = (timestamps: Ref<number[]>) => {
     });
     return mod;
   }
+  
+  function getAllDaysTimestamps(date: Date) {
+    if (isBad(date)) {
+      return [];
+    }
+    // const mod = [] as {ts:number, idx: number}[];
+    // timestamps.value.forEach((ts, idx) => {
+    //   mod.push({ ts, idx });
+    // });
+    return timestamps.value.map((ts, idx) => ({ ts, idx }));
+  }
 
   function setNearestDate(date: number | null) {
     if (date == null) {
       return;
     }
 
-    const mod = getOneDaysTimestamps(new Date(date));
+    const mod = mode.value === 'single' ? getOneDaysTimestamps(new Date(date)) : getAllDaysTimestamps(new Date(date));
     if (mod.length > 0) {
       minIndex.value = mod[0].idx;
       maxIndex.value = mod[mod.length - 1].idx;
@@ -110,6 +123,26 @@ export const useUniqueTimeSelection = (timestamps: Ref<number[]>) => {
   watch(singleDateSelected, (value) => {
     setNearestDate(value.getTime());
   });
+  
+  watch(mode, () => {
+    setNearestDate(singleDateSelected.value.getTime());
+  });
+
+  watch(timestamps, (newTimestamps) => {
+    if (newTimestamps.length === 0) {
+      timeIndex.value = 0;
+      minIndex.value = 0;
+      maxIndex.value = 0;
+      return;
+    }
+    // Reset to first date if current date is out of range
+    if (timeIndex.value >= newTimestamps.length) {
+      timeIndex.value = 0;
+      singleDateSelected.value = new Date(newTimestamps[0]);
+    } else {
+      setNearestDate(singleDateSelected.value.getTime());
+    }
+  }, { immediate: true });
 
   return {
     timeIndex,
@@ -119,6 +152,7 @@ export const useUniqueTimeSelection = (timestamps: Ref<number[]>) => {
     maxIndex,
     minIndex,
     uniqueDays,
+    mode,
     uniqueDaysIndex,
     setNearestDate,
     getUniqueDayIndex,
