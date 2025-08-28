@@ -115,16 +115,12 @@ export class TempoDataService {
   private baseUrl: string;
   private variable: Variables;
   private metadataCache: EsriImageServiceSpec | null = null;
+  private _loadingMetadata: boolean = false;
   
   constructor(baseUrl: string, variable: Variables = "NO2_Troposphere") {
     this.baseUrl = baseUrl;
     this.variable = variable;
-    this.getServiceMetadata().then((metadata) => {
-      this.metadataCache = metadata;
-      console.log('Service metadata loaded:', metadata);
-    }).catch((error) => {
-      console.error('Failed to load service metadata:', error);
-    });
+    this.updateMetadataCache();
   }
 
   // ============================================================================
@@ -140,15 +136,16 @@ export class TempoDataService {
   }
 
   setBaseUrl(baseUrl: string): void {
+    if (this.baseUrl === baseUrl) return;
     this.baseUrl = baseUrl;
+    this.updateMetadataCache();
   }
 
   getBaseUrl(): string {
     return this.baseUrl;
   }
 
-
-  async getServiceMetadata(): Promise<EsriImageServiceSpec> {
+  private async _getServiceMetadata(): Promise<EsriImageServiceSpec> {
     const url = `${this.baseUrl}?f=json`;
     return fetch(url)
       .then((response) => {
@@ -160,6 +157,52 @@ export class TempoDataService {
         throw error;
       });
   }
+  
+  async updateMetadataCache() {
+    // in general we really should invalidate the cache when the URL changes
+    // however, we know that for this purpose, the grid is identical for all
+    // the various services we may access, so ease of use, we will always have a metaDataCache
+    // available. 
+    // this.metadataCache = null; // Invalidate cache
+    this._loadingMetadata = true;
+    this.metadataCache = await this._getServiceMetadata();
+    this._loadingMetadata = false;
+    console.log('Service metadata updated:', this.metadataCache);
+    return this.metadataCache;
+  }
+  
+  getMetadata(): EsriImageServiceSpec {
+    if (!this.metadataCache) {
+      if (this._loadingMetadata) {
+        throw new Error('Metadata is currently loading. Please wait and try again.');
+      }
+      throw new Error('Metadata not loaded yet. Call updateMetadataCache() first.');
+    }
+    return this.metadataCache;
+  }
+  
+  get meta(): EsriImageServiceSpec | null {
+    return this.metadataCache;
+  }
+  
+  async withMetadataCache(): Promise<EsriImageServiceSpec> {
+    if (this.metadataCache) {
+      return this.metadataCache;
+    }
+    if (this._loadingMetadata) {
+      // Wait until loading is done. Check eveery 100ms
+      while (this._loadingMetadata) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+      if (this.metadataCache) {
+        return this.metadataCache;
+      } else {
+        throw new Error('Failed to load metadata.');
+      }
+    }
+    return this.updateMetadataCache();
+  }
+  
   
   // ============================================================================
   // CORE DATA FETCHING
@@ -194,7 +237,7 @@ export class TempoDataService {
       geometry: esriGeometry,
       geometryType: geometryType,
       time: timeString,
-      sampleCount: options.sampleCount || 30,
+      sampleCount: options.sampleCount || 100, // 100 is the Esri default
       ...options
     };
 
@@ -231,7 +274,7 @@ export class TempoDataService {
         }
       };
     } catch (error) {
-      console.error('Error in TempoDataService.fetchSamples:', error);
+      console.error('Error in TempoDataService.fetchSamples:', params);
       throw error;
     }
   }
