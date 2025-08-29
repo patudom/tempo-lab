@@ -74,10 +74,10 @@ export function removePointLayer(
 }
 
 export function regionBounds(region: UnifiedRegion<"leaflet">): [[number, number], [number, number]] {
-  const pointShift = 1;
+  const pointPadding = 1;
   return region.geometryType == "rectangle" ?
     [[region.geometryInfo.ymin, region.geometryInfo.xmin], [region.geometryInfo.ymax, region.geometryInfo.xmax]] :
-    [[region.geometryInfo.y - pointShift, region.geometryInfo.x - pointShift], [region.geometryInfo.y + pointShift, region.geometryInfo.x + pointShift]];
+    [[region.geometryInfo.y - pointPadding, region.geometryInfo.x - pointPadding], [region.geometryInfo.y + pointPadding, region.geometryInfo.x + pointPadding]];
 }
 
 export function fitBounds(map: Map, bounds: LatLngBoundsExpression, fly = true) {
