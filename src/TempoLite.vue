@@ -832,7 +832,7 @@
                         <v-expand-transition>
                           <div
                             class="selection-icons"
-                            v-show="touchscreen ? openSelection == sel.id : isHovering"
+                            v-show="sel.samples && (touchscreen ? openSelection == sel.id : isHovering)"
                           >
                             <v-tooltip
                               text="Change Selection Name"
@@ -845,23 +845,6 @@
                                   icon="mdi-pencil"
                                   @click="() => editSelectionName(sel)"
                                   variant="plain"
-                                ></v-btn>
-                              </template>
-                            </v-tooltip>
-                            <v-tooltip
-                              v-if="!(sel.loading || sel.samples)"
-                              text="Access Selected Data"
-                              location="top"
-                            >
-                              <template #activator="{ props }">
-                                <v-btn
-                                  v-bind="props"
-                                  size="x-small"
-                                  :loading="loadingSamples === sel.id"
-                                  :disabled="sel.samples != null"
-                                  icon="mdi-download"
-                                  variant="plain"
-                                  @click="() => fetchDataForSelection(sel)"
                                 ></v-btn>
                               </template>
                             </v-tooltip>
@@ -926,13 +909,54 @@
                             </v-tooltip>
                           </div>
                         </v-expand-transition>
-                        <v-progress-linear
-                          :active="sel.loading"
-                          color="primary"
-                          indeterminate
-                          bottom
+                        <v-row>
+                          <v-progress-linear
+                            :active="sel.loading || !sel.samples"
+                            :color="sel.loading ? 'primary' : 'red'"
+                            :indeterminate="sel.loading"
+                            :value="!sel.loading ? 100 : 0"
+                            bottom
+                            height="32"
+                          >
+                            <template #default>
+                              <span class="text-subtitle-2">
+                                {{ sel.loading ? 'Data Loading' : (!sel.samples ? 'Error Loading Data' : '') }}
+                              </span>
+                            </template>
+                          </v-progress-linear>
+                          <v-tooltip
+                            text="Failure info"
+                            location="top"
+                            v-if="!(sel.loading || sel.samples)"
+                          >
+                            <template #activator="{ props }">
+                              <v-btn
+                                v-bind="props"
+                                size="x-small"
+                                icon="mdi-help-circle"
+                                variant="plain"
+                                @click="() => sampleErrorID = sel.id"
+                              ></v-btn>
+                            </template>
+                          </v-tooltip>
+                        </v-row>
+                        <v-dialog
+                          :model-value="sampleErrorID !== null"
+                          max-width="50%"
+                          height="250"
                         >
-                        </v-progress-linear>
+                          <v-card>
+                            <v-card-text>
+                              There was an error loading data for this selection. Either there is no data for the
+                              region/time range/molecule combination that you selected, or there was an error loading
+                              data from the server. You can delete this selection and try making a new one.
+                            </v-card-text>
+                            <v-row>
+                              <v-spacer></v-spacer>
+                              <v-btn @click="sampleErrorID = null">Close</v-btn>
+                            </v-row>
+                          </v-card>
+                        </v-dialog>
                       </template>
                     </v-list-item>
                   </v-hover>
@@ -1708,6 +1732,7 @@ const testErrorAmount = 0.25e15;
 const _testError = { lower: testErrorAmount, upper: testErrorAmount };
 
 const sampleErrors = ref<Record<string, string | null>>({});
+const sampleErrorID = ref<string | null>(null);
 const pointSampleErrors = ref<Record<string, string | null>>({});
 const pointSampleResults = ref<Record<string, Record<number, { value: number | null; date: Date }> | null>>({});
 const loadingPointSample = ref<string | false>(false);
@@ -1853,19 +1878,22 @@ async function fetchDataForSelection(sel: UserSelectionType) {
   loadingSamples.value = sel.id;
   sampleErrors.value[sel.id] = null;
   
-  const timeRanges = atleast1d(sel.timeRange.range);
+  // const timeRanges = atleast1d(sel.timeRange.range);
   
-  try {
-    tempoDataService.setBaseUrl(ESRI_URLS[sel.molecule].url);
-    const data = await tempoDataService.fetchTimeseriesData(sel.region.geometryInfo, timeRanges);
-    sel.samples = data.values;
-    sel.errors = data.errors;
-    loadingSamples.value = "finished";
-    console.log(`Fetched data for ${timeRanges.length} time range(s)`);
-  } catch (error) {
-    sampleErrors.value[sel.id] = error instanceof Error ? error.message : String(error);
-    loadingSamples.value = "error";
-  }
+  // try {
+  //   tempoDataService.setBaseUrl(ESRI_URLS[sel.molecule].url);
+  //   const data = await tempoDataService.fetchTimeseriesData(sel.region.geometryInfo, timeRanges);
+  //   sel.samples = data.values;
+  //   sel.errors = data.errors;
+  //   loadingSamples.value = "finished";
+  //   console.log(`Fetched data for ${timeRanges.length} time range(s)`);
+  // } catch (error) {
+  //   sampleErrors.value[sel.id] = error instanceof Error ? error.message : String(error);
+  //   loadingSamples.value = "error";
+  // }
+
+  sampleErrors.value[sel.id] = "Failed!";
+  loadingSamples.value = "error";
 
   sel.loading = false;
 
