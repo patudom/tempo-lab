@@ -170,6 +170,7 @@ export interface UserSelection {
   name: string; // not user editable
   samples?: Record<number, AggValue>;
   errors?: Record<number, DataPointError>;
+  locations?: {x: number, y: number}[];
 }
 
 export interface SelectionHandler<EventType, SelectionInfo> {
