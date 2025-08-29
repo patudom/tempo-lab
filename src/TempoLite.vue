@@ -819,17 +819,20 @@
                           openSelection = (openSelection == sel.id) ? null : sel.id;
                         }
                       }"
-                      lines="three"
+                      lines="two"
                     >
                       <template #default>
-                        <v-row>
+                        <div>
                           <v-chip size="small">{{ sel.region.name }}</v-chip>
                           <v-chip size="small">{{ moleculeName(sel.molecule) }}</v-chip>
                           <v-chip v-if="sel.timeRange" size="small" class="text-caption">
                             {{ sel.timeRange.description }}
                           </v-chip>
-                        </v-row>
-                        <v-row class="dataset-loading">
+                        </div>
+                        <div
+                          v-if="sel.loading || !sel.samples"
+                          class="dataset-loading"
+                        >
                           <v-progress-linear
                             :class="['dataset-loading-progress', !(sel.loading && sel.samples) ? 'dataset-loading-failed' : '']"
                             :active="sel.loading || !sel.samples"
@@ -838,7 +841,8 @@
                             :value="!sel.loading ? 100 : 0"
                             :striped="!sel.loading"
                             bottom
-                            height="40"
+                            rounded
+                            height="20"
                           >
                             <template #default>
                               <span class="text-subtitle-2">
@@ -861,7 +865,7 @@
                               ></v-btn>
                             </template>
                           </v-tooltip>
-                        </v-row>
+                        </div>
 
                         <v-expand-transition>
                           <div
@@ -946,18 +950,24 @@
                         <v-dialog
                           :model-value="sampleErrorID !== null"
                           max-width="50%"
-                          height="250"
                         >
                           <v-card>
+                            <v-toolbar
+                              density="compact"
+                            >
+                              <v-toolbar-title text="Error Loading Data"></v-toolbar-title>
+                              <v-spacer></v-spacer>
+                              <v-btn
+                                icon="mdi-close"
+                                @click="sampleErrorID = null"
+                              >
+                              </v-btn>
+                            </v-toolbar>
                             <v-card-text>
                               There was an error loading data for this selection. Either there is no data for the
                               region/time range/molecule combination that you selected, or there was an error loading
                               data from the server. You can delete this selection and try making a new one.
                             </v-card-text>
-                            <v-row>
-                              <v-spacer></v-spacer>
-                              <v-btn @click="sampleErrorID = null">Close</v-btn>
-                            </v-row>
                           </v-card>
                         </v-dialog>
                       </template>
@@ -1894,9 +1904,6 @@ async function fetchDataForSelection(sel: UserSelectionType) {
     sampleErrors.value[sel.id] = error instanceof Error ? error.message : String(error);
     loadingSamples.value = "error";
   }
-
-  // sampleErrors.value[sel.id] = "Failed!";
-  // loadingSamples.value = "error";
 
   sel.loading = false;
 
@@ -3684,8 +3691,9 @@ canvas.maplibregl-canvas {
   background-color: whitesmoke;
 }
 
-.selection-item {
-  height: fit-content;
+.dataset-loading {
+  display: flex;
+  flex-direction: row;
 }
 
 .dataset-loading-failed {
