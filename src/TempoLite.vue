@@ -812,7 +812,7 @@
                     <v-list-item
                       v-bind="props"
                       class="selection-item"
-                      :style="{ 'background-color': `rgb(from ${sel.region.color} r g b / 0.35)` }"
+                      :style="{ 'background-color': sel.region.color }"
                       :ripple="touchscreen"
                       @click="() => {
                         if (touchscreen) {
