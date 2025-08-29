@@ -812,7 +812,6 @@
                     <v-list-item
                       v-bind="props"
                       class="selection-item"
-                      :title="sel.name"
                       :style="{ 'background-color': `rgb(from ${sel.region.color} r g b / 0.35)` }"
                       :ripple="touchscreen"
                       @click="() => {
@@ -823,6 +822,7 @@
                       lines="two"
                     >
                       <template #subtitle>
+                        <v-chip>{{ sel.region.name }}</v-chip>
                         <v-chip>{{ moleculeName(sel.molecule) }}</v-chip>
                         <v-chip v-if="sel.timeRange" class="text-caption">
                           {{ sel.timeRange.description }}
@@ -856,7 +856,7 @@
                                 <v-btn
                                   v-bind="props"
                                   size="x-small"
-                                  :loading="loadingPointSample === sel.name"
+                                  :loading="loadingPointSample === sel.id"
                                   icon="mdi-image-filter-center-focus"
                                   variant="plain"
                                   @click="() => fetchCenterPointDataForSelection(sel)"
@@ -994,35 +994,6 @@
             :show-errors="showErrorBands"
           />
         </cds-dialog>
-        
-        
-        <v-dialog
-          v-model="showEditSelectionNameDialog"
-          >
-          <v-card
-            class="mx-auto px-3 py-2"
-            min-width="300px"
-            width="50%"
-          >
-            <v-card-title>New Name</v-card-title>
-            <v-text-field
-              label="Selection Name"
-              hide-details
-              dense
-              @update:model-value="(val: string) => {
-                setSelectionName(selection as UserSelectionType, val);
-              }"
-            ></v-text-field>
-            <v-card-actions>
-              <v-spacer></v-spacer>
-              <v-btn
-                :color="accentColor"
-                variant="flat"
-                @click="showEditSelectionNameDialog = false"
-              >Done</v-btn>
-            </v-card-actions>
-          </v-card>
-        </v-dialog>
         
         <v-dialog
           v-model="showEditRegionNameDialog"
@@ -1663,7 +1634,7 @@ function setSelection(sel: UserSelectionType | null) {
   const idx = selections.value.findIndex(s => s.id === sel.id);
   if (idx == -1) {
     // must already be in selections, so throw an error if that is not true
-    throw new Error(`Selection with ID ${sel.id} and name ${sel.name} not found in selections.`);
+    throw new Error(`Selection with ID ${sel.id} not found in selections.`);
   }
   selection.value = selections.value[idx];
   selectedIndex.value = idx;
@@ -1843,20 +1814,6 @@ function editSelectionName(sel: UserSelectionType | null) {
   
   // Open dialog for renaming
   showEditSelectionNameDialog.value = true;
-}
-
-function setSelectionName(sel: UserSelectionType, newName: string) {
-  if (newName.trim() === '') {
-    console.error("Selection name cannot be empty.");
-    return;
-  }
-  const existing = selections.value.find(s => s.name === newName && s.id !== sel.id);
-  if (existing) {
-    console.error(`A selection with the name "${newName}" already exists.`);
-    return;
-  }
-  sel.name = newName;
-  console.log(`Renamed selection to: ${newName}`);
 }
 
 function createNewSelection(geometryType: 'rectangle' | 'point') {

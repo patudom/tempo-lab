@@ -167,7 +167,6 @@ export interface UserSelection {
   region: any;
   timeRange: TimeRange;
   molecule: string;
-  name: string; // not user editable
   samples?: Record<number, AggValue>;
   errors?: Record<number, DataPointError>;
 }
