@@ -850,21 +850,36 @@
                               </span>
                             </template>
                           </v-progress-linear>
-                          <v-tooltip
-                            text="Failure info"
-                            location="top"
-                            v-if="!(sel.loading || sel.samples)"
-                          >
-                            <template #activator="{ props }">
-                              <v-btn
-                                v-bind="props"
-                                size="x-small"
-                                icon="mdi-help-circle"
-                                variant="plain"
-                                @click="() => sampleErrorID = sel.id"
-                              ></v-btn>
-                            </template>
-                          </v-tooltip>
+                          <div v-if="!(sel.loading || sel.samples)">
+                            <v-tooltip
+                              text="Failure info"
+                              location="top"
+                            >
+                              <template #activator="{ props }">
+                                <v-btn
+                                  v-bind="props"
+                                  size="x-small"
+                                  icon="mdi-help-circle"
+                                  variant="plain"
+                                  @click="() => sampleErrorID = sel.id"
+                                ></v-btn>
+                              </template>
+                            </v-tooltip>
+                            <v-tooltip
+                              text="Remove selection"
+                              location="top"
+                            >
+                              <template #activator="{ props }">
+                                <v-btn
+                                  v-bind="props"
+                                  size="x-small"
+                                  icon="mdi-trash-can"
+                                  variant="plain"
+                                  @click="() => deleteSelection(sel)"
+                                ></v-btn>
+                              </template>
+                            </v-tooltip>
+                          </div>
                         </div>
 
                         <v-expand-transition>
@@ -3697,7 +3712,7 @@ canvas.maplibregl-canvas {
 }
 
 .dataset-loading-failed {
-  width: 80%;
+  width: 70%;
   max-width: calc(100% - 32px);
 }
 </style>
