@@ -655,8 +655,8 @@
           </div>
 
           <div id="dataset-sections">
+            <h2>Time-Series Graphs</h2>
             <div id="add-region-time">
-              <h2>Add Region/Time Range</h2>  
               <v-expansion-panels
                 v-model="openPanels"
                 variant="accordion"
@@ -779,7 +779,6 @@
             </div>
 
             <div id="selections">
-              <h2>Create a Dataset</h2>
               <v-btn
                 size="small"
                 :active="createSelectionActive"
