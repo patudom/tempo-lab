@@ -849,6 +849,23 @@
                               </template>
                             </v-tooltip>
                             <v-tooltip
+                              v-if="!(sel.loading || sel.samples)"
+                              text="Access Selected Data"
+                              location="top"
+                            >
+                              <template #activator="{ props }">
+                                <v-btn
+                                  v-bind="props"
+                                  size="x-small"
+                                  :loading="loadingSamples === sel.id"
+                                  :disabled="sel.samples != null"
+                                  icon="mdi-download"
+                                  variant="plain"
+                                  @click="() => fetchDataForSelection(sel)"
+                                ></v-btn>
+                              </template>
+                            </v-tooltip>
+                            <v-tooltip
                               text="Get Center Point Sample"
                               location="top"
                             >
@@ -909,6 +926,13 @@
                             </v-tooltip>
                           </div>
                         </v-expand-transition>
+                        <v-progress-linear
+                          :active="sel.loading"
+                          color="primary"
+                          indeterminate
+                          bottom
+                        >
+                        </v-progress-linear>
                       </template>
                     </v-list-item>
                   </v-hover>
@@ -1648,6 +1672,7 @@ function addUserSelection(sel: UserSelectionType) {
 
 function handleSelectionCreated(sel: UserSelectionType) {
   addUserSelection(sel);
+  fetchDataForSelection(sel);
   setSelection(sel);
   createSelectionActive.value = false;
 }
@@ -1823,12 +1848,34 @@ function createNewSelection(geometryType: 'rectangle' | 'point') {
   pointSelectionActive.value = geometryType === 'point';
 }
 
+async function fetchDataForSelection(sel: UserSelectionType) {
+  sel.loading = true;
+  loadingSamples.value = sel.id;
+  sampleErrors.value[sel.id] = null;
+  
+  const timeRanges = atleast1d(sel.timeRange.range);
+  
+  try {
+    tempoDataService.setBaseUrl(ESRI_URLS[sel.molecule].url);
+    const data = await tempoDataService.fetchTimeseriesData(sel.region.geometryInfo, timeRanges);
+    sel.samples = data.values;
+    sel.errors = data.errors;
+    loadingSamples.value = "finished";
+    console.log(`Fetched data for ${timeRanges.length} time range(s)`);
+  } catch (error) {
+    sampleErrors.value[sel.id] = error instanceof Error ? error.message : String(error);
+    loadingSamples.value = "error";
+  }
+
+  sel.loading = false;
+
+}
 
 // New: fetch data for composed UserSelection
 // fetchDataForSelection already handles UserSelection
 
 async function fetchCenterPointDataForSelection(sel: UserSelectionType) {
-  loadingSamples.value = sel.name;
+  loadingSamples.value = sel.id;
   sampleErrors.value[sel.id] = null;
   
   const timeRanges = atleast1d(sel.timeRange.range);
