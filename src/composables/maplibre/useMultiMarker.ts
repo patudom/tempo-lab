@@ -2,6 +2,7 @@ import { Ref } from 'vue';
 import maplibregl from 'maplibre-gl';
 
 export interface MultiMarkerOptions {
+  label?: string;
   color?: string;
   fillColor?: string;
   fillOpacity?: number;
@@ -25,8 +26,8 @@ function toGeoJSON(points: Array<{ x: number; y: number }>): GeoJSON.FeatureColl
 }
 
 export function useMultiMarker(map: Ref<maplibregl.Map | null>, options: MultiMarkerOptions = {}) {
-  const sourceId = 'multi-marker-source';
-  const layerId = 'multi-marker-layer';
+  const sourceId = `${options.label ?? 'multi-marker'}-source`;
+  const layerId = `${options.label ?? 'multi-marker'}-layer`;
   
   function optionsToPaint() {
     return {
