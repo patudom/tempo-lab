@@ -819,16 +819,50 @@
                           openSelection = (openSelection == sel.id) ? null : sel.id;
                         }
                       }"
-                      lines="two"
+                      lines="three"
                     >
-                      <template #subtitle>
-                        <v-chip>{{ sel.region.name }}</v-chip>
-                        <v-chip>{{ moleculeName(sel.molecule) }}</v-chip>
-                        <v-chip v-if="sel.timeRange" class="text-caption">
-                          {{ sel.timeRange.description }}
-                        </v-chip>
-                      </template>
                       <template #default>
+                        <v-row>
+                          <v-chip size="small">{{ sel.region.name }}</v-chip>
+                          <v-chip size="small">{{ moleculeName(sel.molecule) }}</v-chip>
+                          <v-chip v-if="sel.timeRange" size="small" class="text-caption">
+                            {{ sel.timeRange.description }}
+                          </v-chip>
+                        </v-row>
+                        <v-row class="dataset-loading">
+                          <v-progress-linear
+                            :class="['dataset-loading-progress', !(sel.loading && sel.samples) ? 'dataset-loading-failed' : '']"
+                            :active="sel.loading || !sel.samples"
+                            :color="sel.loading ? 'primary' : 'red'"
+                            :indeterminate="sel.loading"
+                            :value="!sel.loading ? 100 : 0"
+                            :striped="!sel.loading"
+                            bottom
+                            height="40"
+                          >
+                            <template #default>
+                              <span class="text-subtitle-2">
+                                {{ sel.loading ? 'Data Loading' : (!sel.samples ? 'Error Loading Data' : '') }}
+                              </span>
+                            </template>
+                          </v-progress-linear>
+                          <v-tooltip
+                            text="Failure info"
+                            location="top"
+                            v-if="!(sel.loading || sel.samples)"
+                          >
+                            <template #activator="{ props }">
+                              <v-btn
+                                v-bind="props"
+                                size="x-small"
+                                icon="mdi-help-circle"
+                                variant="plain"
+                                @click="() => sampleErrorID = sel.id"
+                              ></v-btn>
+                            </template>
+                          </v-tooltip>
+                        </v-row>
+
                         <v-expand-transition>
                           <div
                             class="selection-icons"
@@ -909,37 +943,6 @@
                             </v-tooltip>
                           </div>
                         </v-expand-transition>
-                        <v-row>
-                          <v-progress-linear
-                            :active="sel.loading || !sel.samples"
-                            :color="sel.loading ? 'primary' : 'red'"
-                            :indeterminate="sel.loading"
-                            :value="!sel.loading ? 100 : 0"
-                            bottom
-                            height="32"
-                          >
-                            <template #default>
-                              <span class="text-subtitle-2">
-                                {{ sel.loading ? 'Data Loading' : (!sel.samples ? 'Error Loading Data' : '') }}
-                              </span>
-                            </template>
-                          </v-progress-linear>
-                          <v-tooltip
-                            text="Failure info"
-                            location="top"
-                            v-if="!(sel.loading || sel.samples)"
-                          >
-                            <template #activator="{ props }">
-                              <v-btn
-                                v-bind="props"
-                                size="x-small"
-                                icon="mdi-help-circle"
-                                variant="plain"
-                                @click="() => sampleErrorID = sel.id"
-                              ></v-btn>
-                            </template>
-                          </v-tooltip>
-                        </v-row>
                         <v-dialog
                           :model-value="sampleErrorID !== null"
                           max-width="50%"
@@ -1878,22 +1881,22 @@ async function fetchDataForSelection(sel: UserSelectionType) {
   loadingSamples.value = sel.id;
   sampleErrors.value[sel.id] = null;
   
-  // const timeRanges = atleast1d(sel.timeRange.range);
+  const timeRanges = atleast1d(sel.timeRange.range);
   
-  // try {
-  //   tempoDataService.setBaseUrl(ESRI_URLS[sel.molecule].url);
-  //   const data = await tempoDataService.fetchTimeseriesData(sel.region.geometryInfo, timeRanges);
-  //   sel.samples = data.values;
-  //   sel.errors = data.errors;
-  //   loadingSamples.value = "finished";
-  //   console.log(`Fetched data for ${timeRanges.length} time range(s)`);
-  // } catch (error) {
-  //   sampleErrors.value[sel.id] = error instanceof Error ? error.message : String(error);
-  //   loadingSamples.value = "error";
-  // }
+  try {
+    tempoDataService.setBaseUrl(ESRI_URLS[sel.molecule].url);
+    const data = await tempoDataService.fetchTimeseriesData(sel.region.geometryInfo, timeRanges);
+    sel.samples = data.values;
+    sel.errors = data.errors;
+    loadingSamples.value = "finished";
+    console.log(`Fetched data for ${timeRanges.length} time range(s)`);
+  } catch (error) {
+    sampleErrors.value[sel.id] = error instanceof Error ? error.message : String(error);
+    loadingSamples.value = "error";
+  }
 
-  sampleErrors.value[sel.id] = "Failed!";
-  loadingSamples.value = "error";
+  // sampleErrors.value[sel.id] = "Failed!";
+  // loadingSamples.value = "error";
 
   sel.loading = false;
 
@@ -3679,6 +3682,15 @@ div.callout-wrapper {
 
 canvas.maplibregl-canvas {
   background-color: whitesmoke;
+}
+
+.selection-item {
+  height: fit-content;
+}
+
+.dataset-loading-failed {
+  width: 80%;
+  max-width: calc(100% - 32px);
 }
 </style>
 
