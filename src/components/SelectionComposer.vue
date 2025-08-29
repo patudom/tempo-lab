@@ -61,7 +61,7 @@
               indeterminate
             ></v-progress-linear>
           </template>
-          Get Data
+          Access Data
         </v-btn>
         <v-btn
           color="secondary"
