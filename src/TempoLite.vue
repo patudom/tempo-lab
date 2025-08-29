@@ -1499,7 +1499,6 @@ const mapTitle = computed(() => {
 });
 
 import { stretches, colorramps } from "./esri/ImageLayerConfig";
-import { min } from "date-fns";
 
 const colorbarOptions = {
   'no2': {stretch: stretches['NO2_Troposphere'], cbarScale: 1e14, colormap: colorramps['NO2_Troposphere'] + '_r', label:'NO<sub>2</sub>&nbsp;&nbsp;'},
