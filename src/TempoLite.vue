@@ -685,7 +685,7 @@
                         <template #prepend>
                           <v-icon v-if="!rectangleSelectionActive" icon="mdi-select"></v-icon>
                         </template>
-                        {{ rectangleSelectionActive ? "Cancel" : "Add Region" }}
+                        {{ rectangleSelectionActive ? "Cancel" : "New Region" }}
                       </v-btn>
                       <v-btn
                         size="small"
@@ -702,7 +702,7 @@
                         <template #prepend>
                           <v-icon v-if="!pointSelectionActive" icon="mdi-plus"></v-icon>
                         </template>
-                        {{ pointSelectionActive ? "Cancel" : "Add Point" }}
+                        {{ pointSelectionActive ? "Cancel" : "New Point" }}
                       </v-btn>
                     </div>
                     <v-list>
@@ -755,7 +755,7 @@
                       <template #prepend>
                         <v-icon v-if="!createTimeRangeActive" icon="mdi-plus"></v-icon>
                       </template>
-                      {{ createTimeRangeActive ? "Cancel" : "Create Time Range" }}
+                      {{ createTimeRangeActive ? "Cancel" : "New Time Range" }}
                     </v-btn>
                     <date-time-range-selection
                       v-if="createTimeRangeActive"
