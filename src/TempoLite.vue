@@ -1546,7 +1546,8 @@ function handleEsriTimeSelected(timestamp:number, _index: number) {
   if (idx >= 0) {
     timeIndex.value = idx;
   }
-  singleDateSelected.value = new Date(timestamp);
+  // We may need something like this when we get back the monthly average service.
+  //singleDateSelected.value = new Date(timestamp);
 }
 
 watch(whichMolecule, (newMolecule) => {
