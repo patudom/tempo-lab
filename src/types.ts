@@ -184,3 +184,5 @@ export interface UseSelectionOptions<MapType, EventType, SelectionInfo> {
   handler: SelectionHandler<EventType, SelectionInfo>;
   startActive?: boolean;
 }
+
+export type UnifiedRegion<T extends MappingBackends> = RectangleSelection<T> | PointSelection<T>;

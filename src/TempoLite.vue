@@ -711,6 +711,7 @@
                         :key="index"
                         :title="region.name"
                         :style="{ 'background-color': region.color }"
+                        @click="() => moveMapToRegion(region as UnifiedRegionType)"
                       >
                         <template #append>
                           <!-- New: Edit Geometry button (disabled if any selection using region has samples) -->
@@ -1165,7 +1166,7 @@ import { MapBoxFeature, MapBoxFeatureCollection, geocodingInfoForSearch } from "
 import changes from "./changes";
 import { useBounds } from './composables/useBounds';
 import { interestingEvents } from "./interestingEvents";
-import { LatLngPair, InitMapOptions, RectangleSelectionInfo, PointSelectionInfo, PointSelection, RectangleSelection, MappingBackends, TimeRange, UserSelection } from "./types";
+import { LatLngPair, InitMapOptions, RectangleSelectionInfo, PointSelectionInfo, PointSelection, RectangleSelection, UnifiedRegion, MappingBackends, TimeRange, UserSelection } from "./types";
 import type { MillisecondRange } from "./types/datetime";
 import UserGuide from "./components/UserGuide.vue";
 import SampleTable from "./components/SampleTable.vue";
@@ -1183,7 +1184,7 @@ import TimeChips from "./components/TimeChips.vue";
 // import { useFieldOfRegard} from "./composables/leaflet/useFieldOfRegard";
 // import { useLocationMarker } from "./composables/leaflet/useMarker";
 // import { useRectangleSelection } from "./composables/leaflet/useRectangleSelection";
-// import { addRectangleLayer, updateRectangleBounds, removeRectangleLayer } from "./composables/leaflet/utils";
+// import { addRectangleLayer, updateRectangleBounds, removeRectangleLayer, regionBounds, fitBounds } from "./composables/leaflet/utils";
 // import { useMultiMarker } from './composables/leaflet/useMultiMarker';
 // import { useEsriLayer } from "./esri/leaflet/useEsriImageLayer";
 // const zoomScale = 1; 
@@ -1198,7 +1199,7 @@ import { useLocationMarker } from "./composables/maplibre/useMarker";
 import { useRectangleSelection } from "./composables/maplibre/useRectangleSelection";
 import { addRectangleLayer, updateRectangleBounds, removeRectangleLayer } from "./composables/maplibre/utils";
 import { usePointSelection } from "./composables/maplibre/usePointSelection";
-import { addPointLayer, updatePointLocation, removePointLayer } from "./composables/maplibre/utils";
+import { addPointLayer, updatePointLocation, removePointLayer, regionBounds, fitBounds } from "./composables/maplibre/utils";
 import { useMultiMarker } from './composables/maplibre/useMultiMarker';
 import { useEsriLayer } from "./esri/maplibre/useEsriImageLayer";
 const zoomScale = 0.5; // for matplibre-gl
@@ -1206,10 +1207,11 @@ const zoomScale = 0.5; // for matplibre-gl
 
 
 const BACKEND: MappingBackends = "maplibre" as const;
+type BackendT = typeof BACKEND;
 
-type RectangleSelectionType = RectangleSelection<typeof BACKEND>;
-type PointSelectionType = PointSelection<typeof BACKEND>;
-type UnifiedRegionType = RectangleSelectionType | PointSelectionType;
+type RectangleSelectionType = RectangleSelection<BackendT>;
+type PointSelectionType = PointSelection<BackendT>;
+type UnifiedRegionType = UnifiedRegion<BackendT>;
 
 
 import { TempoDataService } from "./esri/services/TempoDataService";
@@ -1914,6 +1916,15 @@ function createDraftSelection(info: RectangleSelectionInfo | PointSelectionInfo,
   console.log(`Created ${geometryType} ${newSelection.name}`);
 }
 
+function moveMapToRegion(region: UnifiedRegionType) {
+  const mapV = map.value;
+  if (!mapV) {
+    return;
+  }
+
+  const bounds = regionBounds(region);
+  fitBounds(mapV, bounds, true);
+}
 
 
 const availableRegions = computed(() => regions.value);
