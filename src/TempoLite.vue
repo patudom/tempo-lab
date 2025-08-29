@@ -1925,7 +1925,7 @@ function createNewSelection(geometryType: 'rectangle' | 'point') {
 }
 
 // 30 is the value we have been using
-const maxSampleCount = ref(30);
+const maxSampleCount = ref(50);
 
 
 
