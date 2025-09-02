@@ -2156,6 +2156,8 @@ function deleteSelection(sel: UserSelectionType) {
       selection.value = null;
     }
   }
+
+  datasetRowRefs.value[sel.id] = null;
 }
 
 
