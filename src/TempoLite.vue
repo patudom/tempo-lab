@@ -1832,7 +1832,7 @@ watch([showDataSamplingMarkers, () => selections.map(s => selectionHasSamples(s)
 });
 
 import { EsriSampler } from "./esri/services/sampling";
-const showSamplingPreviewMarkers = ref(true);
+const showSamplingPreviewMarkers = ref(false);
 // const sampler = new EsriSampler( tempoDataService.meta,);
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
