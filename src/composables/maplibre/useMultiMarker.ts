@@ -111,6 +111,7 @@ export function useMultiMarker(map: Ref<maplibregl.Map | null>, options: MultiMa
         },
       } as maplibregl.CircleLayerSpecification);
     }
+  }
 
   function clearMarkers() {
     if (!map.value) return;
