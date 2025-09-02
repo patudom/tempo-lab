@@ -578,11 +578,12 @@
                   <!-- time chips to select time specifically for esri times -->
                   <time-chips
                     v-if="whichMolecule.toLowerCase().includes('month')"
-                    :timestamps="esriTimesteps"
+                    :timestamps="esriTimesteps.slice(minIndex, maxIndex + 1)"
                     @select="handleEsriTimeSelected($event.value, $event.index)"
-                    reverse
-                    use-utc
-                    date-only
+                    :selected-index="timeIndex - minIndex"
+                    :use-utc="whichMolecule.toLowerCase().includes('month')"
+                    :date-only="whichMolecule.toLowerCase().includes('month')"
+                    :hour-only="!whichMolecule.toLowerCase().includes('month')"
                   />
                 </v-radio-group>
               </div>        
@@ -823,9 +824,9 @@
                   >
                     <v-list-item
                       v-bind="props"
+                      :ref="(el) => datasetRowRefs[sel.id] = el"
                       class="selection-item"
-                      :title="sel.name"
-                      :style="{ 'background-color': `rgb(from ${sel.region.color} r g b / 0.35)` }"
+                      :style="{ 'background-color': sel.region.color }"
                       :ripple="touchscreen"
                       @click="() => {
                         if (touchscreen) {
@@ -834,17 +835,71 @@
                       }"
                       lines="two"
                     >
-                      <template #subtitle>
-                        <v-chip>{{ moleculeName(sel.molecule) }}</v-chip>
-                        <v-chip v-if="sel.timeRange" class="text-caption">
-                          {{ sel.timeRange.description }}
-                        </v-chip>
-                      </template>
                       <template #default>
+                        <div>
+                          <v-chip size="small">{{ sel.region.name }}</v-chip>
+                          <v-chip size="small">{{ moleculeName(sel.molecule) }}</v-chip>
+                          <v-chip v-if="sel.timeRange" size="small" class="text-caption">
+                            {{ sel.timeRange.description }}
+                          </v-chip>
+                        </div>
+                        <div
+                          v-if="sel.loading || !sel.samples"
+                          class="dataset-loading"
+                        >
+                          <v-progress-linear
+                            :class="['dataset-loading-progress', !(sel.loading && sel.samples) ? 'dataset-loading-failed' : '']"
+                            :active="sel.loading || !sel.samples"
+                            :color="sel.loading ? 'primary' : 'red'"
+                            :indeterminate="sel.loading"
+                            :value="!sel.loading ? 100 : 0"
+                            :striped="!sel.loading"
+                            bottom
+                            rounded
+                            height="20"
+                          >
+                            <template #default>
+                              <span class="text-subtitle-2">
+                                {{ sel.loading ? 'Data Loading' : (!sel.samples ? 'Error Loading Data' : '') }}
+                              </span>
+                            </template>
+                          </v-progress-linear>
+                          <div v-if="!(sel.loading || sel.samples)">
+                            <v-tooltip
+                              text="Failure info"
+                              location="top"
+                            >
+                              <template #activator="{ props }">
+                                <v-btn
+                                  v-bind="props"
+                                  size="x-small"
+                                  icon="mdi-help-circle"
+                                  variant="plain"
+                                  @click="() => sampleErrorID = sel.id"
+                                ></v-btn>
+                              </template>
+                            </v-tooltip>
+                            <v-tooltip
+                              text="Remove selection"
+                              location="top"
+                            >
+                              <template #activator="{ props }">
+                                <v-btn
+                                  v-bind="props"
+                                  size="x-small"
+                                  icon="mdi-trash-can"
+                                  variant="plain"
+                                  @click="() => deleteSelection(sel)"
+                                ></v-btn>
+                              </template>
+                            </v-tooltip>
+                          </div>
+                        </div>
+
                         <v-expand-transition>
                           <div
                             class="selection-icons"
-                            v-show="touchscreen ? openSelection == sel.id : isHovering"
+                            v-show="sel.samples && (touchscreen ? openSelection == sel.id : isHovering)"
                           >
                             <v-tooltip
                               text="Change Selection Name"
@@ -868,7 +923,7 @@
                                 <v-btn
                                   v-bind="props"
                                   size="x-small"
-                                  :loading="loadingPointSample === sel.name"
+                                  :loading="loadingPointSample === sel.id"
                                   icon="mdi-image-filter-center-focus"
                                   variant="plain"
                                   @click="() => fetchCenterPointDataForSelection(sel)"
@@ -921,6 +976,29 @@
                             </v-tooltip>
                           </div>
                         </v-expand-transition>
+                        <v-dialog
+                          :model-value="sampleErrorID !== null"
+                          max-width="50%"
+                        >
+                          <v-card>
+                            <v-toolbar
+                              density="compact"
+                            >
+                              <v-toolbar-title text="Error Loading Data"></v-toolbar-title>
+                              <v-spacer></v-spacer>
+                              <v-btn
+                                icon="mdi-close"
+                                @click="sampleErrorID = null"
+                              >
+                              </v-btn>
+                            </v-toolbar>
+                            <v-card-text>
+                              There was an error loading data for this selection. Either there is no data for the
+                              region/time range/molecule combination that you selected, or there was an error loading
+                              data from the server. You can delete this selection and try making a new one.
+                            </v-card-text>
+                          </v-card>
+                        </v-dialog>
                       </template>
                     </v-list-item>
                   </v-hover>
@@ -1006,35 +1084,6 @@
             :show-errors="showErrorBands"
           />
         </cds-dialog>
-        
-        
-        <v-dialog
-          v-model="showEditSelectionNameDialog"
-          >
-          <v-card
-            class="mx-auto px-3 py-2"
-            min-width="300px"
-            width="50%"
-          >
-            <v-card-title>New Name</v-card-title>
-            <v-text-field
-              label="Selection Name"
-              hide-details
-              dense
-              @update:model-value="(val: string) => {
-                setSelectionName(selection as UserSelectionType, val);
-              }"
-            ></v-text-field>
-            <v-card-actions>
-              <v-spacer></v-spacer>
-              <v-btn
-                :color="accentColor"
-                variant="flat"
-                @click="showEditSelectionNameDialog = false"
-              >Done</v-btn>
-            </v-card-actions>
-          </v-card>
-        </v-dialog>
         
         <v-dialog
           v-model="showEditRegionNameDialog"
@@ -1165,7 +1214,7 @@
 </template>
   
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, nextTick } from "vue";
+import { reactive, ref, computed, watch, onMounted, nextTick } from "vue";
 import { API_BASE_URL, blurActiveElement } from "@cosmicds/vue-toolkit";
 import { useDisplay } from 'vuetify';
 import { DatePickerInstance } from "@vuepic/vue-datepicker";
@@ -1557,7 +1606,8 @@ function handleEsriTimeSelected(timestamp:number, _index: number) {
   if (idx >= 0) {
     timeIndex.value = idx;
   }
-  singleDateSelected.value = new Date(timestamp);
+  // We may need something like this when we get back the monthly average service.
+  //singleDateSelected.value = new Date(timestamp);
 }
 
 watch(whichMolecule, (newMolecule) => {
@@ -1596,7 +1646,7 @@ let selectionCount = 0;
 
 // Selections now are UserSelection objects directly
 type UserSelectionType = UserSelection;
-const selections = ref<UserSelectionType[]>([]);
+const selections = reactive<UserSelectionType[]>([]);
 const selection = ref<UserSelectionType | null>(null);
 const tableSelection = ref<UserSelectionType | null>(null);
 const graphSelection = ref<UserSelectionType | null>(null);
@@ -1628,25 +1678,25 @@ const graphSelectionTitle = computed(() => {
     return '';
   }
   const molecule = graphSelection.value.molecule;
-  const title = MOLECULE_OPTIONS.find(m => m.value === molecule)?.title || '';
-  return `${title} Time Series for ${graphSelection.value.name}`;
+  const molTitle = MOLECULE_OPTIONS.find(m => m.value === molecule)?.title || '';
+  return `${molTitle} Time Series for ${graphSelection.value.region.name}`;
 });
 
 const showNO2Graph = ref(false);
 const no2GraphData = computed(() =>{
-  return selections.value.filter(s => s.molecule.includes('no2') && selectionHasSamples(s));
+  return selections.filter(s => s.molecule.includes('no2') && selectionHasSamples(s));
 });
 
 // ozone version
 const showO3Graph = ref(false);
 const o3GraphData = computed(() =>{
-  return selections.value.filter(s => s.molecule.includes('o3') && selectionHasSamples(s));
+  return selections.filter(s => s.molecule.includes('o3') && selectionHasSamples(s));
 });
 
 // formaldehyde version
 const showHCHOGraph = ref(false);
 const hchoGraphData = computed(() =>{
-  return selections.value.filter(s => s.molecule.includes('hcho') && selectionHasSamples(s));
+  return selections.filter(s => s.molecule.includes('hcho') && selectionHasSamples(s));
 });
 
 const showErrorBands = ref(true);
@@ -1654,12 +1704,12 @@ const showErrorBands = ref(true);
 const selectedIndex = computed({
   get() {
     const selectedID = selection.value?.id;
-    const idx = selections.value.findIndex(s => s.id == selectedID);
+    const idx = selections.findIndex(s => s.id == selectedID);
     return idx >= 0 ? idx : null;
   },
   set(index: number | null) {
     if (typeof index === "number") {
-      selection.value = selections.value[index] ?? null;
+      selection.value = selections[index] ?? null;
     } else {
       selection.value = null;
     }
@@ -1672,23 +1722,24 @@ function setSelection(sel: UserSelectionType | null) {
     selectedIndex.value = null;
     return null;
   }
-  const idx = selections.value.findIndex(s => s.id === sel.id);
+  const idx = selections.findIndex(s => s.id === sel.id);
   if (idx == -1) {
     // must already be in selections, so throw an error if that is not true
-    throw new Error(`Selection with ID ${sel.id} and name ${sel.name} not found in selections.`);
+    throw new Error(`Selection with ID ${sel.id} not found in selections.`);
   }
-  selection.value = selections.value[idx];
+  selection.value = selections[idx];
   selectedIndex.value = idx;
   return selection.value;
 }
 
 function addUserSelection(sel: UserSelectionType) {
-  selections.value = [...selections.value, sel];
+  selections.push(sel);
   return sel;
 }
 
 function handleSelectionCreated(sel: UserSelectionType) {
   addUserSelection(sel);
+  fetchDataForSelection(sel);
   setSelection(sel);
   createSelectionActive.value = false;
 }
@@ -1724,9 +1775,11 @@ const testErrorAmount = 0.25e15;
 const _testError = { lower: testErrorAmount, upper: testErrorAmount };
 
 const sampleErrors = ref<Record<string, string | null>>({});
+const sampleErrorID = ref<string | null>(null);
 const pointSampleErrors = ref<Record<string, string | null>>({});
 const pointSampleResults = ref<Record<string, Record<number, { value: number | null; date: Date }> | null>>({});
 const loadingPointSample = ref<string | false>(false);
+const datasetRowRefs = ref({});
 
 // UI state for time range management
 
@@ -1763,12 +1816,12 @@ const samplingPreviewMarkers = useMultiMarker(map, {
 });
 
 
-watch([showDataSamplingMarkers, () => selections.value.map(s => selectionHasSamples(s))], (newVal) => {
+watch([showDataSamplingMarkers, () => selections.map(s => selectionHasSamples(s))], (newVal) => {
   if (!newVal[0]) {
     clearTimeseriesMarkers();
   }
   if (newVal[0]) {
-    const locations = selections.value
+    const locations = selections
       .filter(sel => selectionHasSamples(sel))
       .map(sel => sel.locations ?? [])
       .flat();
@@ -1822,7 +1875,7 @@ function isPointSelection(selection: UnifiedRegionType): selection is PointSelec
 }
 
 function regionHasSamples(region: UnifiedRegionType): boolean {
-  const sel = selections.value.find(s => s.region.id === region.id);
+  const sel = selections.find(s => s.region.id === region.id);
   if (!sel) {
     return false;
   }
@@ -1917,20 +1970,6 @@ function editSelectionName(sel: UserSelectionType | null) {
   showEditSelectionNameDialog.value = true;
 }
 
-function setSelectionName(sel: UserSelectionType, newName: string) {
-  if (newName.trim() === '') {
-    console.error("Selection name cannot be empty.");
-    return;
-  }
-  const existing = selections.value.find(s => s.name === newName && s.id !== sel.id);
-  if (existing) {
-    console.error(`A selection with the name "${newName}" already exists.`);
-    return;
-  }
-  sel.name = newName;
-  console.log(`Renamed selection to: ${newName}`);
-}
-
 function createNewSelection(geometryType: 'rectangle' | 'point') {
   // Clear current selection to force new selection creation
   setSelection(null);
@@ -1938,16 +1977,42 @@ function createNewSelection(geometryType: 'rectangle' | 'point') {
   pointSelectionActive.value = geometryType === 'point';
 }
 
+async function fetchDataForSelection(sel: UserSelectionType) {
+
+  sel.loading = true;
+  loadingSamples.value = sel.id;
+  sampleErrors.value[sel.id] = null;
+  
+  const timeRanges = atleast1d(sel.timeRange.range);
+  
+  try {
+    tempoDataService.setBaseUrl(ESRI_URLS[sel.molecule].url);
+    const data = await tempoDataService.fetchTimeseriesData(sel.region.geometryInfo, timeRanges);
+    sel.samples = data.values;
+    sel.errors = data.errors;
+    loadingSamples.value = "finished";
+    console.log(`Fetched data for ${timeRanges.length} time range(s)`);
+  } catch (error) {
+    sampleErrors.value[sel.id] = error instanceof Error ? error.message : String(error);
+    loadingSamples.value = "error";
+  }
+
+  sel.loading = false;
+
+  nextTick(() => {
+    datasetRowRefs.value[sel.id]?.$forceUpdate();
+  });
+
+}
+
 // 30 is the value we have been using
 const maxSampleCount = ref(50);
-
-
 
 // New: fetch data for composed UserSelection
 // fetchDataForSelection already handles UserSelection
 
 async function fetchCenterPointDataForSelection(sel: UserSelectionType) {
-  loadingSamples.value = sel.name;
+  loadingSamples.value = sel.id;
   sampleErrors.value[sel.id] = null;
   
   const timeRanges = atleast1d(sel.timeRange.range);
@@ -2087,7 +2152,7 @@ function deleteRegion(region: UnifiedRegionType) {
 }
 
 function deleteSelection(sel: UserSelectionType) {
-  const index = selections.value.findIndex(s => s.id == sel.id);
+  const index = selections.findIndex(s => s.id == sel.id);
   if (index < 0) {
     return;
   }
@@ -2095,16 +2160,18 @@ function deleteSelection(sel: UserSelectionType) {
   // if (map.value && sel.region.layer) {
   //   removeRectangleLayer(map.value, sel.region.layer);
   // }
-  selections.value.splice(index, 1);
+  selections.splice(index, 1);
   if (isSelected) {
     if (index > 0) {
-      selection.value = selections.value[index - 1];
-    } else if (selections.value.length > 0) { 
-      selection.value = selections.value[0];
+      selection.value = selections[index - 1];
+    } else if (selections.length > 0) { 
+      selection.value = selections[0];
     } else {
       selection.value = null;
     }
   }
+
+  datasetRowRefs.value[sel.id] = null;
 }
 
 
@@ -2632,7 +2699,7 @@ watch(openPanels, (open: number[]) => {
 function handleSelectionRegionEdit(info: RectangleSelectionInfo) { 
 
   // Update the existing selection
-  const currentSelection = selections.value[selectedIndex.value];
+  const currentSelection = selections[selectedIndex.value];
   currentSelection.region.geometryInfo = info;
   currentSelection.samples = undefined; // Clear existing data
   // explicit type
@@ -3440,7 +3507,7 @@ a {
   height: fit-content;
   align-self: center;
   padding-inline: 0.5rem;
-  margin-left: 0.75rem;
+  // margin-left: 0.75rem;
   width: 2.5rem;
   color: var(--accent-color);
   border: 2px solid var(--accent-color);
@@ -3728,6 +3795,16 @@ div.callout-wrapper {
 
 canvas.maplibregl-canvas {
   background-color: whitesmoke;
+}
+
+.dataset-loading {
+  display: flex;
+  flex-direction: row;
+}
+
+.dataset-loading-failed {
+  width: 70%;
+  max-width: calc(100% - 32px);
 }
 </style>
 

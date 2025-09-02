@@ -61,7 +61,7 @@
               indeterminate
             ></v-progress-linear>
           </template>
-          Get Data
+          Access Data
         </v-btn>
         <v-btn
           color="secondary"
@@ -82,12 +82,10 @@ import { v4 } from "uuid";
 
 import type { MappingBackends, RectangleSelection, TimeRange, UserSelection } from "../types";
 import type { MillisecondRange } from "../types/datetime";
-import type { TempoDataService } from "../esri/services/TempoDataService";
-import { type MoleculeType, ESRI_URLS, MOLECULE_OPTIONS } from "../esri/utils";
+import { type MoleculeType, MOLECULE_OPTIONS } from "../esri/utils";
 import { atleast1d } from "../utils/atleast1d";
 import { formatTimeRange } from "../utils/timeRange";
 
-let selectionCount = 0; // for naming selections
 const selectedTimeRange = ref<TimeRange | null>(null);
 
 interface SelectionComposerProps {
@@ -95,7 +93,6 @@ interface SelectionComposerProps {
   timeRanges: TimeRange[];
   regions: RectangleSelectionType[];
   disabled?: { region?: boolean; timeRange?: boolean; molecule?: boolean };
-  tempoDataService: TempoDataService;
 }
 
 const props = defineProps<SelectionComposerProps>();
@@ -105,7 +102,6 @@ const emit = defineEmits<{
 }>();
 
 const loading = ref(false);
-const error = ref<string | null>(null);
 
 type RectangleSelectionType = RectangleSelection<typeof props.backend>;
 
@@ -147,8 +143,6 @@ async function composeSelection(): Promise<UserSelection | null> {
     return null;
   }
   
-  selectionCount += 1;
-  
   const timeRanges = atleast1d(draft.timeRange);
   // Add to available list if new custom
   const timeRange: TimeRange = { id: v4(), name: 'Selection Range', description: formatTimeRange(timeRanges), range: timeRanges.length === 1 ? timeRanges[0] : timeRanges };
@@ -157,31 +151,11 @@ async function composeSelection(): Promise<UserSelection | null> {
     region: draft.region, // as { id: string; name: string; rectangle: RectangleSelectionInfo; color: string; layer?: unknown },
     timeRange,
     molecule: draft.molecule as MoleculeType,
-    name: `Selection ${selectionCount}`
   };
-  await fetchDataForSelection(sel);
-  if (error.value === null) {
-    emit("create", sel);
-  }
+  emit("create", sel);
   return sel;
 }
 
-async function fetchDataForSelection(sel: UserSelection) {
-  const timeRanges = atleast1d(sel.timeRange.range);
-  
-  try {
-    props.tempoDataService.setBaseUrl(ESRI_URLS[sel.molecule].url);
-    error.value = null;
-    loading.value = true;
-    const data = await props.tempoDataService.fetchTimeseriesData(sel.region.geometryInfo, timeRanges);
-    sel.samples = data.values;
-    sel.errors = data.errors;
-    console.log(`Fetched data for ${timeRanges.length} time range(s)`);
-  } catch (err) {
-    error.value = "error";
-  }
-  loading.value = false;
-}
 
 function reset() {
   draftUserSelection.value = { region: null, timeRange: null, molecule: null };

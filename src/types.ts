@@ -163,11 +163,11 @@ export interface TimeRange {
 
 export interface UserSelection {
   id: string;
+  loading?: boolean;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   region: any;
   timeRange: TimeRange;
   molecule: string;
-  name: string; // not user editable
   samples?: Record<number, AggValue>;
   errors?: Record<number, DataPointError>;
   locations?: {x: number, y: number}[];
