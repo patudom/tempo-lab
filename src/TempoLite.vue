@@ -683,26 +683,9 @@
                         }"
                       >
                         <template #prepend>
-                          <v-icon v-if="!rectangleSelectionActive" icon="mdi-select"></v-icon>
+                          <v-icon v-if="!rectangleSelectionActive" icon="mdi-plus"></v-icon>
                         </template>
                         {{ rectangleSelectionActive ? "Cancel" : "New Region" }}
-                      </v-btn>
-                      <v-btn
-                        size="small"
-                        :active="pointSelectionActive"
-                        :disabled="rectangleSelectionActive"
-                        @click="() => {
-                          if (pointSelectionActive) {
-                            pointSelectionActive = false;
-                          } else {
-                            createNewSelection('point');
-                          }
-                        }"
-                      >
-                        <template #prepend>
-                          <v-icon v-if="!pointSelectionActive" icon="mdi-plus"></v-icon>
-                        </template>
-                        {{ pointSelectionActive ? "Cancel" : "New Point" }}
                       </v-btn>
                     </div>
                     <v-list>
