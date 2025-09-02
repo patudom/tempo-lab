@@ -668,8 +668,8 @@
           </div>
 
           <div id="dataset-sections">
+            <h2>Time-Series Graphs</h2>
             <div id="add-region-time">
-              <h2>Add Region/Time Range</h2>  
               <v-expansion-panels
                 v-model="openPanels"
                 variant="accordion"
@@ -696,26 +696,9 @@
                         }"
                       >
                         <template #prepend>
-                          <v-icon v-if="!rectangleSelectionActive" icon="mdi-select"></v-icon>
+                          <v-icon v-if="!rectangleSelectionActive" icon="mdi-plus"></v-icon>
                         </template>
-                        {{ rectangleSelectionActive ? "Cancel" : "Add Region" }}
-                      </v-btn>
-                      <v-btn
-                        size="small"
-                        :active="pointSelectionActive"
-                        :disabled="rectangleSelectionActive"
-                        @click="() => {
-                          if (pointSelectionActive) {
-                            pointSelectionActive = false;
-                          } else {
-                            createNewSelection('point');
-                          }
-                        }"
-                      >
-                        <template #prepend>
-                          <v-icon v-if="!pointSelectionActive" icon="mdi-plus"></v-icon>
-                        </template>
-                        {{ pointSelectionActive ? "Cancel" : "Add Point" }}
+                        {{ rectangleSelectionActive ? "Cancel" : "New Region" }}
                       </v-btn>
                     </div>
                     <v-list>
@@ -724,6 +707,7 @@
                         :key="index"
                         :title="region.name"
                         :style="{ 'background-color': region.color }"
+                        @click="() => moveMapToRegion(region as UnifiedRegionType)"
                       >
                         <template #append>
                           <!-- New: Edit Geometry button (disabled if any selection using region has samples) -->
@@ -768,7 +752,7 @@
                       <template #prepend>
                         <v-icon v-if="!createTimeRangeActive" icon="mdi-plus"></v-icon>
                       </template>
-                      {{ createTimeRangeActive ? "Cancel" : "Create Time Range" }}
+                      {{ createTimeRangeActive ? "Cancel" : "New Time Range" }}
                     </v-btn>
                     <date-time-range-selection
                       v-if="createTimeRangeActive"
@@ -791,7 +775,6 @@
             </div>
 
             <div id="selections">
-              <h2>Create a Dataset</h2>
               <v-btn
                 size="small"
                 :active="createSelectionActive"
@@ -1214,7 +1197,7 @@
 </template>
   
 <script setup lang="ts">
-import { reactive, ref, computed, watch, onMounted, nextTick } from "vue";
+import { ref, computed, watch, onMounted, nextTick } from "vue";
 import { API_BASE_URL, blurActiveElement } from "@cosmicds/vue-toolkit";
 import { useDisplay } from 'vuetify';
 import { DatePickerInstance } from "@vuepic/vue-datepicker";
@@ -1226,7 +1209,7 @@ import { MapBoxFeature, MapBoxFeatureCollection, geocodingInfoForSearch } from "
 import changes from "./changes";
 import { useBounds } from './composables/useBounds';
 import { interestingEvents } from "./interestingEvents";
-import { LatLngPair, InitMapOptions, RectangleSelectionInfo, PointSelectionInfo, PointSelection, RectangleSelection, MappingBackends, TimeRange, UserSelection } from "./types";
+import { LatLngPair, InitMapOptions, RectangleSelectionInfo, PointSelectionInfo, PointSelection, RectangleSelection, UnifiedRegion, MappingBackends, TimeRange, UserSelection } from "./types";
 import type { MillisecondRange } from "./types/datetime";
 import UserGuide from "./components/UserGuide.vue";
 import SampleTable from "./components/SampleTable.vue";
@@ -1244,7 +1227,7 @@ import TimeChips from "./components/TimeChips.vue";
 // import { useFieldOfRegard} from "./composables/leaflet/useFieldOfRegard";
 // import { useLocationMarker } from "./composables/leaflet/useMarker";
 // import { useRectangleSelection } from "./composables/leaflet/useRectangleSelection";
-// import { addRectangleLayer, updateRectangleBounds, removeRectangleLayer } from "./composables/leaflet/utils";
+// import { addRectangleLayer, updateRectangleBounds, removeRectangleLayer, regionBounds, fitBounds } from "./composables/leaflet/utils";
 // import { useMultiMarker } from './composables/leaflet/useMultiMarker';
 // import { useEsriLayer } from "./esri/leaflet/useEsriImageLayer";
 // const zoomScale = 1; 
@@ -1259,7 +1242,7 @@ import { useLocationMarker } from "./composables/maplibre/useMarker";
 import { useRectangleSelection } from "./composables/maplibre/useRectangleSelection";
 import { addRectangleLayer, updateRectangleBounds, removeRectangleLayer } from "./composables/maplibre/utils";
 import { usePointSelection } from "./composables/maplibre/usePointSelection";
-import { addPointLayer, updatePointLocation, removePointLayer } from "./composables/maplibre/utils";
+import { addPointLayer, updatePointLocation, removePointLayer, regionBounds, fitBounds } from "./composables/maplibre/utils";
 import { useMultiMarker } from './composables/maplibre/useMultiMarker';
 import { useEsriLayer } from "./esri/maplibre/useEsriImageLayer";
 const zoomScale = 0.5; // for matplibre-gl
@@ -1267,10 +1250,11 @@ const zoomScale = 0.5; // for matplibre-gl
 
 
 const BACKEND: MappingBackends = "maplibre" as const;
+type BackendT = typeof BACKEND;
 
-type RectangleSelectionType = RectangleSelection<typeof BACKEND>;
-type PointSelectionType = PointSelection<typeof BACKEND>;
-type UnifiedRegionType = RectangleSelectionType | PointSelectionType;
+type RectangleSelectionType = RectangleSelection<BackendT>;
+type PointSelectionType = PointSelection<BackendT>;
+type UnifiedRegionType = UnifiedRegion<BackendT>;
 
 
 import { TempoDataService } from "./esri/services/TempoDataService";
@@ -1646,7 +1630,7 @@ let selectionCount = 0;
 
 // Selections now are UserSelection objects directly
 type UserSelectionType = UserSelection;
-const selections = reactive<UserSelectionType[]>([]);
+const selections = ref<UserSelectionType[]>([]);
 const selection = ref<UserSelectionType | null>(null);
 const tableSelection = ref<UserSelectionType | null>(null);
 const graphSelection = ref<UserSelectionType | null>(null);
@@ -1684,19 +1668,19 @@ const graphSelectionTitle = computed(() => {
 
 const showNO2Graph = ref(false);
 const no2GraphData = computed(() =>{
-  return selections.filter(s => s.molecule.includes('no2') && selectionHasSamples(s));
+  return selections.value.filter(s => s.molecule.includes('no2') && selectionHasSamples(s));
 });
 
 // ozone version
 const showO3Graph = ref(false);
 const o3GraphData = computed(() =>{
-  return selections.filter(s => s.molecule.includes('o3') && selectionHasSamples(s));
+  return selections.value.filter(s => s.molecule.includes('o3') && selectionHasSamples(s));
 });
 
 // formaldehyde version
 const showHCHOGraph = ref(false);
 const hchoGraphData = computed(() =>{
-  return selections.filter(s => s.molecule.includes('hcho') && selectionHasSamples(s));
+  return selections.value.filter(s => s.molecule.includes('hcho') && selectionHasSamples(s));
 });
 
 const showErrorBands = ref(true);
@@ -1704,12 +1688,12 @@ const showErrorBands = ref(true);
 const selectedIndex = computed({
   get() {
     const selectedID = selection.value?.id;
-    const idx = selections.findIndex(s => s.id == selectedID);
+    const idx = selections.value.findIndex(s => s.id == selectedID);
     return idx >= 0 ? idx : null;
   },
   set(index: number | null) {
     if (typeof index === "number") {
-      selection.value = selections[index] ?? null;
+      selection.value = selections.value[index] ?? null;
     } else {
       selection.value = null;
     }
@@ -1722,18 +1706,18 @@ function setSelection(sel: UserSelectionType | null) {
     selectedIndex.value = null;
     return null;
   }
-  const idx = selections.findIndex(s => s.id === sel.id);
+  const idx = selections.value.findIndex(s => s.id === sel.id);
   if (idx == -1) {
     // must already be in selections, so throw an error if that is not true
     throw new Error(`Selection with ID ${sel.id} not found in selections.`);
   }
-  selection.value = selections[idx];
+  selection.value = selections.value[idx];
   selectedIndex.value = idx;
   return selection.value;
 }
 
 function addUserSelection(sel: UserSelectionType) {
-  selections.push(sel);
+  selections.value = [...selections.value, sel];
   return sel;
 }
 
@@ -1816,12 +1800,12 @@ const samplingPreviewMarkers = useMultiMarker(map, {
 });
 
 
-watch([showDataSamplingMarkers, () => selections.map(s => selectionHasSamples(s))], (newVal) => {
+watch([showDataSamplingMarkers, () => selections.value.map(s => selectionHasSamples(s))], (newVal) => {
   if (!newVal[0]) {
     clearTimeseriesMarkers();
   }
   if (newVal[0]) {
-    const locations = selections
+    const locations = selections.value
       .filter(sel => selectionHasSamples(sel))
       .map(sel => sel.locations ?? [])
       .flat();
@@ -1875,7 +1859,7 @@ function isPointSelection(selection: UnifiedRegionType): selection is PointSelec
 }
 
 function regionHasSamples(region: UnifiedRegionType): boolean {
-  const sel = selections.find(s => s.region.id === region.id);
+  const sel = selections.value.find(s => s.region.id === region.id);
   if (!sel) {
     return false;
   }
@@ -2060,6 +2044,15 @@ function createDraftSelection(info: RectangleSelectionInfo | PointSelectionInfo,
   console.log(`Created ${geometryType} ${newSelection.name}`);
 }
 
+function moveMapToRegion(region: UnifiedRegionType) {
+  const mapV = map.value;
+  if (!mapV) {
+    return;
+  }
+
+  const bounds = regionBounds(region);
+  fitBounds(mapV, bounds, true);
+}
 
 
 const availableRegions = computed(() => regions.value);
@@ -2152,7 +2145,7 @@ function deleteRegion(region: UnifiedRegionType) {
 }
 
 function deleteSelection(sel: UserSelectionType) {
-  const index = selections.findIndex(s => s.id == sel.id);
+  const index = selections.value.findIndex(s => s.id == sel.id);
   if (index < 0) {
     return;
   }
@@ -2160,12 +2153,12 @@ function deleteSelection(sel: UserSelectionType) {
   // if (map.value && sel.region.layer) {
   //   removeRectangleLayer(map.value, sel.region.layer);
   // }
-  selections.splice(index, 1);
+  selections.value.splice(index, 1);
   if (isSelected) {
     if (index > 0) {
-      selection.value = selections[index - 1];
-    } else if (selections.length > 0) { 
-      selection.value = selections[0];
+      selection.value = selections.value[index - 1];
+    } else if (selections.value.length > 0) { 
+      selection.value = selections.value[0];
     } else {
       selection.value = null;
     }
@@ -2699,7 +2692,7 @@ watch(openPanels, (open: number[]) => {
 function handleSelectionRegionEdit(info: RectangleSelectionInfo) { 
 
   // Update the existing selection
-  const currentSelection = selections[selectedIndex.value];
+  const currentSelection = selections.value[selectedIndex.value];
   currentSelection.region.geometryInfo = info;
   currentSelection.samples = undefined; // Clear existing data
   // explicit type
