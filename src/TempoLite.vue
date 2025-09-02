@@ -728,6 +728,7 @@
                             @click="() => editRegionName(region as UnifiedRegionType)"
                           ></v-btn>
                           <v-btn
+                            v-if="!regionHasDatasets(region as UnifiedRegionType)"
                             variant="plain"
                             v-tooltip="'Delete'"
                             icon="mdi-delete"
@@ -1824,7 +1825,7 @@ const sampler =  ref<EsriSampler>(null);
 tempoDataService.withMetadataCache().then(meta => {
   sampler.value = new EsriSampler(meta);
 });
-watch([showSamplingPreviewMarkers, regions], (newVal) => {
+watch([showSamplingPreviewMarkers, regions, ()=> regions.value.length], (newVal) => {
   const show = newVal[0];
   const regs = newVal[1];
   samplingPreviewMarkers.clearMarkers();
@@ -1858,6 +1859,10 @@ function isPointSelection(selection: UnifiedRegionType): selection is PointSelec
   return selection.geometryType === 'point';
 }
 
+function regionHasDatasets(region: UnifiedRegionType): boolean {
+  const sel = selections.value.find(s => s.region.id === region.id);
+  return sel !== undefined;
+}
 function regionHasSamples(region: UnifiedRegionType): boolean {
   const sel = selections.value.find(s => s.region.id === region.id);
   if (!sel) {
