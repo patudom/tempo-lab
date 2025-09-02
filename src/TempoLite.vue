@@ -1985,9 +1985,9 @@ async function fetchDataForSelection(sel: UserSelectionType) {
 
   sel.loading = false;
 
-  setTimeout(() => {
+  nextTick(() => {
     datasetRowRefs.value[sel.id]?.$forceUpdate();
-  }, 100);
+  });
 
 }
 
