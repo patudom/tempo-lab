@@ -1727,7 +1727,8 @@ const timeseriesMarkerApi = useMultiMarker(map, {
   fillColor: '#ff0000',
   fillOpacity: 0.8,
   opacity: 1,
-  radius: 1,
+  radius: 0.02 / 2, // degrees
+  scale: 'world',
   outlineColor: '#ff0000',
 });
 
@@ -1743,7 +1744,8 @@ const samplingPreviewMarkers = useMultiMarker(map, {
   fillColor: '#0000ff',
   fillOpacity: 0.5,
   opacity: 1,
-  radius: 1,
+  radius: 0.02 / 2, // degrees
+  scale: 'world',
   outlineColor: '#0000ff',
   label: 'predicted-samples-locations'
 });

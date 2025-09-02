@@ -12,6 +12,7 @@ export interface MultiMarkerOptions {
   paint?: maplibregl.CircleLayerSpecification['paint'];
   layout?: maplibregl.CircleLayerSpecification['layout'];
   shape?: 'circle' | 'marker';
+  scale?: 'world' | 'screen';
 }
 
 function toGeoJSON(points: Array<{ x: number; y: number }>): GeoJSON.FeatureCollection<GeoJSON.Point> {
@@ -28,6 +29,8 @@ function toGeoJSON(points: Array<{ x: number; y: number }>): GeoJSON.FeatureColl
 export function useMultiMarker(map: Ref<maplibregl.Map | null>, options: MultiMarkerOptions = {}) {
   const sourceId = `${options.label ?? 'multi-marker'}-source`;
   const layerId = `${options.label ?? 'multi-marker'}-layer`;
+  
+  options.scale = options.scale ?? 'screen';
   
   function optionsToPaint() {
     return {
@@ -65,6 +68,23 @@ export function useMultiMarker(map: Ref<maplibregl.Map | null>, options: MultiMa
         },
       } as maplibregl.CircleLayerSpecification);
     }
+    
+    if (options.scale === 'screen') return;
+    // use world scaling
+    const newRadius = (options.radius ?? 1) * Math.pow(2, map.value.getZoom() ?? 0);
+    if (map.value?.getLayer(layerId)) {
+      map.value.setPaintProperty(layerId, 'circle-radius', newRadius);
+    }
+    
+    // on zoom change the size of the markers to keep them the same size on screen
+    map.value.on('zoomend', (e) => {
+      const zoom = e.target.getZoom() ?? 0;
+      const newRadius = (options.radius ?? 1) * Math.pow(2, zoom);
+      console.log('new radius', newRadius);
+      if (map.value?.getLayer(layerId)) {
+        map.value.setPaintProperty(layerId, 'circle-radius', newRadius);
+      }
+    });
   }
 
   function clearMarkers() {
