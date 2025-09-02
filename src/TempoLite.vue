@@ -1059,30 +1059,26 @@
         <v-dialog
           v-model="showEditRegionNameDialog"
           >
-          <v-card
-            class="mx-auto px-3 py-2"
-            min-width="300px"
-            width="50%"
-          >
-            <v-card-title>New Name</v-card-title>
-            <v-text-field
+          <!-- text field that requires a confirmation -->
+            <c-text-field
               label="Region Name"
+              title="Enter a new name for this region"
               hide-details
               dense
-              @update:model-value="(val: string) => {
-                setRegionName(regionBeingEdited as UnifiedRegionType, val);
+              :button-color="accentColor"
+              @confirm="(value) => {
+                if (regionBeingEdited) {
+                  setRegionName(regionBeingEdited as UnifiedRegionType, value);
+                  showEditRegionNameDialog = false;
+                }
               }"
-            ></v-text-field>
-            <v-card-actions>
-              <v-spacer></v-spacer>
-              <v-btn
-                :color="accentColor"
-                variant="flat"
-                @click="showEditRegionNameDialog = false"
-              >Done</v-btn>
-            </v-card-actions>
-          </v-card>
-        </v-dialog>
+              @cancel="() => {
+                showEditRegionNameDialog = false;
+                regionBeingEdited = null;
+              }"
+            ></c-text-field>
+
+            </v-dialog>
 
           <div id="bottom-options">
             <br>
@@ -1208,6 +1204,7 @@ import { useUniqueTimeSelection } from "./composables/useUniqueTimeSelection";
 
 import DateTimeRangeSelection from "./date_time_range_selection/DateTimeRangeSelection.vue";
 import TimeChips from "./components/TimeChips.vue";
+import CTextField from "./components/CTextField.vue";
 // Import Leaflet Composables
 // import { useMap } from "./composables/leaflet/useMap";
 // import { usezoomhome } from './composables/leaflet/useZoomHome';
