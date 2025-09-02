@@ -1185,7 +1185,7 @@
 </template>
   
 <script setup lang="ts">
-import { reactive, ref, computed, watch, onMounted, nextTick } from "vue";
+import { ref, computed, watch, onMounted, nextTick } from "vue";
 import { API_BASE_URL, blurActiveElement } from "@cosmicds/vue-toolkit";
 import { useDisplay } from 'vuetify';
 import { DatePickerInstance } from "@vuepic/vue-datepicker";
@@ -1618,7 +1618,7 @@ let selectionCount = 0;
 
 // Selections now are UserSelection objects directly
 type UserSelectionType = UserSelection;
-const selections = reactive<UserSelectionType[]>([]);
+const selections = ref<UserSelectionType[]>([]);
 const selection = ref<UserSelectionType | null>(null);
 const tableSelection = ref<UserSelectionType | null>(null);
 const graphSelection = ref<UserSelectionType | null>(null);
@@ -1656,19 +1656,19 @@ const graphSelectionTitle = computed(() => {
 
 const showNO2Graph = ref(false);
 const no2GraphData = computed(() =>{
-  return selections.filter(s => s.molecule.includes('no2') && selectionHasSamples(s));
+  return selections.value.filter(s => s.molecule.includes('no2') && selectionHasSamples(s));
 });
 
 // ozone version
 const showO3Graph = ref(false);
 const o3GraphData = computed(() =>{
-  return selections.filter(s => s.molecule.includes('o3') && selectionHasSamples(s));
+  return selections.value.filter(s => s.molecule.includes('o3') && selectionHasSamples(s));
 });
 
 // formaldehyde version
 const showHCHOGraph = ref(false);
 const hchoGraphData = computed(() =>{
-  return selections.filter(s => s.molecule.includes('hcho') && selectionHasSamples(s));
+  return selections.value.filter(s => s.molecule.includes('hcho') && selectionHasSamples(s));
 });
 
 const showErrorBands = ref(true);
@@ -1676,12 +1676,12 @@ const showErrorBands = ref(true);
 const selectedIndex = computed({
   get() {
     const selectedID = selection.value?.id;
-    const idx = selections.findIndex(s => s.id == selectedID);
+    const idx = selections.value.findIndex(s => s.id == selectedID);
     return idx >= 0 ? idx : null;
   },
   set(index: number | null) {
     if (typeof index === "number") {
-      selection.value = selections[index] ?? null;
+      selection.value = selections.value[index] ?? null;
     } else {
       selection.value = null;
     }
@@ -1694,18 +1694,18 @@ function setSelection(sel: UserSelectionType | null) {
     selectedIndex.value = null;
     return null;
   }
-  const idx = selections.findIndex(s => s.id === sel.id);
+  const idx = selections.value.findIndex(s => s.id === sel.id);
   if (idx == -1) {
     // must already be in selections, so throw an error if that is not true
     throw new Error(`Selection with ID ${sel.id} not found in selections.`);
   }
-  selection.value = selections[idx];
+  selection.value = selections.value[idx];
   selectedIndex.value = idx;
   return selection.value;
 }
 
 function addUserSelection(sel: UserSelectionType) {
-  selections.push(sel);
+  selections.value = [...selections.value, sel];
   return sel;
 }
 
@@ -1786,12 +1786,12 @@ const samplingPreviewMarkers = useMultiMarker(map, {
 });
 
 
-watch([showDataSamplingMarkers, () => selections.map(s => selectionHasSamples(s))], (newVal) => {
+watch([showDataSamplingMarkers, () => selections.value.map(s => selectionHasSamples(s))], (newVal) => {
   if (!newVal[0]) {
     clearTimeseriesMarkers();
   }
   if (newVal[0]) {
-    const locations = selections
+    const locations = selections.value
       .filter(sel => selectionHasSamples(sel))
       .map(sel => sel.locations ?? [])
       .flat();
@@ -1845,7 +1845,7 @@ function isPointSelection(selection: UnifiedRegionType): selection is PointSelec
 }
 
 function regionHasSamples(region: UnifiedRegionType): boolean {
-  const sel = selections.find(s => s.region.id === region.id);
+  const sel = selections.value.find(s => s.region.id === region.id);
   if (!sel) {
     return false;
   }
@@ -2131,7 +2131,7 @@ function deleteRegion(region: UnifiedRegionType) {
 }
 
 function deleteSelection(sel: UserSelectionType) {
-  const index = selections.findIndex(s => s.id == sel.id);
+  const index = selections.value.findIndex(s => s.id == sel.id);
   if (index < 0) {
     return;
   }
@@ -2139,12 +2139,12 @@ function deleteSelection(sel: UserSelectionType) {
   // if (map.value && sel.region.layer) {
   //   removeRectangleLayer(map.value, sel.region.layer);
   // }
-  selections.splice(index, 1);
+  selections.value.splice(index, 1);
   if (isSelected) {
     if (index > 0) {
-      selection.value = selections[index - 1];
-    } else if (selections.length > 0) { 
-      selection.value = selections[0];
+      selection.value = selections.value[index - 1];
+    } else if (selections.value.length > 0) { 
+      selection.value = selections.value[0];
     } else {
       selection.value = null;
     }
@@ -2678,7 +2678,7 @@ watch(openPanels, (open: number[]) => {
 function handleSelectionRegionEdit(info: RectangleSelectionInfo) { 
 
   // Update the existing selection
-  const currentSelection = selections[selectedIndex.value];
+  const currentSelection = selections.value[selectedIndex.value];
   currentSelection.region.geometryInfo = info;
   currentSelection.samples = undefined; // Clear existing data
   // explicit type
