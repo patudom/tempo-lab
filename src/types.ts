@@ -170,6 +170,7 @@ export interface UserSelection {
   molecule: string;
   samples?: Record<number, AggValue>;
   errors?: Record<number, DataPointError>;
+  locations?: {x: number, y: number}[];
 }
 
 export interface SelectionHandler<EventType, SelectionInfo> {

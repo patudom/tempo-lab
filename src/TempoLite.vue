@@ -566,11 +566,12 @@
                   <!-- time chips to select time specifically for esri times -->
                   <time-chips
                     v-if="whichMolecule.toLowerCase().includes('month')"
-                    :timestamps="esriTimesteps"
+                    :timestamps="esriTimesteps.slice(minIndex, maxIndex + 1)"
                     @select="handleEsriTimeSelected($event.value, $event.index)"
-                    reverse
-                    use-utc
-                    date-only
+                    :selected-index="timeIndex - minIndex"
+                    :use-utc="whichMolecule.toLowerCase().includes('month')"
+                    :date-only="whichMolecule.toLowerCase().includes('month')"
+                    :hour-only="!whichMolecule.toLowerCase().includes('month')"
                   />
                 </v-radio-group>
               </div>        
@@ -1085,7 +1086,7 @@
               hide-details
               dense
               @update:model-value="(val: string) => {
-                setRegionName(regionBeingEdited as RectangleSelectionType, val);
+                setRegionName(regionBeingEdited as UnifiedRegionType, val);
               }"
             ></v-text-field>
             <v-card-actions>
@@ -1592,7 +1593,8 @@ function handleEsriTimeSelected(timestamp:number, _index: number) {
   if (idx >= 0) {
     timeIndex.value = idx;
   }
-  singleDateSelected.value = new Date(timestamp);
+  // We may need something like this when we get back the monthly average service.
+  //singleDateSelected.value = new Date(timestamp);
 }
 
 watch(whichMolecule, (newMolecule) => {
@@ -1776,14 +1778,72 @@ const timeseriesMarkerApi = useMultiMarker(map, {
   fillColor: '#ff0000',
   fillOpacity: 0.8,
   opacity: 1,
-  radius: 10,
+  radius: 1,
   outlineColor: '#ff0000',
 });
 
+const showDataSamplingMarkers = ref(true);
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function clearTimeseriesMarkers() {
   timeseriesMarkerApi.clearMarkers();
 }
+
+const samplingPreviewMarkers = useMultiMarker(map, {
+  shape: 'circle',
+  color: '#0000ff',
+  fillColor: '#0000ff',
+  fillOpacity: 0.5,
+  opacity: 1,
+  radius: 1,
+  outlineColor: '#0000ff',
+  label: 'predicted-samples-locations'
+});
+
+
+watch([showDataSamplingMarkers, () => selections.value.map(s => selectionHasSamples(s))], (newVal) => {
+  if (!newVal[0]) {
+    clearTimeseriesMarkers();
+  }
+  if (newVal[0]) {
+    const locations = selections.value
+      .filter(sel => selectionHasSamples(sel))
+      .map(sel => sel.locations ?? [])
+      .flat();
+    
+    timeseriesMarkerApi.addMarkers(locations);
+  }
+  
+});
+
+import { EsriSampler } from "./esri/services/sampling";
+const showSamplingPreviewMarkers = ref(true);
+// const sampler = new EsriSampler( tempoDataService.meta,);
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+const sampler =  ref<EsriSampler>(null);
+tempoDataService.withMetadataCache().then(meta => {
+  sampler.value = new EsriSampler(meta);
+});
+watch([showSamplingPreviewMarkers, regions], (newVal) => {
+  const show = newVal[0];
+  const regs = newVal[1];
+  samplingPreviewMarkers.clearMarkers();
+  let locations: {x: number, y:number}[] = [];
+  if (sampler.value && show && regs.length > 0) {
+    regs.forEach(r => {
+      if (r.geometryType === 'rectangle') {
+        sampler.value.setGeometry(r.geometryInfo);
+        if (tempoDataService.meta) {
+          sampler.value.setMetadata(tempoDataService.meta);
+        }
+        locations = [...locations, ...sampler.value.getSampleLocationsGrid(maxSampleCount.value)];
+        // samplingPreviewMarkers.addMarkers(locations);
+      }
+    });
+    samplingPreviewMarkers.addMarkers(locations);
+  }
+  
+});
 
 function selectionHasSamples(sel: UserSelectionType): boolean {
   return (sel.samples !== undefined) && Object.keys(sel.samples).length > 0;
@@ -1921,8 +1981,10 @@ async function fetchDataForSelection(sel: UserSelectionType) {
   }
 
   sel.loading = false;
-
 }
+
+// 30 is the value we have been using
+const maxSampleCount = ref(30);
 
 // New: fetch data for composed UserSelection
 // fetchDataForSelection already handles UserSelection
@@ -1935,9 +1997,14 @@ async function fetchCenterPointDataForSelection(sel: UserSelectionType) {
   
   try {
     tempoDataService.setBaseUrl(ESRI_URLS[sel.molecule].url);
-    const data = await tempoDataService.fetchCenterPointData(sel.region.geometryInfo, timeRanges);
+    const data = await tempoDataService.fetchCenterPointData(
+      sel.region.geometryInfo,
+      timeRanges,
+      { sampleCount: maxSampleCount.value }
+    );
     if (data) {
       sel.samples = data.values;
+      sel.locations = data.locations;
       loadingSamples.value = "finished";
       console.log(`Fetched center point data for ${timeRanges.length} time range(s)`);
     }

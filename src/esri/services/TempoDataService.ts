@@ -7,9 +7,12 @@ import type {
   EsriGetSamplesSample, 
   Variables, 
   EsriInterpolationMethod, 
-  CEsriTimeseries 
+  CEsriTimeseries, 
+  EsriImageServiceSpec,
 } from '../types';
 import type { AggValue, DataPointError, MillisecondRange } from "../../types";
+import {nanmean, diff} from './array_math';
+import { EsriSampler } from './sampling';
 
 // ============================================================================
 // TYPES
@@ -112,10 +115,13 @@ function stringifyEsriGetSamplesParameters(params: {
 export class TempoDataService {
   private baseUrl: string;
   private variable: Variables;
+  private metadataCache: EsriImageServiceSpec | null = null;
+  private _loadingMetadata: boolean = false;
   
   constructor(baseUrl: string, variable: Variables = "NO2_Troposphere") {
     this.baseUrl = baseUrl;
     this.variable = variable;
+    this.updateMetadataCache();
   }
 
   // ============================================================================
@@ -131,12 +137,73 @@ export class TempoDataService {
   }
 
   setBaseUrl(baseUrl: string): void {
+    if (this.baseUrl === baseUrl) return;
     this.baseUrl = baseUrl;
+    this.updateMetadataCache();
   }
 
   getBaseUrl(): string {
     return this.baseUrl;
   }
+
+  private async _getServiceMetadata(): Promise<EsriImageServiceSpec> {
+    const url = `${this.baseUrl}?f=json`;
+    return fetch(url)
+      .then((response) => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+      })
+      .catch((error) => {
+        console.error('Error fetching service metadata:', error);
+        throw error;
+      });
+  }
+  
+  async updateMetadataCache() {
+    // in general we really should invalidate the cache when the URL changes
+    // however, we know that for this purpose, the grid is identical for all
+    // the various services we may access, so ease of use, we will always have a metaDataCache
+    // available. 
+    // this.metadataCache = null; // Invalidate cache
+    this._loadingMetadata = true;
+    this.metadataCache = await this._getServiceMetadata();
+    this._loadingMetadata = false;
+    console.log('Service metadata updated:', this.metadataCache);
+    return this.metadataCache;
+  }
+  
+  getMetadata(): EsriImageServiceSpec {
+    if (!this.metadataCache) {
+      if (this._loadingMetadata) {
+        throw new Error('Metadata is currently loading. Please wait and try again.');
+      }
+      throw new Error('Metadata not loaded yet. Call updateMetadataCache() first.');
+    }
+    return this.metadataCache;
+  }
+  
+  get meta(): EsriImageServiceSpec | null {
+    return this.metadataCache;
+  }
+  
+  async withMetadataCache(): Promise<EsriImageServiceSpec> {
+    if (this.metadataCache) {
+      return this.metadataCache;
+    }
+    if (this._loadingMetadata) {
+      // Wait until loading is done. Check eveery 100ms
+      while (this._loadingMetadata) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+      if (this.metadataCache) {
+        return this.metadataCache;
+      } else {
+        throw new Error('Failed to load metadata.');
+      }
+    }
+    return this.updateMetadataCache();
+  }
+  
 
   // ============================================================================
   // CORE DATA FETCHING
@@ -171,7 +238,7 @@ export class TempoDataService {
       geometry: esriGeometry,
       geometryType: geometryType,
       time: timeString,
-      sampleCount: options.sampleCount || 30,
+      sampleCount: options.sampleCount || 30, // 100 is the Esri default. 30 has been our default
       ...options
     };
 
@@ -208,7 +275,7 @@ export class TempoDataService {
         }
       };
     } catch (error) {
-      console.error('Error in TempoDataService.fetchSamples:', error);
+      console.error('Error in TempoDataService.fetchSamples:', params);
       throw error;
     }
   }
@@ -332,7 +399,45 @@ export class TempoDataService {
   // ============================================================================
   // CONVENIENCE METHODS
   // ============================================================================
+  
+  getTimeSeriesStatistics(jsonData: RawSampleData) {
+    const samples = jsonData.samples || [];
+    
+    const uniqueLocations = new Set();
+    const uniqueLatitudes = new Set<number>();
+    const uniqueLongitudes = new Set<number>();
+    const valuesPerLocation = {};
+    
+    for (const sample of samples) {
+      const location = {x: sample.x, y: sample.y};
+      const locString = `${location.x},${location.y}`;
+      if (location) {
+        // Use a string representation for unique locations in the Set
+        uniqueLocations.add(locString);
+        uniqueLatitudes.add(location.y);
+        uniqueLongitudes.add(location.x);
+      }
+      
+      valuesPerLocation[locString] = (valuesPerLocation[locString] || 0) + 1;
 
+    }
+    
+    const totalValues = samples.length;
+    const numUniqueLocations = uniqueLocations.size;
+    
+    const latitudeSpacing = diff([...uniqueLatitudes].sort());
+    const longitudeSpacing = diff([...uniqueLongitudes].sort());
+    
+    
+    
+    return {
+      numUniqueLocations,
+      totalValues,
+      valuesPerLocation,
+      latitudeSpacing: nanmean(latitudeSpacing),
+      longitudeSpacing: nanmean(longitudeSpacing),
+    };
+  }
   
   /**
    * Fetch and aggragate any valid geometry data (rectangle or point)
@@ -342,7 +447,18 @@ export class TempoDataService {
     timeRanges: TimeRanges,
     options: FetchOptions = {}
   ): Promise<TimeSeriesData> {
+    if (this.isRectBounds(geometry) && this.meta) {
+      const sampler = new EsriSampler(this.meta, geometry);
+      const sampleCount = options.sampleCount || 30;
+      console.log(`Requested sample count: ${sampleCount}`);
+      options.sampleCount = sampler.getSamplingSpecificationFromSampleCount(sampleCount).count;
+      console.log(`Using sample count: ${options.sampleCount}`);
+    }
     const rawData = await this.fetchSamples(geometry, timeRanges, options);
+    const stats = this.getTimeSeriesStatistics(rawData);
+    console.log(`Data is sampled from ${stats.numUniqueLocations} unique locations with a total of ${stats.totalValues} values.`);
+    
+    console.log(`Approximate spacing between unique locations: ${stats.latitudeSpacing?.toFixed(4)}° latitude, ${stats.longitudeSpacing?.toFixed(4)}° longitude`);
     return this.aggregateByTime(rawData.samples);
   }
   
