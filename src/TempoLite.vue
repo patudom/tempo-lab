@@ -318,6 +318,18 @@
           >
             <v-toolbar-title :text="`TEMPO Data Viewer: ${mapTitle}`"></v-toolbar-title>
             <v-spacer></v-spacer>
+            <!-- swtichf ro preview points -->
+             <v-switch
+              v-if="regions.length > 0"
+              v-model="showSamplingPreviewMarkers"
+              :label="showSamplingPreviewMarkers ? 'Showing Sample Points' : 'Hiding Sample Points'"
+              :disabled="regions.length === 0"
+              @keyup.enter="showSamplingPreviewMarkers = !showSamplingPreviewMarkers"
+              inset
+              hide-details
+              class="me-3"
+              :style="{'--v-theme-on-surface': 'var(--accent-color)'}"
+              />
             <v-tooltip :text="rectangleSelectionActive ? 'Cancel selection' : 'Select a region'">
               <template #activator="{ props }">
                 <v-btn
