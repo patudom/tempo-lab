@@ -760,6 +760,12 @@
                   </template>
                 </v-expansion-panel>
 
+                <v-divider
+                  class="mt-3"
+                  opacity="1"
+                >
+                </v-divider>
+
                 <v-expansion-panel
                   title="Datasets"
                   class="mt-3"
