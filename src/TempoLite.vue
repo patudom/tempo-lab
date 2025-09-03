@@ -693,7 +693,18 @@
                         :key="index"
                         :title="timeRange.name"
                         :subtitle="timeRange.description"
-                      ></v-list-item>
+                      >
+                        <template #append>
+                          <v-btn
+                            variant="plain"
+                            v-tooltip="'Delete'"
+                            icon="mdi-delete"
+                            color="white"
+                            @click="() => deleteTimeRange(timeRange)"
+                          >
+                          </v-btn>
+                        </template>
+                      </v-list-item>
                     </v-list>
                   </template>
                 </v-expansion-panel>
@@ -740,7 +751,6 @@
                             @click="() => editRegionGeometry(region as UnifiedRegionType)"
                           ></v-btn> -->
                           <v-btn
-                            
                             variant="plain"
                             v-tooltip="'Edit Name'"
                             icon="mdi-pencil"
@@ -2135,6 +2145,14 @@ function setRegionName(region: UnifiedRegionType, newName: string) {
   }
   region.name = newName;
   console.log(`Renamed ${region.geometryType} region to: ${newName}`);
+}
+
+function deleteTimeRange(range: TimeRange) {
+  const index = availableTimeRanges.value.findIndex(r => r.id === range.id);
+  if (index < 0) {
+    return;
+  }
+  availableTimeRanges.value.splice(index, 1);
 }
 
 function deleteRegion(region: UnifiedRegionType) {
