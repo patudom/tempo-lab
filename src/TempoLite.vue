@@ -927,7 +927,7 @@
                                   icon="mdi-chart-line"
                                   :disabled="!sel.samples"
                                   variant="plain"
-                                  @click="() => graphSelection = sel"
+                                  @click="() => openGraphs[sel.id] = true"
                                 ></v-btn>
                               </template>
                             </v-tooltip>
@@ -947,6 +947,27 @@
                             </v-tooltip>
                           </div>
                         </v-expand-transition>
+                        <cds-dialog
+                          :title="graphTitle(sel)"
+                          v-model="openGraphs[sel.id]"
+                          title-color="#F44336"
+                          draggable
+                          persistent
+                          :scrim="false"
+                          :modal="false"
+                        >
+                          <v-checkbox
+                            v-model="showErrorBands"
+                            label="Show Errors"
+                            density="compact"
+                            hide-details
+                          >
+                          </v-checkbox>
+                          <timeseries-graph
+                            :data="sel ? [sel] : []"
+                            :show-errors="showErrorBands"
+                          />
+                        </cds-dialog>
                         <v-dialog
                           :model-value="sampleErrorID !== null"
                           max-width="50%"
@@ -974,28 +995,6 @@
                     </v-list-item>
                   </v-hover>
                 </v-list>
-
-                <cds-dialog
-                  :title="graphSelectionTitle"
-                  v-model="showGraph"
-                  title-color="#F44336"
-                  draggable
-                  persistent
-                  :scrim="false"
-                  :modal="false"
-                >
-                  <v-checkbox
-                    v-model="showErrorBands"
-                    label="Show Errors"
-                    density="compact"
-                    hide-details
-                  >
-                  </v-checkbox>
-                  <timeseries-graph
-                    :data="graphSelection ? [graphSelection] : []"
-                    :show-errors="showErrorBands"
-                  />
-                </cds-dialog>
               </div>
             </div>
           </div>
@@ -1641,38 +1640,14 @@ type UserSelectionType = UserSelection;
 const selections = ref<UserSelectionType[]>([]);
 const selection = ref<UserSelectionType | null>(null);
 const tableSelection = ref<UserSelectionType | null>(null);
-const graphSelection = ref<UserSelectionType | null>(null);
+const openGraphs = ref<Record<string,boolean>>({});
 
-const showTable = computed({
-  get() {
-    return tableSelection.value != null;
-  },
-  set(value: boolean) {
-    if (!value) {
-      tableSelection.value = null;
-    }
-  }
-});
 
-const showGraph = computed({
-  get() {
-    return graphSelection.value != null;
-  },
-  set(value: boolean) {
-    if (!value) {
-      graphSelection.value = null;
-    }
-  }
-});
-
-const graphSelectionTitle = computed(() => {
-  if (!graphSelection.value) {
-    return '';
-  }
-  const molecule = graphSelection.value.molecule;
+function graphTitle(selection: UserSelection): string {
+  const molecule = selection.molecule;
   const molTitle = MOLECULE_OPTIONS.find(m => m.value === molecule)?.title || '';
-  return `${molTitle} Time Series for ${graphSelection.value.region.name}`;
-});
+  return `${molTitle} Time Series for ${selection.region.name}`;
+}
 
 const showNO2Graph = ref(false);
 const no2GraphData = computed(() =>{
