@@ -1241,7 +1241,7 @@ import type { MillisecondRange } from "./types/datetime";
 import UserGuide from "./components/UserGuide.vue";
 import SampleTable from "./components/SampleTable.vue";
 import { atleast1d } from "./utils/atleast1d";
-import { formatTimeRange } from "./utils/timeRange";
+import { formatSingleRange, formatTimeRange, rangeForSingleDay } from "./utils/timeRange";
 
 import { useUniqueTimeSelection } from "./composables/useUniqueTimeSelection";
 
@@ -2083,16 +2083,39 @@ const availableTimeRanges = ref<TimeRange[]>([]);
 // dedup availableTimeRange and add in the effective time range (which is an old way of storing the current time range)
 // Always-present current day option at index 0
 const displayedDayTimeRange = computed<TimeRange>(() => {
-  const offset = getTimezoneOffset(selectedTimezone.value, singleDateSelected.value);
-  const day = singleDateSelected.value.getTime() - offset;
-  const start = day - (day % 86400000) - offset; // Start of the day in milliseconds
-  const end = start + (86400000 - 1); // End of the day in milliseconds
+  const range = rangeForSingleDay(singleDateSelected.value, selectedTimezone.value);
   return {
     id: 'displayed-day',
     name: 'Displayed Day',
-    description: `Displayed Day (${new Date(start).toLocaleDateString()})`,
-    range: { start, end }
+    description: `Displayed Day (${new Date(range.start).toLocaleDateString()})`,
+    range,
   };
+});
+
+watch(singleDateSelected, (_newDate, oldDate) => {
+  const oldRange = rangeForSingleDay(oldDate, selectedTimezone.value);
+  const displayedDateSelections = selections.value.filter(sel => {
+    const range = sel.timeRange.range;
+    return !Array.isArray(range) &&
+           range.start === oldRange.start &&
+           range.end === oldRange.end;
+  });
+  if (displayedDateSelections.length === 0) {
+    return;
+  }
+  const formatted = formatSingleRange(oldRange);
+  const oldTimeRange: TimeRange = {
+    id: v4(),
+    name: formatted,
+    description: formatted,
+    range: oldRange,
+  };
+  availableTimeRanges.value.push(oldTimeRange);
+
+  displayedDateSelections.forEach(sel => {
+    sel.timeRange = oldTimeRange;
+    markSelectionUpdated(sel);
+  });
 });
 
 watch(displayedDayTimeRange, (val) => {

@@ -29,8 +29,9 @@
         variant="outlined"
         return-object
       >
-        <template #item="{ index }">
-          <v-list-item>
+        <template #item="{ index, props }">
+          <v-list-item v-bind="props">
+            <template #title></template>
             <template #default>
               <v-list-item-title>{{ timeRanges[index].name }}</v-list-item-title>
               <v-list-item-subtitle
@@ -40,6 +41,9 @@
               </v-list-item-subtitle>
             </template>
           </v-list-item>
+        </template>
+        <template #selection="{ index }">
+          {{ timeRanges[index].name }}
         </template>
       </v-select>
 

@@ -1,3 +1,4 @@
+import { getTimezoneOffset } from "date-fns-tz";
 import type { MillisecondRange, UserSelection } from "../types";
 
 export function formatSingleRange(range: MillisecondRange): string {
@@ -35,4 +36,12 @@ export function getTimeRangeDisplay(sel: UserSelection): string {
     return `No time range set for selection ${sel.id}`;
   }
   return formatTimeRange(sel.timeRange.range);
+}
+
+export function rangeForSingleDay(day: Date, timezone: string): MillisecondRange {
+  const offset = getTimezoneOffset(timezone, day);
+  const dayUTC = day.getTime() - offset;
+  const start = dayUTC - (dayUTC % 86400000) - offset; // Start of the day in milliseconds
+  const end = start + (86400000 - 1); // End of the day in milliseconds
+  return { start, end };
 }
