@@ -1008,79 +1008,79 @@
               </v-expansion-panel>
             </v-expansion-panels>
             </div>
-          </div>
           
-          <v-btn v-if="no2GraphData.length > 0" @click="showNO2Graph = true">
-          Show NO₂ Graph
-        </v-btn>
-        <cds-dialog
-          title="Nitrogen Dioxide Data"
-          v-model="showNO2Graph"
-          draggable
-          persistent
-          :modal="false"
-          :scrim="false"
-        >
-          <v-checkbox
-            v-model="showErrorBands"
-            label="Show Errors"
-            density="compact"
-            hide-details
-          >
-          </v-checkbox>
-          <timeseries-graph
-            :data="no2GraphData.length > 0 ? no2GraphData : []"
-            :show-errors="showErrorBands"
-          />
-        </cds-dialog>
+            <v-btn v-if="no2GraphData.length > 0" @click="showNO2Graph = true">
+              Show NO₂ Graph
+            </v-btn>
+            <cds-dialog
+              title="Nitrogen Dioxide Data"
+              v-model="showNO2Graph"
+              draggable
+              persistent
+              :modal="false"
+              :scrim="false"
+            >
+              <v-checkbox
+                v-model="showErrorBands"
+                label="Show Errors"
+                density="compact"
+                hide-details
+              >
+              </v-checkbox>
+              <timeseries-graph
+                :data="no2GraphData.length > 0 ? no2GraphData : []"
+                :show-errors="showErrorBands"
+              />
+            </cds-dialog>
 
-        <v-btn v-if="o3GraphData.length > 0" @click="showO3Graph = true">
-          Show Ozone Graph
-        </v-btn>
-        <cds-dialog
-          title="Ozone Data"
-          v-model="showO3Graph"
-          draggable
-          persistent
-          :modal="false"
-          :scrim="false"
-        >
-          <v-checkbox
-            v-model="showErrorBands"
-            label="Show Errors"
-            density="compact"
-            hide-details
-          >
-          </v-checkbox>
-          <timeseries-graph
-            :data="o3GraphData.length > 0 ? o3GraphData : []"
-            :show-errors="showErrorBands"
-          />
-        </cds-dialog>
-        
-        <v-btn v-if="hchoGraphData.length > 0" @click="showHCHOGraph = true">
-          Show Formaldehyde Graph
-        </v-btn>
-        <cds-dialog
-          title="Formaldehyde Data"
-          v-model="showHCHOGraph"
-          draggable
-          persistent
-          :modal="false"
-          :scrim="false"
-        >
-          <v-checkbox
-            v-model="showErrorBands"
-            label="Show Errors"
-            density="compact"
-            hide-details
-          >
-          </v-checkbox>
-          <timeseries-graph
-            :data="hchoGraphData.length > 0 ? hchoGraphData : []"
-            :show-errors="showErrorBands"
-          />
-        </cds-dialog>
+            <v-btn v-if="o3GraphData.length > 0" @click="showO3Graph = true">
+              Show Ozone Graph
+            </v-btn>
+            <cds-dialog
+              title="Ozone Data"
+              v-model="showO3Graph"
+              draggable
+              persistent
+              :modal="false"
+              :scrim="false"
+            >
+              <v-checkbox
+                v-model="showErrorBands"
+                label="Show Errors"
+                density="compact"
+                hide-details
+              >
+              </v-checkbox>
+              <timeseries-graph
+                :data="o3GraphData.length > 0 ? o3GraphData : []"
+                :show-errors="showErrorBands"
+              />
+            </cds-dialog>
+            
+            <v-btn v-if="hchoGraphData.length > 0" @click="showHCHOGraph = true">
+              Show Formaldehyde Graph
+            </v-btn>
+            <cds-dialog
+              title="Formaldehyde Data"
+              v-model="showHCHOGraph"
+              draggable
+              persistent
+              :modal="false"
+              :scrim="false"
+            >
+              <v-checkbox
+                v-model="showErrorBands"
+                label="Show Errors"
+                density="compact"
+                hide-details
+              >
+              </v-checkbox>
+              <timeseries-graph
+                :data="hchoGraphData.length > 0 ? hchoGraphData : []"
+                :show-errors="showErrorBands"
+              />
+            </cds-dialog>
+        </div>
         
         <v-dialog
           v-model="showEditRegionNameDialog"
@@ -1653,6 +1653,17 @@ const selection = ref<UserSelectionType | null>(null);
 const tableSelection = ref<UserSelectionType | null>(null);
 const openGraphs = ref<Record<string,boolean>>({});
 
+const showTable = computed({
+  get() {
+    return tableSelection.value != null;
+  },
+  set(value: boolean) {
+    if (!value) {
+      tableSelection.value = null;
+    }
+  }
+});
+
 
 function graphTitle(selection: UserSelection): string {
   const molecule = selection.molecule;
@@ -1976,9 +1987,16 @@ async function fetchDataForSelection(sel: UserSelectionType) {
   sel.loading = false;
 
   nextTick(() => {
-    datasetRowRefs.value[sel.id]?.$forceUpdate();
+    markSelectionUpdated(sel);
   });
 
+}
+
+function markSelectionUpdated(selection: UserSelectionType) {
+  const index = selections.value.findIndex(sel => sel.id === selection.id);
+  if (index >= 0) {
+    selections.value[index] = { ...selection };
+  }
 }
 
 // 30 is the value we have been using
