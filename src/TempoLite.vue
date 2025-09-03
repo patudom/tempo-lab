@@ -759,243 +759,247 @@
                     </v-list>
                   </template>
                 </v-expansion-panel>
-              </v-expansion-panels>
-            </div>
-
-            <div id="selections">
-              <v-btn
-                size="small"
-                :active="createSelectionActive"
-                @click="createSelectionActive = !createSelectionActive"
-                class="mt-3 ml-3"
-              >
-                <template #prepend>
-                  <v-icon v-if="!createSelectionActive" icon="mdi-plus"></v-icon>
-                </template>
-                {{ createSelectionActive ? "Cancel" : "New Dataset" }}
-              </v-btn>
-              <selection-composer
-                v-show="createSelectionActive"
-                :backend="BACKEND"
-                :time-ranges="availableTimeRanges"
-                :regions="availableRegions"
-                :disabled="{ region: rectangleSelectionActive, point: pointSelectionActive, timeRange: createTimeRangeActive }"
-                @create="handleSelectionCreated"
-                :tempo-data-service="tempoDataService"
-              >
-              </selection-composer>
-              <div id="sample-info" v-if="selections.length>0" style="margin-top: 1em;" class="pl-3">
-
-                <h3>My Datasets</h3>
-                <v-list>
-                  <v-hover
-                    v-slot="{ isHovering, props }"
-                    v-for="sel in selections"
-                    :key="sel.id"
+                <v-expansion-panel
+                  title="Datasets"
+                  class="mt-3"
+                >
+                <template #text>
+                  <v-btn
+                    size="small"
+                    :active="createSelectionActive"
+                    @click="createSelectionActive = !createSelectionActive"
+                    class="mt-3 ml-3"
                   >
-                    <v-list-item
-                      v-bind="props"
-                      :ref="(el) => datasetRowRefs[sel.id] = el"
-                      class="selection-item"
-                      :style="{ 'background-color': sel.region.color }"
-                      :ripple="touchscreen"
-                      @click="() => {
-                        if (touchscreen) {
-                          openSelection = (openSelection == sel.id) ? null : sel.id;
-                        }
-                      }"
-                      lines="two"
-                    >
-                      <template #default>
-                        <div>
-                          <v-chip size="small">{{ sel.region.name }}</v-chip>
-                          <v-chip size="small">{{ moleculeName(sel.molecule) }}</v-chip>
-                          <v-chip v-if="sel.timeRange" size="small" class="text-caption">
-                            {{ sel.timeRange.description }}
-                          </v-chip>
-                        </div>
-                        <div
-                          v-if="sel.loading || !sel.samples"
-                          class="dataset-loading"
-                        >
-                          <v-progress-linear
-                            :class="['dataset-loading-progress', !(sel.loading && sel.samples) ? 'dataset-loading-failed' : '']"
-                            :active="sel.loading || !sel.samples"
-                            :color="sel.loading ? 'primary' : 'red'"
-                            :indeterminate="sel.loading"
-                            :value="!sel.loading ? 100 : 0"
-                            :striped="!sel.loading"
-                            bottom
-                            rounded
-                            height="20"
-                          >
-                            <template #default>
-                              <span class="text-subtitle-2">
-                                {{ sel.loading ? 'Data Loading' : (!sel.samples ? 'Error Loading Data' : '') }}
-                              </span>
-                            </template>
-                          </v-progress-linear>
-                          <div v-if="!(sel.loading || sel.samples)">
-                            <v-tooltip
-                              text="Failure info"
-                              location="top"
-                            >
-                              <template #activator="{ props }">
-                                <v-btn
-                                  v-bind="props"
-                                  size="x-small"
-                                  icon="mdi-help-circle"
-                                  variant="plain"
-                                  @click="() => sampleErrorID = sel.id"
-                                ></v-btn>
-                              </template>
-                            </v-tooltip>
-                            <v-tooltip
-                              text="Remove selection"
-                              location="top"
-                            >
-                              <template #activator="{ props }">
-                                <v-btn
-                                  v-bind="props"
-                                  size="x-small"
-                                  icon="mdi-trash-can"
-                                  variant="plain"
-                                  @click="() => deleteSelection(sel)"
-                                ></v-btn>
-                              </template>
-                            </v-tooltip>
-                          </div>
-                        </div>
+                    <template #prepend>
+                      <v-icon v-if="!createSelectionActive" icon="mdi-plus"></v-icon>
+                    </template>
+                    {{ createSelectionActive ? "Cancel" : "New Dataset" }}
+                  </v-btn>
+                  <selection-composer
+                    v-show="createSelectionActive"
+                    :backend="BACKEND"
+                    :time-ranges="availableTimeRanges"
+                    :regions="availableRegions"
+                    :disabled="{ region: rectangleSelectionActive, point: pointSelectionActive, timeRange: createTimeRangeActive }"
+                    @create="handleSelectionCreated"
+                    :tempo-data-service="tempoDataService"
+                  >
+                  </selection-composer>
+                  <div id="sample-info" v-if="selections.length>0" style="margin-top: 1em;" class="pl-3">
 
-                        <v-expand-transition>
-                          <div
-                            class="selection-icons"
-                            v-show="sel.samples && (touchscreen ? openSelection == sel.id : isHovering)"
-                          >
-                            <v-tooltip
-                              text="Change Selection Name"
-                              location="top"
-                            >
-                              <template #activator="{ props }">
-                                <v-btn
-                                  v-bind="props"
-                                  size="x-small"
-                                  icon="mdi-pencil"
-                                  @click="() => editSelectionName(sel)"
-                                  variant="plain"
-                                ></v-btn>
-                              </template>
-                            </v-tooltip>
-                            <v-tooltip
-                              text="Get Center Point Sample"
-                              location="top"
-                            >
-                              <template #activator="{ props }">
-                                <v-btn
-                                  v-bind="props"
-                                  size="x-small"
-                                  :loading="loadingPointSample === sel.id"
-                                  icon="mdi-image-filter-center-focus"
-                                  variant="plain"
-                                  @click="() => fetchCenterPointDataForSelection(sel)"
-                                ></v-btn>
-                              </template>
-                            </v-tooltip> 
-                            <v-tooltip
-                              text="Show table"
-                              location="top"
-                            >
-                              <template #activator="{ props }">
-                                <v-btn
-                                  v-bind="props"
-                                  size="x-small"
-                                  icon="mdi-table"
-                                  :disabled="!sel.samples"
-                                  variant="plain"
-                                  @click="() => tableSelection = sel"
-                                ></v-btn>
-                              </template>
-                            </v-tooltip>
-                            <v-tooltip
-                              text="Show graph"
-                              location="top"
-                            >
-                              <template #activator="{ props }">
-                                <v-btn
-                                  v-bind="props"
-                                  size="x-small"
-                                  icon="mdi-chart-line"
-                                  :disabled="!sel.samples"
-                                  variant="plain"
-                                  @click="() => openGraphs[sel.id] = true"
-                                ></v-btn>
-                              </template>
-                            </v-tooltip>
-                            <v-tooltip
-                              text="Remove selection"
-                              location="top"
-                            >
-                              <template #activator="{ props }">
-                                <v-btn
-                                  v-bind="props"
-                                  size="x-small"
-                                  icon="mdi-trash-can"
-                                  variant="plain"
-                                  @click="() => deleteSelection(sel)"
-                                ></v-btn>
-                              </template>
-                            </v-tooltip>
-                          </div>
-                        </v-expand-transition>
-                        <cds-dialog
-                          :title="graphTitle(sel)"
-                          v-model="openGraphs[sel.id]"
-                          title-color="#F44336"
-                          draggable
-                          persistent
-                          :scrim="false"
-                          :modal="false"
+                    <h3>My Datasets</h3>
+                    <v-list>
+                      <v-hover
+                        v-slot="{ isHovering, props }"
+                        v-for="sel in selections"
+                        :key="sel.id"
+                      >
+                        <v-list-item
+                          v-bind="props"
+                          :ref="(el) => datasetRowRefs[sel.id] = el"
+                          class="selection-item"
+                          :style="{ 'background-color': sel.region.color }"
+                          :ripple="touchscreen"
+                          @click="() => {
+                            if (touchscreen) {
+                              openSelection = (openSelection == sel.id) ? null : sel.id;
+                            }
+                          }"
+                          lines="two"
                         >
-                          <v-checkbox
-                            v-model="showErrorBands"
-                            label="Show Errors"
-                            density="compact"
-                            hide-details
-                          >
-                          </v-checkbox>
-                          <timeseries-graph
-                            :data="sel ? [sel] : []"
-                            :show-errors="showErrorBands"
-                          />
-                        </cds-dialog>
-                        <v-dialog
-                          :model-value="sampleErrorID !== null"
-                          max-width="50%"
-                        >
-                          <v-card>
-                            <v-toolbar
-                              density="compact"
+                          <template #default>
+                            <div>
+                              <v-chip size="small">{{ sel.region.name }}</v-chip>
+                              <v-chip size="small">{{ moleculeName(sel.molecule) }}</v-chip>
+                              <v-chip v-if="sel.timeRange" size="small" class="text-caption">
+                                {{ sel.timeRange.description }}
+                              </v-chip>
+                            </div>
+                            <div
+                              v-if="sel.loading || !sel.samples"
+                              class="dataset-loading"
                             >
-                              <v-toolbar-title text="Error Loading Data"></v-toolbar-title>
-                              <v-spacer></v-spacer>
-                              <v-btn
-                                icon="mdi-close"
-                                @click="sampleErrorID = null"
+                              <v-progress-linear
+                                :class="['dataset-loading-progress', !(sel.loading && sel.samples) ? 'dataset-loading-failed' : '']"
+                                :active="sel.loading || !sel.samples"
+                                :color="sel.loading ? 'primary' : 'red'"
+                                :indeterminate="sel.loading"
+                                :value="!sel.loading ? 100 : 0"
+                                :striped="!sel.loading"
+                                bottom
+                                rounded
+                                height="20"
                               >
-                              </v-btn>
-                            </v-toolbar>
-                            <v-card-text>
-                              There was an error loading data for this selection. Either there is no data for the
-                              region/time range/molecule combination that you selected, or there was an error loading
-                              data from the server. You can delete this selection and try making a new one.
-                            </v-card-text>
-                          </v-card>
-                        </v-dialog>
-                      </template>
-                    </v-list-item>
-                  </v-hover>
-                </v-list>
-              </div>
+                                <template #default>
+                                  <span class="text-subtitle-2">
+                                    {{ sel.loading ? 'Data Loading' : (!sel.samples ? 'Error Loading Data' : '') }}
+                                  </span>
+                                </template>
+                              </v-progress-linear>
+                              <div v-if="!(sel.loading || sel.samples)">
+                                <v-tooltip
+                                  text="Failure info"
+                                  location="top"
+                                >
+                                  <template #activator="{ props }">
+                                    <v-btn
+                                      v-bind="props"
+                                      size="x-small"
+                                      icon="mdi-help-circle"
+                                      variant="plain"
+                                      @click="() => sampleErrorID = sel.id"
+                                    ></v-btn>
+                                  </template>
+                                </v-tooltip>
+                                <v-tooltip
+                                  text="Remove selection"
+                                  location="top"
+                                >
+                                  <template #activator="{ props }">
+                                    <v-btn
+                                      v-bind="props"
+                                      size="x-small"
+                                      icon="mdi-trash-can"
+                                      variant="plain"
+                                      @click="() => deleteSelection(sel)"
+                                    ></v-btn>
+                                  </template>
+                                </v-tooltip>
+                              </div>
+                            </div>
+
+                            <v-expand-transition>
+                              <div
+                                class="selection-icons"
+                                v-show="sel.samples && (touchscreen ? openSelection == sel.id : isHovering)"
+                              >
+                                <v-tooltip
+                                  text="Change Selection Name"
+                                  location="top"
+                                >
+                                  <template #activator="{ props }">
+                                    <v-btn
+                                      v-bind="props"
+                                      size="x-small"
+                                      icon="mdi-pencil"
+                                      @click="() => editSelectionName(sel)"
+                                      variant="plain"
+                                    ></v-btn>
+                                  </template>
+                                </v-tooltip>
+                                <v-tooltip
+                                  text="Get Center Point Sample"
+                                  location="top"
+                                >
+                                  <template #activator="{ props }">
+                                    <v-btn
+                                      v-bind="props"
+                                      size="x-small"
+                                      :loading="loadingPointSample === sel.id"
+                                      icon="mdi-image-filter-center-focus"
+                                      variant="plain"
+                                      @click="() => fetchCenterPointDataForSelection(sel)"
+                                    ></v-btn>
+                                  </template>
+                                </v-tooltip> 
+                                <v-tooltip
+                                  text="Show table"
+                                  location="top"
+                                >
+                                  <template #activator="{ props }">
+                                    <v-btn
+                                      v-bind="props"
+                                      size="x-small"
+                                      icon="mdi-table"
+                                      :disabled="!sel.samples"
+                                      variant="plain"
+                                      @click="() => tableSelection = sel"
+                                    ></v-btn>
+                                  </template>
+                                </v-tooltip>
+                                <v-tooltip
+                                  text="Show graph"
+                                  location="top"
+                                >
+                                  <template #activator="{ props }">
+                                    <v-btn
+                                      v-bind="props"
+                                      size="x-small"
+                                      icon="mdi-chart-line"
+                                      :disabled="!sel.samples"
+                                      variant="plain"
+                                      @click="() => openGraphs[sel.id] = true"
+                                    ></v-btn>
+                                  </template>
+                                </v-tooltip>
+                                <v-tooltip
+                                  text="Remove selection"
+                                  location="top"
+                                >
+                                  <template #activator="{ props }">
+                                    <v-btn
+                                      v-bind="props"
+                                      size="x-small"
+                                      icon="mdi-trash-can"
+                                      variant="plain"
+                                      @click="() => deleteSelection(sel)"
+                                    ></v-btn>
+                                  </template>
+                                </v-tooltip>
+                              </div>
+                            </v-expand-transition>
+                            <cds-dialog
+                              :title="graphTitle(sel)"
+                              v-model="openGraphs[sel.id]"
+                              title-color="#F44336"
+                              draggable
+                              persistent
+                              :scrim="false"
+                              :modal="false"
+                            >
+                              <v-checkbox
+                                v-model="showErrorBands"
+                                label="Show Errors"
+                                density="compact"
+                                hide-details
+                              >
+                              </v-checkbox>
+                              <timeseries-graph
+                                :data="sel ? [sel] : []"
+                                :show-errors="showErrorBands"
+                              />
+                            </cds-dialog>
+                            <v-dialog
+                              :model-value="sampleErrorID !== null"
+                              max-width="50%"
+                            >
+                              <v-card>
+                                <v-toolbar
+                                  density="compact"
+                                >
+                                  <v-toolbar-title text="Error Loading Data"></v-toolbar-title>
+                                  <v-spacer></v-spacer>
+                                  <v-btn
+                                    icon="mdi-close"
+                                    @click="sampleErrorID = null"
+                                  >
+                                  </v-btn>
+                                </v-toolbar>
+                                <v-card-text>
+                                  There was an error loading data for this selection. Either there is no data for the
+                                  region/time range/molecule combination that you selected, or there was an error loading
+                                  data from the server. You can delete this selection and try making a new one.
+                                </v-card-text>
+                              </v-card>
+                            </v-dialog>
+                          </template>
+                        </v-list-item>
+                      </v-hover>
+                    </v-list>
+                  </div>
+                </template>
+              </v-expansion-panel>
+            </v-expansion-panels>
             </div>
           </div>
           
