@@ -2145,7 +2145,8 @@ function deleteSelection(sel: UserSelectionType) {
     }
   }
 
-  datasetRowRefs.value[sel.id] = null;
+  delete datasetRowRefs.value[sel.id];
+  delete openGraphs.value[sel.id];
 }
 
 
