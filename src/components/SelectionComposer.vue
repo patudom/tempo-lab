@@ -24,12 +24,23 @@
         v-model="selectedTimeRange"
         label="Time Range"
         :disabled="disabled?.timeRange"
-        item-title="name"
         density="compact"
         hide-details
         variant="outlined"
         return-object
-        >
+      >
+        <template #item="{ index }">
+          <v-list-item>
+            <template #default>
+              <v-list-item-title>{{ timeRanges[index].name }}</v-list-item-title>
+              <v-list-item-subtitle
+                v-if="timeRanges[index].name === 'Displayed Day'"
+              >
+                {{ new Date((timeRanges[index].range as MillisecondRange).start).toDateString() }}
+              </v-list-item-subtitle>
+            </template>
+          </v-list-item>
+        </template>
       </v-select>
 
       <!-- Molecule Picker -->
