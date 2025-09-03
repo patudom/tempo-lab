@@ -546,7 +546,7 @@
                     :preview-format="(date: Date | null) => date?.toDateString()"
                     no-today
                     dark
-                    :year-range="[uniqueDays[0].getFullYear(), uniqueDays[uniqueDays.length - 1].getFullYear()]"
+                    :year-range="[uniqueDays[0]?.getFullYear(), uniqueDays[uniqueDays.length - 1]?.getFullYear()]"
                   >
                     <template #action-buttons>
                       <button
