@@ -691,8 +691,7 @@
                       <v-list-item
                         v-for="(timeRange, index) in availableTimeRanges"
                         :key="index"
-                        :title="timeRange.name"
-                        :subtitle="timeRange.description"
+                        :title="timeRange.name === 'Displayed Day' ? timeRange.name : formatTimeRange(timeRange.range)"
                       >
                         <template #append>
                           <v-btn

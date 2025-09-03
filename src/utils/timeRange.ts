@@ -6,9 +6,15 @@ export function formatTimeRange(ranges: MillisecondRange | MillisecondRange[]): 
       return 'No time range set';
     }
     
+    console.log(ranges.length);
     if (ranges.length === 1) {
       const range = ranges[0];
-      return `${new Date(range.start).toLocaleDateString()} - ${new Date(range.end).toLocaleDateString()}`;
+      const startString = new Date(range.start).toLocaleDateString();
+      const endString = new Date(range.end).toLocaleDateString();
+      if (startString === endString) {
+        return startString;
+      }
+      return `${startString} - ${endString}`;
     } else {
       // For multiple ranges, show the full span
       const allStarts = ranges.map(r => r.start);
@@ -18,7 +24,12 @@ export function formatTimeRange(ranges: MillisecondRange | MillisecondRange[]): 
       return `${new Date(minStart).toLocaleDateString()} - ${new Date(maxEnd).toLocaleDateString()} (${ranges.length} ranges)`;
     }
   } else {
-    return `${new Date(ranges.start).toLocaleDateString()} - ${new Date(ranges.end).toLocaleDateString()}`;
+    const startString = new Date(ranges.start).toLocaleDateString();
+    const endString = new Date(ranges.end).toLocaleDateString();
+    if (startString === endString) {
+      return startString;
+    }
+    return `${startString} - ${endString}`;
   }
 }
 
