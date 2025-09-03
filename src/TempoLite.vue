@@ -2103,19 +2103,24 @@ watch(singleDateSelected, (_newDate, oldDate) => {
   if (displayedDateSelections.length === 0) {
     return;
   }
-  const formatted = formatSingleRange(oldRange);
-  const oldTimeRange: TimeRange = {
-    id: v4(),
-    name: formatted,
-    description: formatted,
-    range: oldRange,
-  };
-  availableTimeRanges.value.push(oldTimeRange);
 
-  displayedDateSelections.forEach(sel => {
-    sel.timeRange = oldTimeRange;
-    markSelectionUpdated(sel);
+  const index = availableTimeRanges.value.findIndex(timeRange => {
+    const range = timeRange.range;
+    return !Array.isArray(range) &&
+           range.start === oldRange.start &&
+           range.end === oldRange.end &&
+           timeRange.id !== "displayed-day";
   });
+  if (index < 0) {
+    const formatted = formatSingleRange(oldRange);
+    const oldTimeRange: TimeRange = {
+      id: v4(),
+      name: formatted,
+      description: formatted,
+      range: oldRange,
+    };
+    availableTimeRanges.value.push(oldTimeRange);
+  }
 });
 
 watch(displayedDayTimeRange, (val) => {
