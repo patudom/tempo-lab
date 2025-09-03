@@ -1475,7 +1475,7 @@ const sublocationRadio = ref<number | null>(null);
 
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const { currentBounds: imageBounds } = useBounds(date); // 45 is approx the size of the MODIS swath in degrees
+const { currentBounds: imageBounds } = useBounds(date); 
 
 
 
