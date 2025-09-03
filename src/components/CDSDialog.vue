@@ -1,7 +1,10 @@
 <template>
   <v-dialog 
-    :class="`cds-dialog ${displayedShortTitle.toLowerCase().replace(/ /g, '-')}-cds-dialog`" 
+    :class="['cds-dialog', `${displayedShortTitle.toLowerCase().replace(/ /g, '-')}-cds-dialog`, !modal ? 'nonmodal' : '']" 
     v-model="showDialog" 
+    :scrim="scrim"
+    :persistent="persistent"
+    :no-click-animation="!modal"
     >
     <!-- add the activator slot, but only use it if the appropriate value is given for activator -->
      <template v-slot:activator="$attrs">
@@ -64,6 +67,9 @@ interface CDSDialogProps {
   shortTitle?: string;
   draggable?: boolean;
   button?: boolean;
+  scrim?: boolean;
+  persistent?: boolean;
+  modal?: boolean;
 }
 
 const props = withDefaults(defineProps<CDSDialogProps>(), {
@@ -73,6 +79,9 @@ const props = withDefaults(defineProps<CDSDialogProps>(), {
   draggable: false,
   button: false,
   titleColor: "primary",
+  scrim: true,
+  persistent: false,
+  modal: true,
 });
 
 const emit = defineEmits<{
@@ -147,5 +156,17 @@ watch(() => props.modelValue, value => {
 .cds-dialog .v-card-text {
   height: fit-content;
   max-height: 60vh;
+}
+
+.cds-dialog.nonmodal {
+
+  .v-overlay__content {
+    visibility: hidden;
+
+    .v-card {
+      visibility: visible;
+    }
+  }
+
 }
 </style>

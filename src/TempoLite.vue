@@ -979,6 +979,10 @@
                   :title="graphSelectionTitle"
                   v-model="showGraph"
                   title-color="#F44336"
+                  draggable
+                  persistent
+                  :scrim="false"
+                  :modal="false"
                 >
                   <v-checkbox
                     v-model="showErrorBands"
@@ -1002,6 +1006,10 @@
         <cds-dialog
           title="Nitrogen Dioxide Data"
           v-model="showNO2Graph"
+          draggable
+          persistent
+          :modal="false"
+          :scrim="false"
         >
           <v-checkbox
             v-model="showErrorBands"
@@ -1022,6 +1030,10 @@
         <cds-dialog
           title="Ozone Data"
           v-model="showO3Graph"
+          draggable
+          persistent
+          :modal="false"
+          :scrim="false"
         >
           <v-checkbox
             v-model="showErrorBands"
@@ -1042,6 +1054,10 @@
         <cds-dialog
           title="Formaldehyde Data"
           v-model="showHCHOGraph"
+          draggable
+          persistent
+          :modal="false"
+          :scrim="false"
         >
           <v-checkbox
             v-model="showErrorBands"
@@ -1102,6 +1118,10 @@
         <cds-dialog 
           title="NO₂ Samples" 
           v-model="showTable"
+          draggable
+          persistent
+          :modal="false"
+          :scrim="false"
           >
           <div 
             v-if="loadingSamples === 'loading'" 
