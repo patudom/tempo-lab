@@ -1986,9 +1986,7 @@ async function fetchDataForSelection(sel: UserSelectionType) {
 
   sel.loading = false;
 
-  nextTick(() => {
-    markSelectionUpdated(sel);
-  });
+  markSelectionUpdated(sel);
 
 }
 
