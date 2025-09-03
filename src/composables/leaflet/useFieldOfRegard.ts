@@ -5,7 +5,7 @@ import L from "leaflet";
 import fieldOfRegard from "@/assets/TEMPO_FOR.json";
 import augustFieldOfRegard from "@/assets/august_for.json";
 
-export function useFieldOfRegard(date: Ref<Date>, map: Ref<L.Map | null>) {
+export function useFieldOfRegard(date: Ref<Date | null>, map: Ref<L.Map | null>) {
   const showFieldOfRegard = ref(true);
   let usingAugust = true as boolean | null;
 
@@ -23,7 +23,7 @@ export function useFieldOfRegard(date: Ref<Date>, map: Ref<L.Map | null>) {
   ));
   
   function updateFieldOfRegard() {
-    if (date.value.getUTCFullYear() === 2023 && date.value.getUTCMonth() === 7) {
+    if (date.value !== null && date.value.getUTCFullYear() === 2023 && date.value.getUTCMonth() === 7) {
       fieldOfRegardLayer.value.clearLayers();
       fieldOfRegardLayer.value.addData(augustFieldOfRegard as GeoJSON.GeometryCollection);
       usingAugust = true;

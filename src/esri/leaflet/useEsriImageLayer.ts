@@ -7,7 +7,7 @@ export const no2Url = ref('https://gis.earthdata.nasa.gov/image/rest/services/C2
 
 
 
-export function useEsriLayer(_url: string, variableName: VariableNames, timestamp: Ref<number>, opacity: MaybeRef<number>) {
+export function useEsriLayer(_url: string, variableName: VariableNames, timestamp: Ref<number | null>, opacity: MaybeRef<number>) {
   const esriTimesteps = ref([] as number[]);
   const esriImageLayer = ref(null as ImageMapLayer | null);
 
@@ -40,6 +40,7 @@ export function useEsriLayer(_url: string, variableName: VariableNames, timestam
 
 
   function updateEsriTimeRange() {
+    if (timestamp.value === null) return;
     const now = timestamp.value;
     if (esriTimesteps.value.length === 0) {
       console.warn('No ESRI time steps available');
@@ -133,7 +134,7 @@ export function useEsriLayer(_url: string, variableName: VariableNames, timestam
 
   
   
-  watch(timestamp, (_value: number) => {
+  watch(timestamp, (_value: number | null) => {
     updateEsriTimeRange();
   }, { immediate: true });
 

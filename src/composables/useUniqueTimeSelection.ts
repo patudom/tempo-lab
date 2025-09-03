@@ -56,12 +56,15 @@ export const useUniqueTimeSelection = (timestamps: Ref<number[]>) => {
   }
 
   const timestamp = computed(() => {
+    if (timestamps.value.length === 0) {
+      return null;
+    }
     const val = timestamps.value[timeIndex.value];
     return val;
   });
 
   const date = computed(() => {
-    return new Date(timestamp.value);
+    return timestamp.value ? new Date(timestamp.value) : null;
   });
 
   const offset = (date: Date) => getTimezoneOffset("US/Eastern", date);
@@ -122,7 +125,9 @@ export const useUniqueTimeSelection = (timestamps: Ref<number[]>) => {
   }
 
   watch(singleDateSelected, (value) => {
-    setNearestDate(value.getTime());
+    if (value) { 
+      setNearestDate(value.getTime());
+    }
   });
   
   watch(mode, () => {
@@ -137,7 +142,7 @@ export const useUniqueTimeSelection = (timestamps: Ref<number[]>) => {
       return;
     }
     // Reset to first date if current date is out of range
-    if (timeIndex.value >= newTimestamps.length) {
+    if (timeIndex.value ==null || timeIndex.value >= newTimestamps.length) {
       timeIndex.value = 0;
       singleDateSelected.value = new Date(newTimestamps[0]);
     } else {

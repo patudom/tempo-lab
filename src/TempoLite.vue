@@ -1424,8 +1424,8 @@ function zpad(n: number, width: number = 2, character: string = "0"): string {
 import { AllAvailableColorMaps } from "./colormaps";
 import { ESRI_URLS, MOLECULE_OPTIONS, MoleculeType } from "./esri/utils";
 
-const initialDate = new Date();
-const timestamps = ref<number[]>([initialDate.getTime()]); // we need _something_ so that downstream steps have valid dates to initialize with. 
+
+const timestamps = ref<number[]>([]); // we need _something_ so that downstream steps have valid dates to initialize with. 
 const {
   timeIndex,
   timestamp,
@@ -1441,15 +1441,6 @@ const {
   nearestDateIndex } = useUniqueTimeSelection(timestamps);
 
 const timestampsLoaded = ref(false);
-const timestampsSet = ref(new Set(timestamps.value));
-// append and Set timestamps
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function appendTimestamps(newTimestamps: number[][]) {
-  if (newTimestamps.length > 0) {
-    timestamps.value = timestamps.value.concat(...newTimestamps).sort();
-    timestampsSet.value = new Set(timestamps.value);
-  }
-}
 
 
 
@@ -1484,7 +1475,7 @@ const sublocationRadio = ref<number | null>(null);
 
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const { currentBounds: imageBounds } = useBounds(date);
+const { currentBounds: imageBounds } = useBounds(date); // 45 is approx the size of the MODIS swath in degrees
 
 
 
@@ -1572,14 +1563,14 @@ watch(esriTimesteps, (newSteps, _oldSteps) => {
 });
 // renderOptions.value.colormap = 'Plasma';
 
-function handleEsriTimeSelected(timestamp:number, _index: number) {
-  const idx = timestamps.value.indexOf(timestamp);
-  console.log(`ESRI time selected: ${new Date(timestamp)} (nearest index ${idx})`);
+function handleEsriTimeSelected(ts:number, _index: number) {
+  const idx = timestamps.value.indexOf(ts);
+  console.log(`ESRI time selected: ${new Date(ts)} (nearest index ${idx})`);
   if (idx >= 0) {
     timeIndex.value = idx;
   }
   // We may need something like this when we get back the monthly average service.
-  //singleDateSelected.value = new Date(timestamp);
+  //singleDateSelected.value = new Date(ts);
 }
 
 watch(whichMolecule, (newMolecule) => {
@@ -2167,8 +2158,10 @@ onMounted(() => {
     }
   });
 
+  if (uniqueDays.value.length > 0) {
+    singleDateSelected.value = uniqueDays.value[uniqueDays.value.length - 1];
+  }
   
-  singleDateSelected.value = uniqueDays.value[uniqueDays.value.length - 1];
   
   updateFieldOfRegard();
   addFieldOfRegard();
@@ -2191,6 +2184,9 @@ const datesOfInterest = computed(() => {
 });
 
 const dateIsDST = computed(() => {
+  if (!date.value) {
+    return false;
+  }
   const standardOffset = getTimezoneOffset(selectedTimezone.value, new Date(date.value.getUTCFullYear(), 0, 1));
   const currentOffset = getTimezoneOffset(selectedTimezone.value, date.value);
   if (standardOffset === currentOffset) {
@@ -2213,6 +2209,9 @@ const timezoneOptions = computed(() => {
 
 // TODO: Maybe there's a built-in Date function to get this formatting?
 const thumbLabel = computed(() => {
+  if (date.value === null || timestamp.value === null) {
+    return '';
+  }
   const offset = getTimezoneOffset(selectedTimezone.value, date.value);
   const dateObj = new Date(timestamp.value + offset);
   const hours = dateObj.getUTCHours();
@@ -2556,6 +2555,9 @@ watch(showLocationMarker, (show: boolean) => {
 });
 
 watch(timestamps, () => {
+  if (uniqueDays.value.length === 0) {
+    return;
+  }
   singleDateSelected.value = uniqueDays.value[uniqueDays.value.length - 1];
 });
 
@@ -2676,7 +2678,6 @@ watch(openPanels, (open: number[]) => {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function handleSelectionRegionEdit(info: RectangleSelectionInfo) { 
-
   // Update the existing selection
   const currentSelection = selections.value[selectedIndex.value];
   currentSelection.region.geometryInfo = info;
