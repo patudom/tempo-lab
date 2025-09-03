@@ -1642,6 +1642,17 @@ const selection = ref<UserSelectionType | null>(null);
 const tableSelection = ref<UserSelectionType | null>(null);
 const openGraphs = ref<Record<string,boolean>>({});
 
+const showTable = computed({
+  get() {
+    return tableSelection.value != null;
+  },
+  set(value: boolean) {
+    if (!value) {
+      tableSelection.value = null;
+    }
+  }
+});
+
 
 function graphTitle(selection: UserSelection): string {
   const molecule = selection.molecule;
