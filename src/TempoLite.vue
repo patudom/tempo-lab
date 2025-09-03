@@ -2071,22 +2071,22 @@ const availableTimeRanges = ref<TimeRange[]>([]);
 
 // Dedup helper removed (no longer needed)
 
-// dedup avaialbeTimeRange and add in the effective time range (which is an old way of storing the current time range)
+// dedup availableTimeRange and add in the effective time range (which is an old way of storing the current time range)
 // Always-present current day option at index 0
-const currentDayTimeRange = computed<TimeRange>(() => {
+const displayedDayTimeRange = computed<TimeRange>(() => {
   const offset = getTimezoneOffset(selectedTimezone.value, singleDateSelected.value);
   const day = singleDateSelected.value.getTime() - offset;
   const start = day - (day % 86400000) - offset; // Start of the day in milliseconds
   const end = start + (86400000 - 1); // End of the day in milliseconds
   return {
-    id: 'current-day',
-    name: 'Current Day',
-    description: `Current Day (${new Date(start).toLocaleDateString()})`,
+    id: 'displayed-day',
+    name: 'Displayed Day',
+    description: `Displayed Day (${new Date(start).toLocaleDateString()})`,
     range: { start, end }
   };
 });
 
-watch(currentDayTimeRange, (val) => {
+watch(displayedDayTimeRange, (val) => {
   // console.log(singleDateSelected.value, getTimezoneOffset(selectedTimezone.value, singleDateSelected.value), val,);
   if (!availableTimeRanges.value.length) {
     availableTimeRanges.value.push(val);
