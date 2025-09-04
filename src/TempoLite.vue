@@ -355,7 +355,19 @@
               </template>
             </v-tooltip>
           </v-toolbar>
-          <div id="map">
+          <maplibre-map
+            mapID="map"
+            :initial="initState"
+            :home="homeState"
+            :show-roads="showRoads"
+            :events="{
+              'moveend': updateURL,
+              'zoomend': updateURL,
+            }"
+            @zoomhome="onZoomhome"
+            @ready="onMapReady"
+            ref="maplibreMap"
+            >
             <v-overlay
               :modelValue="loadingEsriTimeSteps"
               style="z-index: 1000;"
@@ -377,7 +389,7 @@
               </v-progress-circular>
               </div>
             </v-overlay>
-          </div>
+          </maplibre-map>
 
           <div v-if="showFieldOfRegard" id="map-legend"><hr class="line-legend">TEMPO Field of Regard</div>
           <!-- show hide cloud data, disable if none is available -->
@@ -1225,7 +1237,7 @@
 </template>
   
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, nextTick } from "vue";
+import { ref, computed, watch, onMounted, nextTick, type Ref } from "vue";
 import { API_BASE_URL, blurActiveElement } from "@cosmicds/vue-toolkit";
 import { useDisplay } from 'vuetify';
 import { DatePickerInstance } from "@vuepic/vue-datepicker";
@@ -1249,6 +1261,7 @@ import { useUniqueTimeSelection } from "./composables/useUniqueTimeSelection";
 import DateTimeRangeSelection from "./date_time_range_selection/DateTimeRangeSelection.vue";
 import TimeChips from "./components/TimeChips.vue";
 import CTextField from "./components/CTextField.vue";
+import MaplibreMap from "./components/MaplibreMap.vue";
 // Import Leaflet Composables
 // import { useMap } from "./composables/leaflet/useMap";
 // import { usezoomhome } from './composables/leaflet/useZoomHome';
@@ -1262,8 +1275,6 @@ import CTextField from "./components/CTextField.vue";
 // const zoomScale = 1; 
 
 // Import Maplibre Composables
-import { useMap } from "./composables/maplibre/useMap";
-import { usezoomhome } from './composables/maplibre/useZoomHome';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { useImageOverlay } from "./composables/maplibre/useImageOverlay";
 import { useFieldOfRegard} from "./composables/maplibre/useFieldOfRegard";
@@ -1624,25 +1635,32 @@ watch(whichMolecule, (newMolecule) => {
   colorMap.value = colorbarOptions[newMolecule].colormap.toLowerCase();
 });
 
-const onMapReady = (map) => {
-  map.on('moveend', updateURL);
-  map.on('zoomend', updateURL);
-  addEsriSource(map);
-};
+
 const showRoads = ref(true);
-const { map, createMap, setView } = useMap("map", initState.value, showRoads, onMapReady);
+// const { map, createMap, setView } = useMap("map", initState.value, showRoads, onMapReady);
+import type { Map } from "maplibre-gl";
+import { useTemplateRef } from "vue";
+const maplibreMap = useTemplateRef<InstanceType<typeof MaplibreMap>>("maplibreMap");
+type MapType = Map | null;
+type MapTypeRef = Ref<MapType>;
+const map = ref<MapType>(null);
+
+const onMapReady = (m) => {
+  map.value = m;
+  addEsriSource(m);
+};
 
 const { 
   addFieldOfRegard,
   showFieldOfRegard,
   updateFieldOfRegard 
-} = useFieldOfRegard(singleDateSelected, map);
+} = useFieldOfRegard(singleDateSelected, map as Ref<Map | null>);
 
 const {
   setMarker,
   removeMarker,
   locationMarker
-} = useLocationMarker(map,  showLocationMarker.value);
+} = useLocationMarker(map  as Ref<Map | null>,  showLocationMarker.value);
 
 
 const regions = ref<UnifiedRegionType[]>([]);
@@ -1752,8 +1770,8 @@ const COLORS = [
 ];
 
 // implement rectangle and point
-const { active: rectangleSelectionActive, selectionInfo: rectangleInfo } = useRectangleSelection(map, "red");
-const { active: pointSelectionActive, selectionInfo: pointInfo } = usePointSelection(map, false);
+const { active: rectangleSelectionActive, selectionInfo: rectangleInfo } = useRectangleSelection(map as MapTypeRef, "red");
+const { active: pointSelectionActive, selectionInfo: pointInfo } = usePointSelection(map as MapTypeRef, false);
 
 const loadingSamples = ref<string | false>(false);
 
@@ -1777,7 +1795,7 @@ const datasetRowRefs = ref({});
 const useCustomTimeRange = ref(true); // Binary choice: false = current day, true = custom range
 
 // Store markers for timeseries locations
-const timeseriesMarkerApi = useMultiMarker(map, {
+const timeseriesMarkerApi = useMultiMarker(map as MapTypeRef, {
   shape: 'circle',
   color: '#ff0000',
   fillColor: '#ff0000',
@@ -1794,7 +1812,7 @@ function clearTimeseriesMarkers() {
   timeseriesMarkerApi.clearMarkers();
 }
 
-const samplingPreviewMarkers = useMultiMarker(map, {
+const samplingPreviewMarkers = useMultiMarker(map as MapTypeRef , {
   shape: 'circle',
   color: '#0000ff',
   fillColor: '#0000ff',
@@ -2043,8 +2061,8 @@ function createDraftSelection(info: RectangleSelectionInfo | PointSelectionInfo,
   
   const isRect = geometryType === 'rectangle';
   const { layer } = isRect ? 
-    addRectangleLayer(map.value!, info as RectangleSelectionInfo, color)
-    : addPointLayer(map.value!, info as PointSelectionInfo, color);
+    addRectangleLayer((map.value as MapType)!, info as RectangleSelectionInfo, color)
+    : addPointLayer((map.value as MapType)!, info as PointSelectionInfo, color);
 
 
   const newSelection = {
@@ -2061,7 +2079,7 @@ function createDraftSelection(info: RectangleSelectionInfo | PointSelectionInfo,
 }
 
 function moveMapToRegion(region: UnifiedRegionType) {
-  const mapV = map.value;
+  const mapV = map.value as MapType;
   if (!mapV) {
     return;
   }
@@ -2154,9 +2172,9 @@ function deleteRegion(region: UnifiedRegionType) {
   }
   if (map.value && region.layer) {
     if (isRectangleSelection(region)) {
-      removeRectangleLayer(map.value, region.layer);
+      removeRectangleLayer(map.value as Map, region.layer);
     } else if (isPointSelection(region)) {
-      removePointLayer(map.value, region.layer);
+      removePointLayer(map.value as Map, region.layer);
     }
   }
   regions.value.splice(index, 1);
@@ -2186,27 +2204,24 @@ function deleteSelection(sel: UserSelectionType) {
   delete openGraphs.value[sel.id];
 }
 
-
+function onZoomhome() {
+  if (locationMarker.value !== null) {
+    removeMarker();
+  }
+}
 
 onMounted(() => {
   showSplashScreen.value = false;
-  createMap();
-  
-  usezoomhome(map, homeState.value.loc, homeState.value.zoom, (_e: Event) => {
-    sublocationRadio.value = null;
-    // check if location marker is not null and on map. if so remove it
-    if (locationMarker.value !== null) {
-      removeMarker();
-    }
-  });
 
   if (uniqueDays.value.length > 0) {
     singleDateSelected.value = uniqueDays.value[uniqueDays.value.length - 1];
   }
   
-  
-  updateFieldOfRegard();
-  addFieldOfRegard();
+  maplibreMap.value?.onReady.then( () => {
+    console.log("Maplibre map is ready (onMounted)");
+    addFieldOfRegard();
+    updateFieldOfRegard();
+  });
 
   createUserEntry();
   window.addEventListener("visibilitychange", () => {
@@ -2311,7 +2326,7 @@ async function geocodingInfoForSearchLimited(searchText: string): Promise<MapBox
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function resetMapBounds() {
-  setView([40.044, -98.789] as LatLngPair, 4);
+  maplibreMap.value?.setView([40.044, -98.789] as LatLngPair, 4);
 }
 
 function setLocationFromSearch(items: [MapBoxFeature | null, string]) {
@@ -2319,7 +2334,7 @@ function setLocationFromSearch(items: [MapBoxFeature | null, string]) {
   if (feature !== null) {
     // Latitude, Longitude order
     const coordinates: LatLngPair = [feature.center[1], feature.center[0]] as LatLngPair;
-    setView(coordinates, 12);
+    maplibreMap.value?.setView(coordinates, 12);
     setMarker(coordinates);
     userSelectedLocations.push(text);
   }
@@ -2363,7 +2378,7 @@ function goToLocationOfInterst(index: number, subindex: number) {
     return;
   }
   const loi = locationsOfInterest.value[index][subindex];
-  setView(loi.latlng, loi.zoom * zoomScale); // Adjust zoom level for maplibre
+  maplibreMap.value?.setView(loi.latlng, loi.zoom * zoomScale); // Adjust zoom level for maplibre
   if (loi.index !== undefined) {
     timeIndex.value = loi.index;
   } else {
@@ -2529,7 +2544,7 @@ watch(timestampsLoaded, (loaded: boolean) => {
   }
 });
 
-watch(timestamp, (_val: number) => {
+watch(timestamp, (_val: number | null) => {
   updateURL();
 });
 
@@ -2587,7 +2602,7 @@ watch(showClouds, (_show: boolean) => {
 watch(showLocationMarker, (show: boolean) => {
   if (locationMarker.value) {
     if (show && map.value) {
-      locationMarker.value.addTo(map.value);
+      locationMarker.value.addTo(map.value as Map);
       return;
     } else {
       locationMarker.value.remove();
@@ -2721,6 +2736,10 @@ watch(openPanels, (open: number[]) => {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function handleSelectionRegionEdit(info: RectangleSelectionInfo) { 
   // Update the existing selection
+  if (selectedIndex.value === null) {
+    console.log('No selection is currently selected for editing.');
+    return;
+  }
   const currentSelection = selections.value[selectedIndex.value];
   currentSelection.region.geometryInfo = info;
   currentSelection.samples = undefined; // Clear existing data
@@ -2730,7 +2749,7 @@ function handleSelectionRegionEdit(info: RectangleSelectionInfo) {
     updateRectangleBounds(rect, info);
   }
     
-  console.log(`Updated existing selection: ${currentSelection.name} (time range unchanged)`);
+  console.log(`Updated existing selection: ${currentSelection.id} (time range unchanged)`);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
