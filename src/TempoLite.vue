@@ -695,6 +695,7 @@
                       >
                         <template #append>
                           <v-btn
+                            v-if="timeRangeHasDatasets(timeRange)"
                             variant="plain"
                             v-tooltip="'Delete'"
                             icon="mdi-delete"
@@ -1868,6 +1869,10 @@ function isRectangleSelection(selection: UnifiedRegionType): selection is Rectan
 
 function isPointSelection(selection: UnifiedRegionType): selection is PointSelectionType {
   return selection.geometryType === 'point';
+}
+
+function timeRangeHasDatasets(range: TimeRange): boolean {
+  return selections.value.find(s => s.timeRange.id === range.id) !== undefined;
 }
 
 function regionHasSamples(region: UnifiedRegionType): boolean {
