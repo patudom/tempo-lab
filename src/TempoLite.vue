@@ -695,7 +695,7 @@
                       >
                         <template #append>
                           <v-btn
-                            v-if="timeRangeHasDatasets(timeRange)"
+                            v-if="timeRange.id !== 'displayed-day' || timeRangeHasDatasets(timeRange)"
                             variant="plain"
                             v-tooltip="'Delete'"
                             icon="mdi-delete"
