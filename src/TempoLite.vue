@@ -295,225 +295,200 @@
     </div>
     <div id="where" class="big-label">where</div>
       <div id="map-container">
-        <colorbar-horizontal
-          v-if="display.width.value <= 750"
-          label="Amount of NO2"
-          backgroundColor="transparent"
-          :nsteps="255"
-          :cmap="currentColormap"
-          :cmapName="colorMap"
+        <map-colorbar-wrap
+          :horizontal="display.width.value <= 750"
+          :current-colormap="currentColormap"
+          :color-map="colorMap"
           :start-value="colorbarOptions[whichMolecule].stretch[0] / colorbarOptions[whichMolecule].cbarScale"
           :end-value="colorbarOptions[whichMolecule].stretch[1] / colorbarOptions[whichMolecule].cbarScale"
-          :extend="true"
+          :molecule-label="colorbarOptions[whichMolecule].label"
+          :cbar-scale="colorbarOptions[whichMolecule].cbarScale"
         >
-        <template v-slot:label>
-              <div v-if="Math.log10(colorbarOptions[whichMolecule].cbarScale) !== 0" style="text-align: center;">Amount of <span v-html="colorbarOptions[whichMolecule].label"></span><span class="unit-label">(10<sup>{{ Math.log10(colorbarOptions[whichMolecule].cbarScale)}}</sup> mol/cm<sup>2</sup>)</span></div>
-              <div v-else style="text-align: center;">Amount of <span v-html="colorbarOptions[whichMolecule].label"></span><span class="unit-label"> molecules/cm<sup>2</sup></span></div>
-        </template>
-        </colorbar-horizontal>
-        <v-card id="map-contents" style="width:100%; height: 100%;">
-          <v-toolbar
-            density="compact"
-            color="var(--info-background)"
-          >
-            <v-toolbar-title :text="`TEMPO Data Viewer: ${mapTitle}`"></v-toolbar-title>
-            <v-spacer></v-spacer>
-            <!-- swtichf ro preview points -->
-             <v-switch
-              v-if="regions.length > 0"
-              v-model="showSamplingPreviewMarkers"
-              :label="showSamplingPreviewMarkers ? 'Showing Sample Points' : 'Hiding Sample Points'"
-              :disabled="regions.length === 0"
-              @keyup.enter="showSamplingPreviewMarkers = !showSamplingPreviewMarkers"
-              inset
-              hide-details
-              class="me-3"
-              :style="{'--v-theme-on-surface': 'var(--accent-color)'}"
-              />
-            <v-tooltip :text="rectangleSelectionActive ? 'Cancel selection' : 'Select a region'">
-              <template #activator="{ props }">
-                <v-btn
-                  v-bind="props"
-                  icon="mdi-select"
-                  :color="rectangleSelectionActive ? 'info' : 'default'"
-                  :variant="rectangleSelectionActive ? 'tonal' : 'text'"
-                  :disabled="pointSelectionActive"
-                  @click="activateRectangleSelectionMode"
-                ></v-btn>
-              </template>
-            </v-tooltip>
-            <v-tooltip :text="pointSelectionActive ? 'Cancel selection' : 'Select a point'">
-              <template #activator="{ props }">
-                <v-btn
-                  v-bind="props"
-                  icon="mdi-plus"
-                  :color="pointSelectionActive ? 'info' : 'default'"
-                  :variant="pointSelectionActive ? 'tonal' : 'text'"
-                  :disabled="rectangleSelectionActive"
-                  @click="activatePointSelectionMode"
-                ></v-btn>
-              </template>
-            </v-tooltip>
-          </v-toolbar>
-          <maplibre-map
-            mapID="map"
-            :initial="initState"
-            :home="homeState"
-            :show-roads="showRoads"
-            :events="{
-              'moveend': updateURL,
-              'zoomend': updateURL,
-            }"
-            @zoomhome="onZoomhome"
-            @ready="onMapReady"
-            ref="maplibreMap"
+          <v-card id="map-contents" style="width:100%; height: 100%;">
+            <v-toolbar
+              density="compact"
+              color="var(--info-background)"
             >
-            <v-overlay
-              :modelValue="loadingEsriTimeSteps"
-              style="z-index: 1000;"
-              class="align-center justify-center"
-              contained
-              opacity=".8"
+              <v-toolbar-title :text="`TEMPO Data Viewer: ${mapTitle}`"></v-toolbar-title>
+              <v-spacer></v-spacer>
+              <!-- swtichf ro preview points -->
+               <v-switch
+                v-if="regions.length > 0"
+                v-model="showSamplingPreviewMarkers"
+                :label="showSamplingPreviewMarkers ? 'Showing Sample Points' : 'Hiding Sample Points'"
+                :disabled="regions.length === 0"
+                @keyup.enter="showSamplingPreviewMarkers = !showSamplingPreviewMarkers"
+                inset
+                hide-details
+                class="me-3"
+                :style="{'--v-theme-on-surface': 'var(--accent-color)'}"
+                />
+              <v-tooltip :text="rectangleSelectionActive ? 'Cancel selection' : 'Select a region'">
+                <template #activator="{ props }">
+                  <v-btn
+                    v-bind="props"
+                    icon="mdi-select"
+                    :color="rectangleSelectionActive ? 'info' : 'default'"
+                    :variant="rectangleSelectionActive ? 'tonal' : 'text'"
+                    :disabled="pointSelectionActive"
+                    @click="activateRectangleSelectionMode"
+                  ></v-btn>
+                </template>
+              </v-tooltip>
+              <v-tooltip :text="pointSelectionActive ? 'Cancel selection' : 'Select a point'">
+                <template #activator="{ props }">
+                  <v-btn
+                    v-bind="props"
+                    icon="mdi-plus"
+                    :color="pointSelectionActive ? 'info' : 'default'"
+                    :variant="pointSelectionActive ? 'tonal' : 'text'"
+                    :disabled="rectangleSelectionActive"
+                    @click="activatePointSelectionMode"
+                  ></v-btn>
+                </template>
+              </v-tooltip>
+            </v-toolbar>
+            <maplibre-map
+              mapID="map"
+              :initial="initState"
+              :home="homeState"
+              :show-roads="showRoads"
+              :events="{
+                'moveend': updateURL,
+                'zoomend': updateURL,
+              }"
+              @zoomhome="onZoomhome"
+              @ready="onMapReady"
+              ref="maplibreMap"
               >
-              <div id="loading-circle-progress-container" class="d-flex flex-column align-center justify-center ga-2">
-                <label class="text-white" for="loading-circle-progress">Fetching time steps from NASA Earthdata GIS service...</label>
-                <v-progress-circular
-                  id="loading-circle-progress"
-                  style="z-index: 1000;"
-                  :size="100"
-                  :width="15"
-                  :indeterminate="loadingEsriTimeSteps"
-                  color="#092088"
+              <v-overlay
+                :modelValue="loadingEsriTimeSteps"
+                style="z-index: 1000;"
+                class="align-center justify-center"
+                contained
+                opacity=".8"
                 >
-                
-              </v-progress-circular>
-              </div>
-            </v-overlay>
-          </maplibre-map>
-
-          <div v-if="showFieldOfRegard" id="map-legend"><hr class="line-legend">TEMPO Field of Regard</div>
-          <!-- show hide cloud data, disable if none is available -->
-
-          <v-menu
-            id="map-controls"
-            v-model="showControls"
-            :close-on-content-click="false"
-          >
-            <template v-slot:activator="{ props }">
-              <div id="map-show-hide-controls">
-                <v-btn
-                  v-bind="props"
-                  class="mx-2 mt-5"
-                  elevation="2"
-                  color="white"
-                  icon
-                  style="outline: 2px solid #b6b6b6;"
-                  rounded="0"
-                  size="x-small"
-                >
-                  <template v-slot:default>
-                    <v-icon
-                      color="black"
-                      size="x-large"
-                    >mdi-tune-variant</v-icon>
-                  </template>
-                </v-btn>
-              </div>
-            </template>
-            <v-card class="controls-card">
-              <font-awesome-icon
-                style="position:absolute;right:16px;cursor:pointer"
-                icon="square-xmark"
-                size="xl"
-                @click="showControls = false"
-                @keyup.enter="showControls = false"
-                :color="accentColor2"
-                tabindex="0"
-              ></font-awesome-icon>
-              <div
-                id="opacity-slider-container"
-                class="mt-5"
-              >
-                <div id="opacity-slider-label">TEMPO data opacity</div>
-                <v-slider
-                    v-model="opacity"
-                    :min="0"
-                    :max="1"
-                    color="#c10124"
-                    density="compact"
-                    hide-details
-                    class="mb-4"
-                    @end="onOpacitySliderEnd"
+                <div id="loading-circle-progress-container" class="d-flex flex-column align-center justify-center ga-2">
+                  <label class="text-white" for="loading-circle-progress">Fetching time steps from NASA Earthdata GIS service...</label>
+                  <v-progress-circular
+                    id="loading-circle-progress"
+                    style="z-index: 1000;"
+                    :size="100"
+                    :width="15"
+                    :indeterminate="loadingEsriTimeSteps"
+                    color="#092088"
                   >
-                </v-slider>
-              </div>
-              <div
-                class="d-flex flex-row align-center justify-space-between"
-              >
-                <v-checkbox
-                  v-model="showRoads"
-                  @keyup.enter="showRoads = !showRoads"
-                  label="Show Roads"
-                  color="#c10124"
-                  hide-details
-                />
-              </div>
-              <div
-                class="d-flex flex-row align-center justify-space-between"
-              >
-                <v-checkbox
-                  v-model="showFieldOfRegard"
-                  @keyup.enter="showFieldOfRegard = !showFieldOfRegard"
-                  label="TEMPO Field of Regard"
-                  color="#c10124"
-                  hide-details
-                />
-                <info-button>
-                  <p>
-                    The TEMPO satellite observes the atmosphere over North America, from the Atlantic Ocean to the Pacific Coast, and from roughly Mexico City to central Canada. 
-                  </p>
-                  <p>
-                    The TEMPO Field of Regard (in <span class="text-red">red</span>, currently <em>{{ showFieldOfRegard ? 'visible' : "hidden" }}</em>)
-                    is the area over which the satellite takes measurements. 
-                  </p>
-                  </info-button>
+                  
+                </v-progress-circular>
                 </div>
-            </v-card>
-          </v-menu>
-          <div id="location-and-sharing">
-          <location-search
-            v-model="searchOpen"
-            small
-            stay-open
-            buttonSize="xl"
-            persist-selected
-            :search-provider="geocodingInfoForSearchLimited"
-            @set-location="setLocationFromSearch"
-            @error="(error: string) => searchErrorMessage = error"
-          ></location-search>
-        </div>
-        
-        
-        
-        </v-card>
-        <colorbar 
-          v-if="display.width.value > 750"
-          label="Amount of NO2"
-          backgroundColor="transparent"
-          :nsteps="255"
-          :cmap="currentColormap"
-          :cmapName="colorMap"
-          :start-value="colorbarOptions[whichMolecule].stretch[0] / colorbarOptions[whichMolecule].cbarScale"
-          :end-value="colorbarOptions[whichMolecule].stretch[1] / colorbarOptions[whichMolecule].cbarScale"
-          :extend="true"
-        >
-          <template v-slot:label>
-              <div v-if="Math.log10(colorbarOptions[whichMolecule].cbarScale) !== 0" style="text-align: center;">Amount of <span v-html="colorbarOptions[whichMolecule].label"></span><span class="unit-label">(10<sup>{{ Math.log10(colorbarOptions[whichMolecule].cbarScale)}}</sup> mol/cm<sup>2</sup>)</span></div>
-              <div v-else style="text-align: center;">Amount of <span v-html="colorbarOptions[whichMolecule].label"></span><span class="unit-label"> (molecules/cm<sup>2</sup>)</span></div>
-          </template>
-        </colorbar>
-        
+              </v-overlay>
+            </maplibre-map>
 
+            <div v-if="showFieldOfRegard" id="map-legend"><hr class="line-legend">TEMPO Field of Regard</div>
+            <!-- show hide cloud data, disable if none is available -->
+
+            <v-menu
+              id="map-controls"
+              v-model="showControls"
+              :close-on-content-click="false"
+            >
+              <template v-slot:activator="{ props }">
+                <div id="map-show-hide-controls">
+                  <v-btn
+                    v-bind="props"
+                    class="mx-2 mt-5"
+                    elevation="2"
+                    color="white"
+                    icon
+                    style="outline: 2px solid #b6b6b6;"
+                    rounded="0"
+                    size="x-small"
+                  >
+                    <template v-slot:default>
+                      <v-icon
+                        color="black"
+                        size="x-large"
+                      >mdi-tune-variant</v-icon>
+                    </template>
+                  </v-btn>
+                </div>
+              </template>
+              <v-card class="controls-card">
+                <font-awesome-icon
+                  style="position:absolute;right:16px;cursor:pointer"
+                  icon="square-xmark"
+                  size="xl"
+                  @click="showControls = false"
+                  @keyup.enter="showControls = false"
+                  :color="accentColor2"
+                  tabindex="0"
+                ></font-awesome-icon>
+                <div
+                  id="opacity-slider-container"
+                  class="mt-5"
+                >
+                  <div id="opacity-slider-label">TEMPO data opacity</div>
+                  <v-slider
+                      v-model="opacity"
+                      :min="0"
+                      :max="1"
+                      color="#c10124"
+                      density="compact"
+                      hide-details
+                      class="mb-4"
+                      @end="onOpacitySliderEnd"
+                    >
+                  </v-slider>
+                </div>
+                <div
+                  class="d-flex flex-row align-center justify-space-between"
+                >
+                  <v-checkbox
+                    v-model="showRoads"
+                    @keyup.enter="showRoads = !showRoads"
+                    label="Show Roads"
+                    color="#c10124"
+                    hide-details
+                  />
+                </div>
+                <div
+                  class="d-flex flex-row align-center justify-space-between"
+                >
+                  <v-checkbox
+                    v-model="showFieldOfRegard"
+                    @keyup.enter="showFieldOfRegard = !showFieldOfRegard"
+                    label="TEMPO Field of Regard"
+                    color="#c10124"
+                    hide-details
+                  />
+                  <info-button>
+                    <p>
+                      The TEMPO satellite observes the atmosphere over North America, from the Atlantic Ocean to the Pacific Coast, and from roughly Mexico City to central Canada. 
+                    </p>
+                    <p>
+                      The TEMPO Field of Regard (in <span class="text-red">red</span>, currently <em>{{ showFieldOfRegard ? 'visible' : "hidden" }}</em>)
+                      is the area over which the satellite takes measurements. 
+                    </p>
+                    </info-button>
+                  </div>
+              </v-card>
+            </v-menu>
+            <div id="location-and-sharing">
+            <location-search
+              v-model="searchOpen"
+              small
+              stay-open
+              buttonSize="xl"
+              persist-selected
+              :search-provider="geocodingInfoForSearchLimited"
+              @set-location="setLocationFromSearch"
+              @error="(error: string) => searchErrorMessage = error"
+            ></location-search>
+          </div>
+          
+          
+          </v-card>
+        </map-colorbar-wrap>
       </div>
         <div id="when" class="big-label">when</div>
         <div id="slider-row">
@@ -1262,6 +1237,7 @@ import DateTimeRangeSelection from "./date_time_range_selection/DateTimeRangeSel
 import TimeChips from "./components/TimeChips.vue";
 import CTextField from "./components/CTextField.vue";
 import MaplibreMap from "./components/MaplibreMap.vue";
+import MapColorbarWrap from "./components/MapColorbarWrap.vue";
 // Import Leaflet Composables
 // import { useMap } from "./composables/leaflet/useMap";
 // import { usezoomhome } from './composables/leaflet/useZoomHome';
@@ -3397,14 +3373,7 @@ a {
     }
   }
 
-  .colorbar-container {
-    flex-grow: 0;
-    flex-shrink: 1;
 
-    .unit-label {
-      font-size: .95em;
-    }
-  }
 
   #la-fires {
     z-index: 1000;
@@ -3415,19 +3384,6 @@ a {
   }
 }
 
-.colorbar-container sub {
-    vertical-align: sub !important;
-    line-height: 1.25  !important;
-  }
-
-.colorbar-container sup {
-    vertical-align: super  !important;
-    line-height: 1.25  !important;
-  }
-.colorbar-container sub ,
-.colorbar-container sup {
-    top: 0  !important;
-  }
 
 #slider-row {
   display: flex;
@@ -3732,12 +3688,6 @@ button:focus-visible,
       right: 0;
     }
 
-    .colorbar-container-horizontal {
-      margin-top: 1rem;
-      margin-bottom: 0.5rem;
-      z-index: 5000;
-      --height: 0.75rem;
-    }
 
   }
 
