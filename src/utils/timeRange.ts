@@ -1,5 +1,5 @@
 import { getTimezoneOffset } from "date-fns-tz";
-import type { MillisecondRange, UserSelection } from "../types";
+import type { MillisecondRange, TimeRange, UserSelection } from "../types";
 
 export function formatSingleRange(range: MillisecondRange): string {
   const startString = new Date(range.start).toLocaleDateString();
@@ -44,4 +44,29 @@ export function rangeForSingleDay(day: Date, timezone: string): MillisecondRange
   const start = dayUTC - (dayUTC % 86400000) - offset; // Start of the day in milliseconds
   const end = start + (86400000 - 1); // End of the day in milliseconds
   return { start, end };
+}
+
+export function areEquivalentMsRanges(first: MillisecondRange, second: MillisecondRange): boolean {
+  return first.start === second.start && first.end === second.end;
+}
+
+export function areEquivalentTimeRanges(first: TimeRange, second: TimeRange): boolean {
+  console.log(first, second);
+  if (first.id === second.id) {
+    return true;
+  }
+
+  const array = Array.isArray(first.range);
+  if (array !== Array.isArray(second.range)) {
+    return false;
+  }
+
+  if (array) {
+    const firstRange = first.range as MillisecondRange[];
+    const secondRange = second.range as MillisecondRange[];
+    return firstRange.length === secondRange.length &&
+      firstRange.every((rg, idx) => areEquivalentMsRanges(rg, secondRange[idx]));
+  } else {
+    return areEquivalentMsRanges(first.range as MillisecondRange, second.range as MillisecondRange);
+  }
 }

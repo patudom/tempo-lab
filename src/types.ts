@@ -153,7 +153,6 @@ export interface MillisecondRange {
   end: number;
 }
 
-
 export interface TimeRange {
   id: string;
   name: string; // user editable

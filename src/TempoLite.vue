@@ -695,7 +695,7 @@
                       >
                         <template #append>
                           <v-btn
-                            v-if="timeRange.id !== 'displayed-day' || timeRangeHasDatasets(timeRange)"
+                            v-if="timeRange.id !== 'displayed-day' && !selections.some(s => areEquivalentTimeRanges(s.timeRange, timeRange))"
                             variant="plain"
                             v-tooltip="'Delete'"
                             icon="mdi-delete"
@@ -1242,7 +1242,7 @@ import type { MillisecondRange } from "./types/datetime";
 import UserGuide from "./components/UserGuide.vue";
 import SampleTable from "./components/SampleTable.vue";
 import { atleast1d } from "./utils/atleast1d";
-import { formatSingleRange, formatTimeRange, rangeForSingleDay } from "./utils/timeRange";
+import { areEquivalentTimeRanges, formatSingleRange, formatTimeRange, rangeForSingleDay } from "./utils/timeRange";
 
 import { useUniqueTimeSelection } from "./composables/useUniqueTimeSelection";
 
@@ -1871,10 +1871,6 @@ function isPointSelection(selection: UnifiedRegionType): selection is PointSelec
   return selection.geometryType === 'point';
 }
 
-function timeRangeHasDatasets(range: TimeRange): boolean {
-  return selections.value.find(s => s.timeRange.id === range.id) !== undefined;
-}
-
 function regionHasSamples(region: UnifiedRegionType): boolean {
   const sel = selections.value.find(s => s.region.id === region.id);
   if (!sel) {
@@ -1910,11 +1906,12 @@ function handleDateTimeRangeSelectionChange(timeRanges: MillisecondRange[], sele
     descriptionBase = 'Single Date';
     break;
   }
-  const description = `${descriptionBase} (${formatTimeRange(normalized)})`;
+  const formatted = formatTimeRange(normalized);
+  const description = `${descriptionBase} (${formatted})`;
   timeRangeCount += 1;
   const tr: TimeRange = {
     id: v4(),
-    name: `Custom Range ${timeRangeCount}`,
+    name: formatted,
     description,
     range: normalized.length === 1 ? normalized[0] : normalized
   };
