@@ -1,14 +1,12 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-// import L from 'leaflet';
-// import * as esri from 'esri-leaflet';
+
 
 // const earthdataRestSerivceURL = "https://gis.earthdata.nasa.gov/image/rest/services/C2930763263-LARC_CLOUD/TEMPO_NO2_L3_V03_HOURLY_TROPOSPHERIC_VERTICAL_COLUMN/ImageServer";
-import { type ImageMapLayer } from 'esri-leaflet';
 import { Variables } from './types';
 
 export type ColorRamps = "Magma" | "Inferno" | "Plasma" | "Viridis" | "Gray" | "Hillshade" | "Cividis" | "SVS" | "sargassum";
 
-type PixelType = Parameters<ImageMapLayer['setPixelType']>[0];
+type PixelType = "C128" | "C64" | "F32" | "F64" | "S16" | "S32" | "S8" | "U1" | "U16" | "U2" | "U32" | "U4" | "U8" | "UNKNOWN";
 
 interface RasterFunctionObject {
   rasterFunction: string;

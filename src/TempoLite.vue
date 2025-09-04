@@ -1249,17 +1249,7 @@ import { useUniqueTimeSelection } from "./composables/useUniqueTimeSelection";
 import DateTimeRangeSelection from "./date_time_range_selection/DateTimeRangeSelection.vue";
 import TimeChips from "./components/TimeChips.vue";
 import CTextField from "./components/CTextField.vue";
-// Import Leaflet Composables
-// import { useMap } from "./composables/leaflet/useMap";
-// import { usezoomhome } from './composables/leaflet/useZoomHome';
-// import { useImageOverlay } from "./composables/leaflet/useImageOverlay";
-// import { useFieldOfRegard} from "./composables/leaflet/useFieldOfRegard";
-// import { useLocationMarker } from "./composables/leaflet/useMarker";
-// import { useRectangleSelection } from "./composables/leaflet/useRectangleSelection";
-// import { addRectangleLayer, updateRectangleBounds, removeRectangleLayer, regionBounds, fitBounds } from "./composables/leaflet/utils";
-// import { useMultiMarker } from './composables/leaflet/useMultiMarker';
-// import { useEsriLayer } from "./esri/leaflet/useEsriImageLayer";
-// const zoomScale = 1; 
+
 
 // Import Maplibre Composables
 import { useMap } from "./composables/maplibre/useMap";
@@ -3723,33 +3713,6 @@ button:focus-visible,
   }
 
 
-}
-
-/* Leaflet crispness override */
-// @JobLeonard - https://github.com/Leaflet/Leaflet/issues/5883#issue-269071844
-// .leaflet-container .leaflet-overlay-pane svg,
-// .leaflet-container .leaflet-marker-pane img,
-// .leaflet-container .leaflet-shadow-pane img,
-// .leaflet-container .leaflet-tile-pane img,
-.leaflet-container img.leaflet-image-layer {
-  max-width: none !important;
-  /* Preserve crisp pixels with scaled up images */
-  image-rendering: optimizeSpeed;
-  /* Legal fallback */
-  image-rendering: -moz-crisp-edges;
-  /* Firefox        */
-  image-rendering: -o-crisp-edges;
-  /* Opera          */
-  image-rendering: -webkit-optimize-contrast;
-  /* Safari         */
-  image-rendering: optimize-contrast;
-  /* CSS3 Proposed  */
-  image-rendering: crisp-edges;
-  /* CSS4 Proposed  */
-  image-rendering: pixelated;
-  /* CSS4 Proposed  */
-  -ms-interpolation-mode: nearest-neighbor;
-  /* IE8+           */
 }
 
 .cds-snackbar-alert {
