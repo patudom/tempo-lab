@@ -360,6 +360,8 @@
               @zoomhome="onZoomhome"
               @ready="onMapReady"
               ref="maplibreMap"
+              width="100%"
+              height="calc(100% - 48px)"
               >
               <v-overlay
                 :modelValue="loadingEsriTimeSteps"
@@ -3115,10 +3117,7 @@ ul {
   overflow: hidden;
 }
 
-#map {
-  width: 100%;
-  height: calc(100% - 48px);
-}
+
 
 // define the layout
 .content-with-sidebars {
@@ -3319,11 +3318,7 @@ a {
   flex-direction: row;
   padding-right: 10px;
 
-  #map {
-    flex-basis: 80%;
-    flex-grow: 1;
-    flex-shrink: 1;
-  }
+
 
   #location-and-sharing {
     position: absolute;
@@ -3800,10 +3795,6 @@ div.callout-wrapper {
   100% {
     transform: scale(1);
   }
-}
-
-canvas.maplibregl-canvas {
-  background-color: whitesmoke;
 }
 
 .dataset-loading {

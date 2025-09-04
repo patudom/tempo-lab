@@ -1,6 +1,6 @@
 <template>
   <!-- this will automatically gets the class maplibregl-map added to it -->
-  <div :id="mapID" class="tempo-map">
+  <div :id="mapID" class="tempo-map" :style="{ '--width': width, '--height': height }">
     <slot></slot>
   </div>
 </template>
@@ -39,7 +39,7 @@ const props = defineProps({
     default: null
   },
   showRoads: {
-    type: Boolean as PropType<boolean>,
+    type: Boolean,
     required: false,
     default: true
   },
@@ -49,6 +49,17 @@ const props = defineProps({
     type: Object as PropType<Record<keyof MapEventType | string, Listener>>,
     default: () => ({})
   },
+  // width and height, default to 100%
+  width: {
+    type: String,
+    required: false,
+    default: '100%'
+  },
+  height: {
+    type: String,
+    required: false,
+    default: '100%'
+  }
 });
 
 // define model values that set and return the current map center and zoom
@@ -196,84 +207,15 @@ defineExpose(exposedMapApi);
 </script>
   
 <style lang="less">
-@font-face {
-  font-family: "Highway Gothic Narrow";
-  src: url("@/assets/HighwayGothicNarrow.ttf");
+
+.tempo-map {
+  width: var(--width);
+  height: var(--height);
 }
 
-// import Lexand from google fonts
-// @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&display=swap');
-
-
-div.dataset-loading {
-  width: 100%;
-  height: 100%;
-}
-
-
-
-
-
-/* Leaflet crispness override */
-// @JobLeonard - https://github.com/Leaflet/Leaflet/issues/5883#issue-269071844
-// .leaflet-container .leaflet-overlay-pane svg,
-// .leaflet-container .leaflet-marker-pane img,
-// .leaflet-container .leaflet-shadow-pane img,
-// .leaflet-container .leaflet-tile-pane img,
-.leaflet-container img.leaflet-image-layer {
-  max-width: none !important;
-  /* Preserve crisp pixels with scaled up images */
-  image-rendering: optimizeSpeed;
-  /* Legal fallback */
-  image-rendering: -moz-crisp-edges;
-  /* Firefox        */
-  image-rendering: -o-crisp-edges;
-  /* Opera          */
-  image-rendering: -webkit-optimize-contrast;
-  /* Safari         */
-  image-rendering: optimize-contrast;
-  /* CSS3 Proposed  */
-  image-rendering: crisp-edges;
-  /* CSS4 Proposed  */
-  image-rendering: pixelated;
-  /* CSS4 Proposed  */
-  -ms-interpolation-mode: nearest-neighbor;
-  /* IE8+           */
-}
-
-.pulse {
-  animation-name: pulse;
-  animation-duration: 1.5s;
-  animation-iteration-count: 3;
-}
-
-
-@keyframes pulse {
-  0% {
-    transform: scale(1);
-  }
-
-  50% {
-    transform: scale(1.2);
-  }
-
-  100% {
-    transform: scale(1);
-  }
-}
-
-canvas.maplibregl-canvas {
+.tempo-map canvas.maplibregl-canvas {
   background-color: whitesmoke;
 }
 
-.dataset-loading {
-  display: flex;
-  flex-direction: row;
-}
-
-.dataset-loading-failed {
-  width: 70%;
-  max-width: calc(100% - 32px);
-}
 </style>
 
