@@ -318,6 +318,18 @@
           >
             <v-toolbar-title :text="`TEMPO Data Viewer: ${mapTitle}`"></v-toolbar-title>
             <v-spacer></v-spacer>
+            <!-- swtichf ro preview points -->
+             <v-switch
+              v-if="regions.length > 0"
+              v-model="showSamplingPreviewMarkers"
+              :label="showSamplingPreviewMarkers ? 'Showing Sample Points' : 'Hiding Sample Points'"
+              :disabled="regions.length === 0"
+              @keyup.enter="showSamplingPreviewMarkers = !showSamplingPreviewMarkers"
+              inset
+              hide-details
+              class="me-3"
+              :style="{'--v-theme-on-surface': 'var(--accent-color)'}"
+              />
             <v-tooltip :text="rectangleSelectionActive ? 'Cancel selection' : 'Select a region'">
               <template #activator="{ props }">
                 <v-btn
@@ -748,6 +760,7 @@
                             @click="() => editRegionName(region as UnifiedRegionType)"
                           ></v-btn>
                           <v-btn
+                            v-if="!regionHasDatasets(region as UnifiedRegionType)"
                             variant="plain"
                             v-tooltip="'Delete'"
                             icon="mdi-delete"
@@ -1778,7 +1791,8 @@ const timeseriesMarkerApi = useMultiMarker(map, {
   fillColor: '#ff0000',
   fillOpacity: 0.8,
   opacity: 1,
-  radius: 1,
+  radius: 0.02 / 2, // degrees
+  scale: 'world',
   outlineColor: '#ff0000',
 });
 
@@ -1794,7 +1808,8 @@ const samplingPreviewMarkers = useMultiMarker(map, {
   fillColor: '#0000ff',
   fillOpacity: 0.5,
   opacity: 1,
-  radius: 1,
+  radius: 0.02 / 2, // degrees
+  scale: 'world',
   outlineColor: '#0000ff',
   label: 'predicted-samples-locations'
 });
@@ -1816,7 +1831,7 @@ watch([showDataSamplingMarkers, () => selections.value.map(s => selectionHasSamp
 });
 
 import { EsriSampler } from "./esri/services/sampling";
-const showSamplingPreviewMarkers = ref(true);
+const showSamplingPreviewMarkers = ref(false);
 // const sampler = new EsriSampler( tempoDataService.meta,);
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
@@ -1824,7 +1839,7 @@ const sampler =  ref<EsriSampler>(null);
 tempoDataService.withMetadataCache().then(meta => {
   sampler.value = new EsriSampler(meta);
 });
-watch([showSamplingPreviewMarkers, regions], (newVal) => {
+watch([showSamplingPreviewMarkers, regions, ()=> regions.value.length], (newVal) => {
   const show = newVal[0];
   const regs = newVal[1];
   samplingPreviewMarkers.clearMarkers();
@@ -1858,6 +1873,10 @@ function isPointSelection(selection: UnifiedRegionType): selection is PointSelec
   return selection.geometryType === 'point';
 }
 
+function regionHasDatasets(region: UnifiedRegionType): boolean {
+  const sel = selections.value.find(s => s.region.id === region.id);
+  return sel !== undefined;
+}
 function regionHasSamples(region: UnifiedRegionType): boolean {
   const sel = selections.value.find(s => s.region.id === region.id);
   if (!sel) {
@@ -1995,7 +2014,7 @@ function markSelectionUpdated(selection: UserSelectionType) {
 }
 
 // 30 is the value we have been using
-const maxSampleCount = ref(30);
+const maxSampleCount = ref(50);
 
 // New: fetch data for composed UserSelection
 // fetchDataForSelection already handles UserSelection

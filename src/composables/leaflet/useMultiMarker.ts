@@ -9,11 +9,14 @@ export interface MultiMarkerOptions {
   opacity?: number;
   radius?: number;
   outlineColor?: string;
+  scale?: 'world' | 'screen';
 }
 
 export function useMultiMarker(map: Ref<L.Map | null>, options: MultiMarkerOptions = {}) {
   let markers: L.Layer[] = [];
-
+  
+  options.scale = options.scale ?? 'screen';
+  
   function addMarkers(points: Array<{ x: number; y: number }>) {
     if (!map.value) return;
     clearMarkers();
@@ -35,6 +38,24 @@ export function useMultiMarker(map: Ref<L.Map | null>, options: MultiMarkerOptio
       }
       marker.addTo(map.value);
       markers.push(marker);
+    });
+    
+    // on zoom change the size of the markers to keep them the same size on screen
+    if (options.scale === 'screen') return;
+    const newRadius = (options.radius ?? 1) * Math.pow(2, map.value.getZoom());
+    markers.forEach((marker) => {
+      if (marker instanceof L.Circle) {
+        marker.setRadius(newRadius);
+      }
+    });
+    map.value.on('zoomend', (e) => {
+      const zoom = e.target.getZoom();
+      const newRadius = (options.radius ?? 1) * Math.pow(2, zoom);
+      markers.forEach((marker) => {
+        if (marker instanceof L.Circle) {
+          marker.setRadius(newRadius);
+        }
+      });
     });
   }
 
