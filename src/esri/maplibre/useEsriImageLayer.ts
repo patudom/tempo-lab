@@ -19,7 +19,7 @@ interface UseEsriLayer {
   renderOptions: Ref<RenderingRuleOptions>;
 }
 
-export function useEsriLayer(url: string, variableName: VariableNames, timestamp: Ref<number>, opacity: MaybeRef<number>): UseEsriLayer {
+export function useEsriLayer(url: string, variableName: VariableNames, timestamp: Ref<number | null>, opacity: MaybeRef<number>): UseEsriLayer {
 
   const esriLayerId = 'esri-source';
   const esriImageSource = ref<maplibregl.RasterTileSource | null>(null);
@@ -103,7 +103,7 @@ export function useEsriLayer(url: string, variableName: VariableNames, timestamp
   
   function updateEsriTimeRange() {
     if (!map.value) return;
-
+    if (timestamp.value === null) return;
     const time = timestamp.value;
 
     const nearest = esriTimesteps.value.length > 0 

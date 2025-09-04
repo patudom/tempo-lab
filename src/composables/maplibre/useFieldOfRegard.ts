@@ -15,7 +15,7 @@ export interface MaplibreFieldOfRegardComposable {
 }
 
 export function useFieldOfRegard(
-  date: Ref<Date>,
+  date: Ref<Date | null>,
   map: Ref<M.Map | null>
 ): MaplibreFieldOfRegardComposable {
 
@@ -76,7 +76,7 @@ export function useFieldOfRegard(
 
   function updateFieldOfRegard() {
 
-    if (date.value.getUTCFullYear() === 2023 && date.value.getUTCMonth() === 7) {
+    if (date.value !== null && date.value.getUTCFullYear() === 2023 && date.value.getUTCMonth() === 7) {
       fieldOfRegardLayer.value?.setData(augustFieldOfRegard as GeoJSON.GeometryCollection);
       usingAugust = true;
     } else {
