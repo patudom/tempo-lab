@@ -4,20 +4,6 @@
       <v-chip size="x-small" color="primary" variant="tonal">{{ creationProgress.count }}/3</v-chip>
     </v-card-title>
     <v-card-text class="d-flex flex-column ga-3">
-      <!-- Region Picker -->
-      <v-select
-        :items="regions.map(r => ({ title: r.name, value: r }))"
-        :model-value="draftUserSelection.region"
-        @update:model-value="setDraftSelectionRegion($event as RectangleSelectionType)"
-        label="Region"
-        :disabled="disabled?.region"
-        item-title="title"
-        item-value="value"
-        density="compact"
-        hide-details
-        variant="outlined"
-      />
-
       <!-- Time Range Picker: offer Effective (current day/custom) and any active custom ranges -->
       <v-select
         :items="timeRanges"
@@ -46,6 +32,20 @@
           {{ timeRanges[index].name }}
         </template>
       </v-select>
+
+      <!-- Region Picker -->
+      <v-select
+        :items="regions.map(r => ({ title: r.name, value: r }))"
+        :model-value="draftUserSelection.region"
+        @update:model-value="setDraftSelectionRegion($event as RectangleSelectionType)"
+        label="Region"
+        :disabled="disabled?.region"
+        item-title="title"
+        item-value="value"
+        density="compact"
+        hide-details
+        variant="outlined"
+      />
 
       <!-- Molecule Picker -->
       <v-select
