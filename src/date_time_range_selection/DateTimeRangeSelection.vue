@@ -9,18 +9,18 @@
         density="compact"
       >
         <v-radio 
-          label="Weekday Pattern" 
-          value="weekday"
+          label="Single Date" 
+            value="singledate"
           density="compact"
-        />
+        />    
         <v-radio 
           label="Date Range" 
           value="daterange"
           density="compact"
         />
         <v-radio 
-          label="Single Date" 
-            value="singledate"
+          label="Weekday Pattern" 
+          value="weekday"
           density="compact"
         />
       </v-radio-group>
