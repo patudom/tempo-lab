@@ -704,9 +704,20 @@
                       <v-list-item
                         v-for="(timeRange, index) in availableTimeRanges"
                         :key="index"
-                        :title="timeRange.name"
-                        :subtitle="timeRange.description"
-                      ></v-list-item>
+                        :title="timeRange.name === 'Displayed Day' ? timeRange.name : formatTimeRange(timeRange.range)"
+                      >
+                        <template #append>
+                          <v-btn
+                            v-if="timeRange.id !== 'displayed-day' && !selections.some(s => areEquivalentTimeRanges(s.timeRange, timeRange))"
+                            variant="plain"
+                            v-tooltip="'Delete'"
+                            icon="mdi-delete"
+                            color="white"
+                            @click="() => deleteTimeRange(timeRange)"
+                          >
+                          </v-btn>
+                        </template>
+                      </v-list-item>
                     </v-list>
                   </template>
                 </v-expansion-panel>
@@ -753,7 +764,6 @@
                             @click="() => editRegionGeometry(region as UnifiedRegionType)"
                           ></v-btn> -->
                           <v-btn
-                            
                             variant="plain"
                             v-tooltip="'Edit Name'"
                             icon="mdi-pencil"
@@ -1242,7 +1252,7 @@ import type { MillisecondRange } from "./types/datetime";
 import UserGuide from "./components/UserGuide.vue";
 import SampleTable from "./components/SampleTable.vue";
 import { atleast1d } from "./utils/atleast1d";
-import { formatTimeRange } from "./utils/timeRange";
+import { areEquivalentTimeRanges, formatSingleRange, formatTimeRange, rangeForSingleDay } from "./utils/timeRange";
 
 import { useUniqueTimeSelection } from "./composables/useUniqueTimeSelection";
 
@@ -1904,11 +1914,12 @@ function handleDateTimeRangeSelectionChange(timeRanges: MillisecondRange[], sele
     descriptionBase = 'Single Date';
     break;
   }
-  const description = `${descriptionBase} (${formatTimeRange(normalized)})`;
+  const formatted = formatTimeRange(normalized);
+  const description = `${descriptionBase} (${formatted})`;
   timeRangeCount += 1;
   const tr: TimeRange = {
     id: v4(),
-    name: `Custom Range ${timeRangeCount}`,
+    name: formatted,
     description,
     range: normalized.length === 1 ? normalized[0] : normalized
   };
@@ -2079,22 +2090,50 @@ const availableTimeRanges = ref<TimeRange[]>([]);
 
 // Dedup helper removed (no longer needed)
 
-// dedup avaialbeTimeRange and add in the effective time range (which is an old way of storing the current time range)
+// dedup availableTimeRange and add in the effective time range (which is an old way of storing the current time range)
 // Always-present current day option at index 0
-const currentDayTimeRange = computed<TimeRange>(() => {
-  const offset = getTimezoneOffset(selectedTimezone.value, singleDateSelected.value);
-  const day = singleDateSelected.value.getTime() - offset;
-  const start = day - (day % 86400000) - offset; // Start of the day in milliseconds
-  const end = start + (86400000 - 1); // End of the day in milliseconds
+const displayedDayTimeRange = computed<TimeRange>(() => {
+  const range = rangeForSingleDay(singleDateSelected.value, selectedTimezone.value);
   return {
-    id: 'current-day',
-    name: 'Current Day',
-    description: `Current Day (${new Date(start).toLocaleDateString()})`,
-    range: { start, end }
+    id: 'displayed-day',
+    name: 'Displayed Day',
+    description: `Displayed Day (${new Date(range.start).toLocaleDateString()})`,
+    range,
   };
 });
 
-watch(currentDayTimeRange, (val) => {
+watch(singleDateSelected, (_newDate, oldDate) => {
+  const oldRange = rangeForSingleDay(oldDate, selectedTimezone.value);
+  const displayedDateSelections = selections.value.filter(sel => {
+    const range = sel.timeRange.range;
+    return !Array.isArray(range) &&
+           range.start === oldRange.start &&
+           range.end === oldRange.end;
+  });
+  if (displayedDateSelections.length === 0) {
+    return;
+  }
+
+  const index = availableTimeRanges.value.findIndex(timeRange => {
+    const range = timeRange.range;
+    return !Array.isArray(range) &&
+           range.start === oldRange.start &&
+           range.end === oldRange.end &&
+           timeRange.id !== "displayed-day";
+  });
+  if (index < 0) {
+    const formatted = formatSingleRange(oldRange);
+    const oldTimeRange: TimeRange = {
+      id: v4(),
+      name: formatted,
+      description: formatted,
+      range: oldRange,
+    };
+    availableTimeRanges.value.push(oldTimeRange);
+  }
+});
+
+watch(displayedDayTimeRange, (val) => {
   // console.log(singleDateSelected.value, getTimezoneOffset(selectedTimezone.value, singleDateSelected.value), val,);
   if (!availableTimeRanges.value.length) {
     availableTimeRanges.value.push(val);
@@ -2145,6 +2184,14 @@ function setRegionName(region: UnifiedRegionType, newName: string) {
   region.name = newName;
   console.log(`Renamed ${region.geometryType} region to: ${newName}`);
   regionBeingEdited.value = null;
+}
+
+function deleteTimeRange(range: TimeRange) {
+  const index = availableTimeRanges.value.findIndex(r => r.id === range.id);
+  if (index < 0) {
+    return;
+  }
+  availableTimeRanges.value.splice(index, 1);
 }
 
 function deleteRegion(region: UnifiedRegionType) {

@@ -1,23 +1,7 @@
 <template>
   <v-card class="datetime-range-selector" elevation="2">
-    <!-- Header -->
-    <v-card-title>
-      <v-icon>mdi-clock-outline</v-icon>
-      DateTime Range Selector
-    </v-card-title>
 
     <v-card-text>
-      <!-- Update Custom Range Button -->
-      <v-btn
-        color="primary"
-        variant="elevated"
-        class="mb-4"
-        @click="updateCustomRange"
-      >
-        <v-icon class="mr-2">mdi-update</v-icon>
-        Add Custom Range
-      </v-btn>
-
       <!-- Selection Type Radio Buttons -->
       <v-radio-group 
         v-model="selectionType" 
@@ -180,6 +164,17 @@
           </div>
         </div>
       </v-expand-transition>
+
+      <!-- Update Custom Range Button -->
+      <v-btn
+        color="primary"
+        variant="elevated"
+        class="mb-4"
+        @click="updateCustomRange"
+      >
+        <v-icon class="mr-2">mdi-update</v-icon>
+        Confirm Selection 
+      </v-btn>
 
       <!-- Timeline Visualization -->
       <!-- <v-divider class="my-4" />
