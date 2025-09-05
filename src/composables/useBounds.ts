@@ -25,14 +25,14 @@ const BOUNDS_COLLECTION: Record<string, BoundingBox> = {
 };
 
 export function useBounds(
-  date: Ref<Date>, 
+  date: Ref<Date | null>, 
   customSelector?: BoundsSelector
 ) {
   // Default selector function based on your existing logic
-  const defaultSelector: BoundsSelector = (date: Date) => {
-    if (date.getUTCFullYear() === 2023) {
+  const defaultSelector: BoundsSelector = (date: Date | null) => {
+    if (date !== null && date.getUTCFullYear() === 2023) {
       return BOUNDS_COLLECTION.novDec;
-    } else if (date.getUTCFullYear() === 2024 && date.getUTCMonth() === 2) {
+    } else if (date !== null &&  date.getUTCFullYear() === 2024 && date.getUTCMonth() === 2) {
       return BOUNDS_COLLECTION.march;
     } else {
       return BOUNDS_COLLECTION.default;

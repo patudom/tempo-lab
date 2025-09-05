@@ -42,6 +42,7 @@
               text-input
               :teleport="true"
               dark
+              :year-range="[allowedDates ? allowedDates[0].getFullYear() : 2023, allowedDates ? allowedDates[allowedDates.length - 1].getFullYear() : new Date().getFullYear()]"
             />
           </div>
 
@@ -118,6 +119,7 @@
               text-input
               :teleport="true"
               dark
+              :year-range="[allowedDates ? allowedDates[0].getFullYear() : 2023, allowedDates ? allowedDates[allowedDates.length - 1].getFullYear() : new Date().getFullYear()]"
             />
           </div>
 
@@ -135,6 +137,7 @@
               text-input
               :teleport="true"
               dark
+              :year-range="[allowedDates ? allowedDates[0].getFullYear() : 2023, allowedDates ? allowedDates[allowedDates.length - 1].getFullYear() : new Date().getFullYear()]"
             />
           </div>
         </div>
@@ -156,6 +159,7 @@
               text-input
               :teleport="true"
               dark
+              :year-range="[allowedDates ? allowedDates[0].getFullYear() : 2023, allowedDates ? allowedDates[allowedDates.length - 1].getFullYear() : new Date().getFullYear()]"
             />
           </div>
         </div>

@@ -85,7 +85,7 @@ function renderPlot() {
       mode: "lines+markers",
       legendgroup: legendGroup,
       showlegend: true,
-      name: data.name,
+      name: data.region.name,
       marker: { color: regionColor },
     });
 
@@ -120,7 +120,7 @@ function renderPlot() {
         line: { width: 0 },
         showlegend: false,
         legendgroup: legendGroup,
-        name: data.name,
+        name: data.region.name,
         marker: { color: regionColor },
         visible: props.showErrors,
       });
@@ -134,7 +134,7 @@ function renderPlot() {
         fill: "tonexty",
         showlegend: false,
         legendgroup: legendGroup,
-        name: data.name,
+        name: data.region.name,
         marker: { color: regionColor },
         visible: props.showErrors,
       });

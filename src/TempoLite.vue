@@ -318,6 +318,18 @@
           >
             <v-toolbar-title :text="`TEMPO Data Viewer: ${mapTitle}`"></v-toolbar-title>
             <v-spacer></v-spacer>
+            <!-- swtichf ro preview points -->
+             <v-switch
+              v-if="regions.length > 0"
+              v-model="showSamplingPreviewMarkers"
+              :label="showSamplingPreviewMarkers ? 'Showing Sample Points' : 'Hiding Sample Points'"
+              :disabled="regions.length === 0"
+              @keyup.enter="showSamplingPreviewMarkers = !showSamplingPreviewMarkers"
+              inset
+              hide-details
+              class="me-3"
+              :style="{'--v-theme-on-surface': 'var(--accent-color)'}"
+              />
             <v-tooltip :text="rectangleSelectionActive ? 'Cancel selection' : 'Select a region'">
               <template #activator="{ props }">
                 <v-btn
@@ -546,6 +558,7 @@
                     :preview-format="(date: Date | null) => date?.toDateString()"
                     no-today
                     dark
+                    :year-range="[uniqueDays[0]?.getFullYear(), uniqueDays[uniqueDays.length - 1]?.getFullYear()]"
                   >
                     <template #action-buttons>
                       <button
@@ -758,6 +771,7 @@
                             @click="() => editRegionName(region as UnifiedRegionType)"
                           ></v-btn>
                           <v-btn
+                            v-if="!regionHasDatasets(region as UnifiedRegionType)"
                             variant="plain"
                             v-tooltip="'Delete'"
                             icon="mdi-delete"
@@ -1095,30 +1109,26 @@
         <v-dialog
           v-model="showEditRegionNameDialog"
           >
-          <v-card
-            class="mx-auto px-3 py-2"
-            min-width="300px"
-            width="50%"
-          >
-            <v-card-title>New Name</v-card-title>
-            <v-text-field
+          <!-- text field that requires a confirmation -->
+            <c-text-field
               label="Region Name"
+              title="Enter a new name for this region"
               hide-details
               dense
-              @update:model-value="(val: string) => {
-                setRegionName(regionBeingEdited as UnifiedRegionType, val);
+              :button-color="accentColor"
+              @confirm="(value) => {
+                if (regionBeingEdited) {
+                  setRegionName(regionBeingEdited as UnifiedRegionType, value);
+                  showEditRegionNameDialog = false;
+                }
               }"
-            ></v-text-field>
-            <v-card-actions>
-              <v-spacer></v-spacer>
-              <v-btn
-                :color="accentColor"
-                variant="flat"
-                @click="showEditRegionNameDialog = false"
-              >Done</v-btn>
-            </v-card-actions>
-          </v-card>
-        </v-dialog>
+              @cancel="() => {
+                showEditRegionNameDialog = false;
+                regionBeingEdited = null;
+              }"
+            ></c-text-field>
+
+            </v-dialog>
 
           <div id="bottom-options">
             <br>
@@ -1248,6 +1258,7 @@ import { useUniqueTimeSelection } from "./composables/useUniqueTimeSelection";
 
 import DateTimeRangeSelection from "./date_time_range_selection/DateTimeRangeSelection.vue";
 import TimeChips from "./components/TimeChips.vue";
+import CTextField from "./components/CTextField.vue";
 // Import Leaflet Composables
 // import { useMap } from "./composables/leaflet/useMap";
 // import { usezoomhome } from './composables/leaflet/useZoomHome';
@@ -1464,8 +1475,8 @@ function zpad(n: number, width: number = 2, character: string = "0"): string {
 import { AllAvailableColorMaps } from "./colormaps";
 import { ESRI_URLS, MOLECULE_OPTIONS, MoleculeType } from "./esri/utils";
 
-const initialDate = new Date();
-const timestamps = ref<number[]>([initialDate.getTime()]); // we need _something_ so that downstream steps have valid dates to initialize with. 
+
+const timestamps = ref<number[]>([]); // we need _something_ so that downstream steps have valid dates to initialize with. 
 const {
   timeIndex,
   timestamp,
@@ -1481,15 +1492,6 @@ const {
   nearestDateIndex } = useUniqueTimeSelection(timestamps);
 
 const timestampsLoaded = ref(false);
-const timestampsSet = ref(new Set(timestamps.value));
-// append and Set timestamps
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function appendTimestamps(newTimestamps: number[][]) {
-  if (newTimestamps.length > 0) {
-    timestamps.value = timestamps.value.concat(...newTimestamps).sort();
-    timestampsSet.value = new Set(timestamps.value);
-  }
-}
 
 
 
@@ -1524,7 +1526,7 @@ const sublocationRadio = ref<number | null>(null);
 
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const { currentBounds: imageBounds } = useBounds(date);
+const { currentBounds: imageBounds } = useBounds(date); 
 
 
 
@@ -1612,14 +1614,14 @@ watch(esriTimesteps, (newSteps, _oldSteps) => {
 });
 // renderOptions.value.colormap = 'Plasma';
 
-function handleEsriTimeSelected(timestamp:number, _index: number) {
-  const idx = timestamps.value.indexOf(timestamp);
-  console.log(`ESRI time selected: ${new Date(timestamp)} (nearest index ${idx})`);
+function handleEsriTimeSelected(ts:number, _index: number) {
+  const idx = timestamps.value.indexOf(ts);
+  console.log(`ESRI time selected: ${new Date(ts)} (nearest index ${idx})`);
   if (idx >= 0) {
     timeIndex.value = idx;
   }
   // We may need something like this when we get back the monthly average service.
-  //singleDateSelected.value = new Date(timestamp);
+  //singleDateSelected.value = new Date(ts);
 }
 
 watch(whichMolecule, (newMolecule) => {
@@ -1791,7 +1793,8 @@ const timeseriesMarkerApi = useMultiMarker(map, {
   fillColor: '#ff0000',
   fillOpacity: 0.8,
   opacity: 1,
-  radius: 1,
+  radius: 0.02 / 2, // degrees
+  scale: 'world',
   outlineColor: '#ff0000',
 });
 
@@ -1807,7 +1810,8 @@ const samplingPreviewMarkers = useMultiMarker(map, {
   fillColor: '#0000ff',
   fillOpacity: 0.5,
   opacity: 1,
-  radius: 1,
+  radius: 0.02 / 2, // degrees
+  scale: 'world',
   outlineColor: '#0000ff',
   label: 'predicted-samples-locations'
 });
@@ -1829,7 +1833,7 @@ watch([showDataSamplingMarkers, () => selections.value.map(s => selectionHasSamp
 });
 
 import { EsriSampler } from "./esri/services/sampling";
-const showSamplingPreviewMarkers = ref(true);
+const showSamplingPreviewMarkers = ref(false);
 // const sampler = new EsriSampler( tempoDataService.meta,);
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
@@ -1837,7 +1841,7 @@ const sampler =  ref<EsriSampler>(null);
 tempoDataService.withMetadataCache().then(meta => {
   sampler.value = new EsriSampler(meta);
 });
-watch([showSamplingPreviewMarkers, regions], (newVal) => {
+watch([showSamplingPreviewMarkers, regions, ()=> regions.value.length], (newVal) => {
   const show = newVal[0];
   const regs = newVal[1];
   samplingPreviewMarkers.clearMarkers();
@@ -1871,6 +1875,10 @@ function isPointSelection(selection: UnifiedRegionType): selection is PointSelec
   return selection.geometryType === 'point';
 }
 
+function regionHasDatasets(region: UnifiedRegionType): boolean {
+  const sel = selections.value.find(s => s.region.id === region.id);
+  return sel !== undefined;
+}
 function regionHasSamples(region: UnifiedRegionType): boolean {
   const sel = selections.value.find(s => s.region.id === region.id);
   if (!sel) {
@@ -2009,7 +2017,7 @@ function markSelectionUpdated(selection: UserSelectionType) {
 }
 
 // 30 is the value we have been using
-const maxSampleCount = ref(30);
+const maxSampleCount = ref(50);
 
 // New: fetch data for composed UserSelection
 // fetchDataForSelection already handles UserSelection
@@ -2155,7 +2163,7 @@ function editRegionName(region: UnifiedRegionType) {
   // Set the region to edit
   const existing = (regions.value as UnifiedRegionType[]).find(r => r.id === region.id);
   if (!existing) {
-    console.error(`Selection with ID ${region.id} not found.`);
+    console.error(`Region with ID ${region.id} not found.`);
     return;
   }
   regionBeingEdited.value = region;
@@ -2165,6 +2173,7 @@ function editRegionName(region: UnifiedRegionType) {
 function setRegionName(region: UnifiedRegionType, newName: string) {
   if (newName.trim() === '') {
     console.error("Region name cannot be empty.");
+    regionBeingEdited.value = null;
     return;
   }
   const existing = (regions.value as UnifiedRegionType[]).find(r => r.name === newName && r.id !== region.id);
@@ -2174,6 +2183,7 @@ function setRegionName(region: UnifiedRegionType, newName: string) {
   }
   region.name = newName;
   console.log(`Renamed ${region.geometryType} region to: ${newName}`);
+  regionBeingEdited.value = null;
 }
 
 function deleteTimeRange(range: TimeRange) {
@@ -2237,8 +2247,10 @@ onMounted(() => {
     }
   });
 
+  if (uniqueDays.value.length > 0) {
+    singleDateSelected.value = uniqueDays.value[uniqueDays.value.length - 1];
+  }
   
-  singleDateSelected.value = uniqueDays.value[uniqueDays.value.length - 1];
   
   updateFieldOfRegard();
   addFieldOfRegard();
@@ -2261,6 +2273,9 @@ const datesOfInterest = computed(() => {
 });
 
 const dateIsDST = computed(() => {
+  if (!date.value) {
+    return false;
+  }
   const standardOffset = getTimezoneOffset(selectedTimezone.value, new Date(date.value.getUTCFullYear(), 0, 1));
   const currentOffset = getTimezoneOffset(selectedTimezone.value, date.value);
   if (standardOffset === currentOffset) {
@@ -2283,6 +2298,9 @@ const timezoneOptions = computed(() => {
 
 // TODO: Maybe there's a built-in Date function to get this formatting?
 const thumbLabel = computed(() => {
+  if (date.value === null || timestamp.value === null) {
+    return '';
+  }
   const offset = getTimezoneOffset(selectedTimezone.value, date.value);
   const dateObj = new Date(timestamp.value + offset);
   const hours = dateObj.getUTCHours();
@@ -2626,6 +2644,9 @@ watch(showLocationMarker, (show: boolean) => {
 });
 
 watch(timestamps, () => {
+  if (uniqueDays.value.length === 0) {
+    return;
+  }
   singleDateSelected.value = uniqueDays.value[uniqueDays.value.length - 1];
 });
 
@@ -2746,7 +2767,6 @@ watch(openPanels, (open: number[]) => {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function handleSelectionRegionEdit(info: RectangleSelectionInfo) { 
-
   // Update the existing selection
   const currentSelection = selections.value[selectedIndex.value];
   currentSelection.region.geometryInfo = info;
@@ -2760,6 +2780,7 @@ function handleSelectionRegionEdit(info: RectangleSelectionInfo) {
   console.log(`Updated existing selection: ${currentSelection.name} (time range unchanged)`);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function handleRegionEdit(info: RectangleSelectionInfo | PointSelectionInfo) {
   if (regionBeingEdited.value) {
     regionBeingEdited.value.geometryInfo = info;
@@ -2779,8 +2800,22 @@ function handleRegionEdit(info: RectangleSelectionInfo | PointSelectionInfo) {
   regionBeingEdited.value = null;
 }
 
+function rectangleIsDegenerate(info: RectangleSelectionInfo): boolean {
+  return info.xmax === info.xmin || info.ymax === info.ymin;
+}
 watch(rectangleInfo, (info: RectangleSelectionInfo | null) => {
   if (info === null || map.value === null) {
+    rectangleSelectionActive.value = false;
+    return;
+  }
+  if (rectangleIsDegenerate(info)) {
+    // make it a point selection instead
+    // TODO: only implement when we have a solution to only do this on a double-click
+    // pointInfo.value = {
+    //   x: info.xmin,
+    //   y: info.ymin
+    // };
+    rectangleSelectionActive.value = false;
     return;
   }
   const canCreate = (selection.value === null || selectedIndex.value === null) && !regionBeingEdited.value;
@@ -2788,7 +2823,8 @@ watch(rectangleInfo, (info: RectangleSelectionInfo | null) => {
     createDraftSelection(info, 'rectangle');
     rectangleSelectionActive.value = false;
   } else {
-    handleRegionEdit(info);
+    return;
+    // handleRegionEdit(info);
   }
   
   // do not permit editing a region on a selection
@@ -2800,6 +2836,7 @@ watch(rectangleInfo, (info: RectangleSelectionInfo | null) => {
 // Add watcher for point selection
 watch(pointInfo, (info: PointSelectionInfo | null) => {
   if (info === null || map.value === null) {
+    pointSelectionActive.value = false;
     return;
   }
   const canCreate = (selection.value === null || selectedIndex.value === null) && !regionBeingEdited.value;
@@ -2807,7 +2844,8 @@ watch(pointInfo, (info: PointSelectionInfo | null) => {
     createDraftSelection(info, 'point');
     pointSelectionActive.value = false;
   } else {
-    handleRegionEdit(info);
+    return;
+    // handleRegionEdit(info);
   }
 });
 

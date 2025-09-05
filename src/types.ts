@@ -89,7 +89,7 @@ export interface BoundingBox {
   north: number;
 }
 
-export type BoundsSelector = (date: Date) => BoundingBox;
+export type BoundsSelector = (date: Date | null) => BoundingBox;
 
 export interface DragInfo {
   el: HTMLElement | undefined;
