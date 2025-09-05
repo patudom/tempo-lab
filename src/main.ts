@@ -15,7 +15,6 @@ import MarqeeAlert from "./components/MarqeeAlert.vue";
 import TimeseriesGraph from "./components/TimeseriesGraph.vue";
 import SelectionComposer from "./components/SelectionComposer.vue";
 
-
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { library } from "@fortawesome/fontawesome-svg-core";
 import {
@@ -51,8 +50,8 @@ const update = (el: HTMLElement, binding: Vue.DirectiveBinding) => el.style.visi
 
 createApp(TempoLite, {})
 
-  // Plugins
-  .use(vuetify)
+// Plugins
+// .use(vuetify)
 
   // Directives
   .directive(
