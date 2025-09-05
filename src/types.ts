@@ -1,6 +1,5 @@
 // Types
 
-import L, { Rectangle, CircleMarker } from 'leaflet';
 import M, { GeoJSONSource, } from 'maplibre-gl';
 import { Ref, toValue } from 'vue';
 
@@ -14,7 +13,7 @@ export type LatLngPair = LocationOrderedPair<'(Lat,Lng)'>;
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export type LngLatPair = LocationOrderedPair<'(Lng,Lat)'>;
 
-export type MappingBackends = 'leaflet' | 'maplibre';
+export type MappingBackends = 'maplibre';
 
 
 export interface InitMapOptions {
@@ -44,41 +43,18 @@ export interface InterestingEvent {
 }
 
 export type MapType<T extends MappingBackends> = 
-  T extends 'leaflet' ? L.Map :
   T extends 'maplibre' ? M.Map :
   never;
 
 export type RegionType<T extends MappingBackends> =
-  T extends 'leaflet' ? Rectangle | CircleMarker :
   T extends 'maplibre' ? GeoJSONSource:
   never;
 
-export function isLeaflet<T extends MappingBackends>(backend: Ref<T> | T, map: unknown): map is MapType<'leaflet'> {
-  return toValue(backend) === 'leaflet' && toValue(map) instanceof L.Map;
-}
+
 export function isMaplibre<T extends MappingBackends>(backend: Ref<T> | T, map: unknown): map is MapType<'maplibre'> {
   return toValue(backend) === 'maplibre' && toValue(map) instanceof M.Map;
 }
 
-export class LatLng extends L.LatLng {
-  constructor(lat: number, lng: number) {
-    super(lat, lng);
-  }
-
-  toLeaflet(): L.LatLng {
-    return this;
-  }
-  
-}
-export class LatLngBounds extends L.LatLngBounds {
-  constructor(sw: L.LatLng, ne: L.LatLng) {
-    super(sw, ne);
-  }
-
-  toLeaflet(): L.LatLngBounds {
-    return this;
-  }
-}
 
 
 // Library-agnostic bounds representation
