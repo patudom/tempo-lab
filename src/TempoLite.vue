@@ -295,213 +295,185 @@
     </div>
     <div id="where" class="big-label">where</div>
       <div id="map-container">
-        <colorbar-horizontal
-          v-if="display.width.value <= 750"
-          label="Amount of NO2"
-          backgroundColor="transparent"
-          :nsteps="255"
-          :cmap="currentColormap"
-          :cmapName="colorMap"
+        <map-colorbar-wrap
+          :horizontal="display.width.value <= 750"
+          :current-colormap="currentColormap"
+          :color-map="colorMap"
           :start-value="colorbarOptions[whichMolecule].stretch[0] / colorbarOptions[whichMolecule].cbarScale"
           :end-value="colorbarOptions[whichMolecule].stretch[1] / colorbarOptions[whichMolecule].cbarScale"
-          :extend="true"
+          :molecule-label="colorbarOptions[whichMolecule].label"
+          :cbar-scale="colorbarOptions[whichMolecule].cbarScale"
         >
-        <template v-slot:label>
-              <div v-if="Math.log10(colorbarOptions[whichMolecule].cbarScale) !== 0" style="text-align: center;">Amount of <span v-html="colorbarOptions[whichMolecule].label"></span><span class="unit-label">(10<sup>{{ Math.log10(colorbarOptions[whichMolecule].cbarScale)}}</sup> mol/cm<sup>2</sup>)</span></div>
-              <div v-else style="text-align: center;">Amount of <span v-html="colorbarOptions[whichMolecule].label"></span><span class="unit-label"> molecules/cm<sup>2</sup></span></div>
-        </template>
-        </colorbar-horizontal>
-        <v-card id="map-contents" style="width:100%; height: 100%;">
-          <v-toolbar
-            density="compact"
-            color="var(--info-background)"
-          >
-            <v-toolbar-title :text="`TEMPO Data Viewer: ${mapTitle}`"></v-toolbar-title>
-            <v-spacer></v-spacer>
-            <!-- swtichf ro preview points -->
-             <v-switch
-              v-if="regions.length > 0"
-              v-model="showSamplingPreviewMarkers"
-              :label="showSamplingPreviewMarkers ? 'Showing Sample Points' : 'Hiding Sample Points'"
-              :disabled="regions.length === 0"
-              @keyup.enter="showSamplingPreviewMarkers = !showSamplingPreviewMarkers"
-              inset
-              hide-details
-              class="me-3"
-              :style="{'--v-theme-on-surface': 'var(--accent-color)'}"
-              />
-            <v-tooltip :text="rectangleSelectionActive ? 'Cancel selection' : 'Select a region'">
-              <template #activator="{ props }">
-                <v-btn
-                  v-bind="props"
-                  icon="mdi-select"
-                  :color="rectangleSelectionActive ? 'info' : 'default'"
-                  :variant="rectangleSelectionActive ? 'tonal' : 'text'"
-                  :disabled="pointSelectionActive"
-                  @click="activateRectangleSelectionMode"
-                ></v-btn>
-              </template>
-            </v-tooltip>
-            <v-tooltip :text="pointSelectionActive ? 'Cancel selection' : 'Select a point'">
-              <template #activator="{ props }">
-                <v-btn
-                  v-bind="props"
-                  icon="mdi-plus"
-                  :color="pointSelectionActive ? 'info' : 'default'"
-                  :variant="pointSelectionActive ? 'tonal' : 'text'"
-                  :disabled="rectangleSelectionActive"
-                  @click="activatePointSelectionMode"
-                ></v-btn>
-              </template>
-            </v-tooltip>
-          </v-toolbar>
-          <div id="map">
-            <v-overlay
-              :modelValue="loadingEsriTimeSteps"
-              style="z-index: 1000;"
-              class="align-center justify-center"
-              contained
-              opacity=".8"
-              >
-              <div id="loading-circle-progress-container" class="d-flex flex-column align-center justify-center ga-2">
-                <label class="text-white" for="loading-circle-progress">Fetching time steps from NASA Earthdata GIS service...</label>
-                <v-progress-circular
-                  id="loading-circle-progress"
-                  style="z-index: 1000;"
-                  :size="100"
-                  :width="15"
-                  :indeterminate="loadingEsriTimeSteps"
-                  color="#092088"
-                >
-                
-              </v-progress-circular>
-              </div>
-            </v-overlay>
-          </div>
+          <v-card id="map-contents" style="width:100%; height: 100%;">
+            <v-toolbar
+              density="compact"
+              color="var(--info-background)"
+            >
+              <v-toolbar-title :text="`TEMPO Data Viewer: ${mapTitle}`"></v-toolbar-title>
+              <v-spacer></v-spacer>
+              <!-- swtichf ro preview points -->
+               <v-switch
+                v-if="regions.length > 0"
+                v-model="showSamplingPreviewMarkers"
+                :label="showSamplingPreviewMarkers ? 'Showing Sample Points' : 'Hiding Sample Points'"
+                :disabled="regions.length === 0"
+                @keyup.enter="showSamplingPreviewMarkers = !showSamplingPreviewMarkers"
+                inset
+                hide-details
+                class="me-3"
+                :style="{'--v-theme-on-surface': 'var(--accent-color)'}"
+                />
+              <v-tooltip :text="rectangleSelectionActive ? 'Cancel selection' : 'Select a region'">
+                <template #activator="{ props }">
+                  <v-btn
+                    v-bind="props"
+                    icon="mdi-select"
+                    :color="rectangleSelectionActive ? 'info' : 'default'"
+                    :variant="rectangleSelectionActive ? 'tonal' : 'text'"
+                    :disabled="pointSelectionActive"
+                    @click="activateRectangleSelectionMode"
+                  ></v-btn>
+                </template>
+              </v-tooltip>
+              <v-tooltip :text="pointSelectionActive ? 'Cancel selection' : 'Select a point'">
+                <template #activator="{ props }">
+                  <v-btn
+                    v-bind="props"
+                    icon="mdi-plus"
+                    :color="pointSelectionActive ? 'info' : 'default'"
+                    :variant="pointSelectionActive ? 'tonal' : 'text'"
+                    :disabled="rectangleSelectionActive"
+                    @click="activatePointSelectionMode"
+                  ></v-btn>
+                </template>
+              </v-tooltip>
+            </v-toolbar>
+            <EsriMap
+              mapID="map"
+              :initial="initState"
+              :home="homeState"
+              :show-roads="showRoads"
+              :events="{
+                'moveend': updateURL,
+                'zoomend': updateURL,
+              }"
+              :timestamp="timestamp"
+              :molecule="whichMolecule"
+              :opacity="opacity"
+              :show-field-of-regard="showFieldOfRegard"
+              @zoomhome="onZoomhome"
+              @ready="onMapReady"
+              @esri-timesteps-loaded="onEsriTimestepsLoaded"
+              ref="maplibreMap"
+              width="100%"
+              height="calc(100% - 48px)"
+            />
 
-          <div v-if="showFieldOfRegard" id="map-legend"><hr class="line-legend">TEMPO Field of Regard</div>
-          <!-- show hide cloud data, disable if none is available -->
+            <div v-if="showFieldOfRegard" id="map-legend"><hr class="line-legend">TEMPO Field of Regard</div>
+            <!-- show hide cloud data, disable if none is available -->
 
-          <v-menu
-            id="map-controls"
-            v-model="showControls"
-            :close-on-content-click="false"
-          >
-            <template v-slot:activator="{ props }">
-              <div id="map-show-hide-controls">
-                <v-btn
-                  v-bind="props"
-                  class="mx-2 mt-5"
-                  elevation="2"
-                  color="white"
-                  icon
-                  style="outline: 2px solid #b6b6b6;"
-                  rounded="0"
-                  size="x-small"
-                >
-                  <template v-slot:default>
-                    <v-icon
-                      color="black"
-                      size="x-large"
-                    >mdi-tune-variant</v-icon>
-                  </template>
-                </v-btn>
-              </div>
-            </template>
-            <v-card class="controls-card">
-              <font-awesome-icon
-                style="position:absolute;right:16px;cursor:pointer"
-                icon="square-xmark"
-                size="xl"
-                @click="showControls = false"
-                @keyup.enter="showControls = false"
-                :color="accentColor2"
-                tabindex="0"
-              ></font-awesome-icon>
-              <div
-                id="opacity-slider-container"
-                class="mt-5"
-              >
-                <div id="opacity-slider-label">TEMPO data opacity</div>
-                <v-slider
-                    v-model="opacity"
-                    :min="0"
-                    :max="1"
-                    color="#c10124"
-                    density="compact"
-                    hide-details
-                    class="mb-4"
-                    @end="onOpacitySliderEnd"
+            <v-menu
+              id="map-controls"
+              v-model="showControls"
+              :close-on-content-click="false"
+            >
+              <template v-slot:activator="{ props }">
+                <div id="map-show-hide-controls">
+                  <v-btn
+                    v-bind="props"
+                    class="mx-2 mt-5"
+                    elevation="2"
+                    color="white"
+                    icon
+                    style="outline: 2px solid #b6b6b6;"
+                    rounded="0"
+                    size="x-small"
                   >
-                </v-slider>
-              </div>
-              <div
-                class="d-flex flex-row align-center justify-space-between"
-              >
-                <v-checkbox
-                  v-model="showRoads"
-                  @keyup.enter="showRoads = !showRoads"
-                  label="Show Roads"
-                  color="#c10124"
-                  hide-details
-                />
-              </div>
-              <div
-                class="d-flex flex-row align-center justify-space-between"
-              >
-                <v-checkbox
-                  v-model="showFieldOfRegard"
-                  @keyup.enter="showFieldOfRegard = !showFieldOfRegard"
-                  label="TEMPO Field of Regard"
-                  color="#c10124"
-                  hide-details
-                />
-                <info-button>
-                  <p>
-                    The TEMPO satellite observes the atmosphere over North America, from the Atlantic Ocean to the Pacific Coast, and from roughly Mexico City to central Canada. 
-                  </p>
-                  <p>
-                    The TEMPO Field of Regard (in <span class="text-red">red</span>, currently <em>{{ showFieldOfRegard ? 'visible' : "hidden" }}</em>)
-                    is the area over which the satellite takes measurements. 
-                  </p>
-                  </info-button>
+                    <template v-slot:default>
+                      <v-icon
+                        color="black"
+                        size="x-large"
+                      >mdi-tune-variant</v-icon>
+                    </template>
+                  </v-btn>
                 </div>
-            </v-card>
-          </v-menu>
-          <div id="location-and-sharing">
-          <location-search
-            v-model="searchOpen"
-            small
-            stay-open
-            buttonSize="xl"
-            persist-selected
-            :search-provider="geocodingInfoForSearchLimited"
-            @set-location="setLocationFromSearch"
-            @error="(error: string) => searchErrorMessage = error"
-          ></location-search>
-        </div>
-        
-        
-        
-        </v-card>
-        <colorbar 
-          v-if="display.width.value > 750"
-          label="Amount of NO2"
-          backgroundColor="transparent"
-          :nsteps="255"
-          :cmap="currentColormap"
-          :cmapName="colorMap"
-          :start-value="colorbarOptions[whichMolecule].stretch[0] / colorbarOptions[whichMolecule].cbarScale"
-          :end-value="colorbarOptions[whichMolecule].stretch[1] / colorbarOptions[whichMolecule].cbarScale"
-          :extend="true"
-        >
-          <template v-slot:label>
-              <div v-if="Math.log10(colorbarOptions[whichMolecule].cbarScale) !== 0" style="text-align: center;">Amount of <span v-html="colorbarOptions[whichMolecule].label"></span><span class="unit-label">(10<sup>{{ Math.log10(colorbarOptions[whichMolecule].cbarScale)}}</sup> mol/cm<sup>2</sup>)</span></div>
-              <div v-else style="text-align: center;">Amount of <span v-html="colorbarOptions[whichMolecule].label"></span><span class="unit-label"> (molecules/cm<sup>2</sup>)</span></div>
-          </template>
-        </colorbar>
-        
-
+              </template>
+              <v-card class="controls-card">
+                <font-awesome-icon
+                  style="position:absolute;right:16px;cursor:pointer"
+                  icon="square-xmark"
+                  size="xl"
+                  @click="showControls = false"
+                  @keyup.enter="showControls = false"
+                  :color="accentColor2"
+                  tabindex="0"
+                ></font-awesome-icon>
+                <div
+                  id="opacity-slider-container"
+                  class="mt-5"
+                >
+                  <div id="opacity-slider-label">TEMPO data opacity</div>
+                  <v-slider
+                      v-model="opacity"
+                      :min="0"
+                      :max="1"
+                      color="#c10124"
+                      density="compact"
+                      hide-details
+                      class="mb-4"
+                      @end="onOpacitySliderEnd"
+                    >
+                  </v-slider>
+                </div>
+                <div
+                  class="d-flex flex-row align-center justify-space-between"
+                >
+                  <v-checkbox
+                    v-model="showRoads"
+                    @keyup.enter="showRoads = !showRoads"
+                    label="Show Roads"
+                    color="#c10124"
+                    hide-details
+                  />
+                </div>
+                <div
+                  class="d-flex flex-row align-center justify-space-between"
+                >
+                  <v-checkbox
+                    v-model="showFieldOfRegard"
+                    @keyup.enter="showFieldOfRegard = !showFieldOfRegard"
+                    label="TEMPO Field of Regard"
+                    color="#c10124"
+                    hide-details
+                  />
+                  <info-button>
+                    <p>
+                      The TEMPO satellite observes the atmosphere over North America, from the Atlantic Ocean to the Pacific Coast, and from roughly Mexico City to central Canada. 
+                    </p>
+                    <p>
+                      The TEMPO Field of Regard (in <span class="text-red">red</span>, currently <em>{{ showFieldOfRegard ? 'visible' : "hidden" }}</em>)
+                      is the area over which the satellite takes measurements. 
+                    </p>
+                    </info-button>
+                  </div>
+              </v-card>
+            </v-menu>
+            <div id="location-and-sharing">
+            <location-search
+              v-model="searchOpen"
+              small
+              stay-open
+              buttonSize="xl"
+              persist-selected
+              :search-provider="geocodingInfoForSearchLimited"
+              @set-location="setLocationFromSearch"
+              @error="(error: string) => searchErrorMessage = error"
+            ></location-search>
+          </div>
+          
+          
+          </v-card>
+        </map-colorbar-wrap>
       </div>
         <div id="when" class="big-label">when</div>
         <div id="slider-row">
@@ -1235,7 +1207,7 @@
 </template>
   
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, nextTick } from "vue";
+import { ref, computed, watch, onMounted, nextTick, type Ref } from "vue";
 import { API_BASE_URL, blurActiveElement } from "@cosmicds/vue-toolkit";
 import { useDisplay } from 'vuetify';
 import { DatePickerInstance } from "@vuepic/vue-datepicker";
@@ -1259,21 +1231,19 @@ import { useUniqueTimeSelection } from "./composables/useUniqueTimeSelection";
 import DateTimeRangeSelection from "./date_time_range_selection/DateTimeRangeSelection.vue";
 import TimeChips from "./components/TimeChips.vue";
 import CTextField from "./components/CTextField.vue";
-
-
+import EsriMap from "./components/EsriMap.vue";
+import MapColorbarWrap from "./components/MapColorbarWrap.vue";
 // Import Maplibre Composables
-import { useMap } from "./composables/maplibre/useMap";
-import { usezoomhome } from './composables/maplibre/useZoomHome';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { useImageOverlay } from "./composables/maplibre/useImageOverlay";
-import { useFieldOfRegard} from "./composables/maplibre/useFieldOfRegard";
+// import { useFieldOfRegard} from "./composables/maplibre/useFieldOfRegard";
 import { useLocationMarker } from "./composables/maplibre/useMarker";
 import { useRectangleSelection } from "./composables/maplibre/useRectangleSelection";
 import { addRectangleLayer, updateRectangleBounds, removeRectangleLayer } from "./composables/maplibre/utils";
 import { usePointSelection } from "./composables/maplibre/usePointSelection";
 import { addPointLayer, updatePointLocation, removePointLayer, regionBounds, fitBounds } from "./composables/maplibre/utils";
 import { useMultiMarker } from './composables/maplibre/useMultiMarker';
-import { useEsriLayer } from "./esri/maplibre/useEsriImageLayer";
+// ESRI layer now handled inside EsriMap component
 const zoomScale = 0.5; // for matplibre-gl
 // import { useEsriLayer } from "./esri/maplibre/useEsriImageLayerPlain"; // do not use
 
@@ -1589,20 +1559,15 @@ const esriVariable = computed(() => {
 const tempoDataService = new TempoDataService(esriUrl.value, esriVariable.value);
 
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const {getEsriTimeSteps, loadingEsriTimeSteps, addEsriSource, esriTimesteps, changeUrl, renderOptions} = useEsriLayer(
-  esriUrl.value,
-  esriVariable.value,
-  timestamp,
-  opacity,
-);
-getEsriTimeSteps();
-watch(esriTimesteps, (newSteps, _oldSteps) => {
-  if (newSteps.length > 0) {
-    timestamps.value = newSteps.sort();
+// ESRI timesteps arrive from EsriMap component; store directly in timestamps
+function onEsriTimestepsLoaded(steps: number[]) {
+  if (!Array.isArray(steps) || steps.length === 0) return;
+  const sorted = steps.slice().sort();
+  timestamps.value = sorted;
+  if (timeIndex.value >= sorted.length) {
+    timeIndex.value = 0;
   }
-});
-// renderOptions.value.colormap = 'Plasma';
+}
 
 function handleEsriTimeSelected(ts:number, _index: number) {
   const idx = timestamps.value.indexOf(ts);
@@ -1615,34 +1580,33 @@ function handleEsriTimeSelected(ts:number, _index: number) {
 }
 
 watch(whichMolecule, (newMolecule) => {
-  changeUrl(ESRI_URLS[newMolecule].url, ESRI_URLS[newMolecule].variable);
   // Update TempoDataService with new URL and variable
   tempoDataService.setBaseUrl(ESRI_URLS[newMolecule].url);
   tempoDataService.setVariable(ESRI_URLS[newMolecule].variable);
-  getEsriTimeSteps();
-  console.log(colorbarOptions[newMolecule].colormap.toLowerCase());
   colorMap.value = colorbarOptions[newMolecule].colormap.toLowerCase();
 });
 
-const onMapReady = (map) => {
-  map.on('moveend', updateURL);
-  map.on('zoomend', updateURL);
-  addEsriSource(map);
-};
-const showRoads = ref(true);
-const { map, createMap, setView } = useMap("map", initState.value, showRoads, onMapReady);
 
-const { 
-  addFieldOfRegard,
-  showFieldOfRegard,
-  updateFieldOfRegard 
-} = useFieldOfRegard(singleDateSelected, map);
+const showRoads = ref(true);
+// const { map, createMap, setView } = useMap("map", initState.value, showRoads, onMapReady);
+import type { Map } from "maplibre-gl";
+import { useTemplateRef } from "vue";
+const maplibreMap = useTemplateRef<InstanceType<typeof EsriMap>>("maplibreMap");
+type MapType = Map | null;
+type MapTypeRef = Ref<MapType>;
+const map = ref<MapType>(null);
+
+const onMapReady = (m) => {
+  map.value = m; // ESRI source already added by EsriMap
+};
+
+const showFieldOfRegard = ref(true);
 
 const {
   setMarker,
   removeMarker,
   locationMarker
-} = useLocationMarker(map,  showLocationMarker.value);
+} = useLocationMarker(map  as Ref<Map | null>,  showLocationMarker.value);
 
 
 const regions = ref<UnifiedRegionType[]>([]);
@@ -1752,8 +1716,8 @@ const COLORS = [
 ];
 
 // implement rectangle and point
-const { active: rectangleSelectionActive, selectionInfo: rectangleInfo } = useRectangleSelection(map, "red");
-const { active: pointSelectionActive, selectionInfo: pointInfo } = usePointSelection(map, false);
+const { active: rectangleSelectionActive, selectionInfo: rectangleInfo } = useRectangleSelection(map as MapTypeRef, "red");
+const { active: pointSelectionActive, selectionInfo: pointInfo } = usePointSelection(map as MapTypeRef, false);
 
 const loadingSamples = ref<string | false>(false);
 
@@ -1777,7 +1741,7 @@ const datasetRowRefs = ref({});
 const useCustomTimeRange = ref(true); // Binary choice: false = current day, true = custom range
 
 // Store markers for timeseries locations
-const timeseriesMarkerApi = useMultiMarker(map, {
+const timeseriesMarkerApi = useMultiMarker(map as MapTypeRef, {
   shape: 'circle',
   color: '#ff0000',
   fillColor: '#ff0000',
@@ -1794,7 +1758,7 @@ function clearTimeseriesMarkers() {
   timeseriesMarkerApi.clearMarkers();
 }
 
-const samplingPreviewMarkers = useMultiMarker(map, {
+const samplingPreviewMarkers = useMultiMarker(map as MapTypeRef , {
   shape: 'circle',
   color: '#0000ff',
   fillColor: '#0000ff',
@@ -2044,8 +2008,8 @@ function createDraftSelection(info: RectangleSelectionInfo | PointSelectionInfo,
   
   const isRect = geometryType === 'rectangle';
   const { layer } = isRect ? 
-    addRectangleLayer(map.value!, info as RectangleSelectionInfo, color)
-    : addPointLayer(map.value!, info as PointSelectionInfo, color);
+    addRectangleLayer((map.value as MapType)!, info as RectangleSelectionInfo, color)
+    : addPointLayer((map.value as MapType)!, info as PointSelectionInfo, color);
 
 
   const newSelection = {
@@ -2057,12 +2021,14 @@ function createDraftSelection(info: RectangleSelectionInfo | PointSelectionInfo,
     layer: layer
   } as UnifiedRegionType;
   
-  regions.value = [...regions.value, newSelection];
+  // eslint-disable-next-line
+  // @ts-ignore not actually infinitely deep
+  regions.value = [...regions.value, newSelection] as UnifiedRegionType[];
   console.log(`Created ${geometryType} ${newSelection.name}`);
 }
 
 function moveMapToRegion(region: UnifiedRegionType) {
-  const mapV = map.value;
+  const mapV = map.value as MapType;
   if (!mapV) {
     return;
   }
@@ -2151,6 +2117,9 @@ const regionBeingEdited = ref<UnifiedRegionType | null>(null);
 function editRegionName(region: UnifiedRegionType) {
   console.log(`Editing ${region.geometryType}: ${region.name}`);
   // Set the region to edit
+
+  // eslint-disable-next-line
+  // @ts-ignore it is not actually deep
   const existing = (regions.value as UnifiedRegionType[]).find(r => r.id === region.id);
   if (!existing) {
     console.error(`Region with ID ${region.id} not found.`);
@@ -2166,6 +2135,8 @@ function setRegionName(region: UnifiedRegionType, newName: string) {
     regionBeingEdited.value = null;
     return;
   }
+  // eslint-disable-next-line
+  // @ts-ignore it is not actually deep
   const existing = (regions.value as UnifiedRegionType[]).find(r => r.name === newName && r.id !== region.id);
   if (existing) {
     console.error(`A region with the name "${newName}" already exists.`);
@@ -2176,6 +2147,7 @@ function setRegionName(region: UnifiedRegionType, newName: string) {
   regionBeingEdited.value = null;
 }
 
+import { StyleLayer } from "maplibre-gl";
 function deleteTimeRange(range: TimeRange) {
   const index = availableTimeRanges.value.findIndex(r => r.id === range.id);
   if (index < 0) {
@@ -2191,9 +2163,9 @@ function deleteRegion(region: UnifiedRegionType) {
   }
   if (map.value && region.layer) {
     if (isRectangleSelection(region)) {
-      removeRectangleLayer(map.value, region.layer);
+      removeRectangleLayer(map.value as Map, region.layer as unknown as StyleLayer);
     } else if (isPointSelection(region)) {
-      removePointLayer(map.value, region.layer);
+      removePointLayer(map.value as Map, region.layer as unknown as StyleLayer);
     }
   }
   regions.value.splice(index, 1);
@@ -2223,27 +2195,22 @@ function deleteSelection(sel: UserSelectionType) {
   delete openGraphs.value[sel.id];
 }
 
-
+function onZoomhome() {
+  if (locationMarker.value !== null) {
+    removeMarker();
+  }
+}
 
 onMounted(() => {
   showSplashScreen.value = false;
-  createMap();
-  
-  usezoomhome(map, homeState.value.loc, homeState.value.zoom, (_e: Event) => {
-    sublocationRadio.value = null;
-    // check if location marker is not null and on map. if so remove it
-    if (locationMarker.value !== null) {
-      removeMarker();
-    }
-  });
 
   if (uniqueDays.value.length > 0) {
     singleDateSelected.value = uniqueDays.value[uniqueDays.value.length - 1];
   }
   
-  
-  updateFieldOfRegard();
-  addFieldOfRegard();
+  maplibreMap.value?.onReady.then( () => {
+    console.log("Maplibre map is ready (onMounted)");
+  });
 
   createUserEntry();
   window.addEventListener("visibilitychange", () => {
@@ -2348,7 +2315,7 @@ async function geocodingInfoForSearchLimited(searchText: string): Promise<MapBox
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function resetMapBounds() {
-  setView([40.044, -98.789] as LatLngPair, 4);
+  maplibreMap.value?.setView([40.044, -98.789] as LatLngPair, 4);
 }
 
 function setLocationFromSearch(items: [MapBoxFeature | null, string]) {
@@ -2356,7 +2323,7 @@ function setLocationFromSearch(items: [MapBoxFeature | null, string]) {
   if (feature !== null) {
     // Latitude, Longitude order
     const coordinates: LatLngPair = [feature.center[1], feature.center[0]] as LatLngPair;
-    setView(coordinates, 12);
+    maplibreMap.value?.setView(coordinates, 12);
     setMarker(coordinates);
     userSelectedLocations.push(text);
   }
@@ -2400,7 +2367,7 @@ function goToLocationOfInterst(index: number, subindex: number) {
     return;
   }
   const loi = locationsOfInterest.value[index][subindex];
-  setView(loi.latlng, loi.zoom * zoomScale); // Adjust zoom level for maplibre
+  maplibreMap.value?.setView(loi.latlng, loi.zoom * zoomScale); // Adjust zoom level for maplibre
   if (loi.index !== undefined) {
     timeIndex.value = loi.index;
   } else {
@@ -2566,7 +2533,7 @@ watch(timestampsLoaded, (loaded: boolean) => {
   }
 });
 
-watch(timestamp, (_val: number) => {
+watch(timestamp, (_val: number | null) => {
   updateURL();
 });
 
@@ -2624,7 +2591,7 @@ watch(showClouds, (_show: boolean) => {
 watch(showLocationMarker, (show: boolean) => {
   if (locationMarker.value) {
     if (show && map.value) {
-      locationMarker.value.addTo(map.value);
+      locationMarker.value.addTo(map.value as Map);
       return;
     } else {
       locationMarker.value.remove();
@@ -2758,6 +2725,10 @@ watch(openPanels, (open: number[]) => {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function handleSelectionRegionEdit(info: RectangleSelectionInfo) { 
   // Update the existing selection
+  if (selectedIndex.value === null) {
+    console.log('No selection is currently selected for editing.');
+    return;
+  }
   const currentSelection = selections.value[selectedIndex.value];
   currentSelection.region.geometryInfo = info;
   currentSelection.samples = undefined; // Clear existing data
@@ -2767,7 +2738,7 @@ function handleSelectionRegionEdit(info: RectangleSelectionInfo) {
     updateRectangleBounds(rect, info);
   }
     
-  console.log(`Updated existing selection: ${currentSelection.name} (time range unchanged)`);
+  console.log(`Updated existing selection: ${currentSelection.id} (time range unchanged)`);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -3157,10 +3128,7 @@ ul {
   overflow: hidden;
 }
 
-#map {
-  width: 100%;
-  height: calc(100% - 48px);
-}
+
 
 // define the layout
 .content-with-sidebars {
@@ -3361,11 +3329,7 @@ a {
   flex-direction: row;
   padding-right: 10px;
 
-  #map {
-    flex-basis: 80%;
-    flex-grow: 1;
-    flex-shrink: 1;
-  }
+
 
   #location-and-sharing {
     position: absolute;
@@ -3415,14 +3379,7 @@ a {
     }
   }
 
-  .colorbar-container {
-    flex-grow: 0;
-    flex-shrink: 1;
 
-    .unit-label {
-      font-size: .95em;
-    }
-  }
 
   #la-fires {
     z-index: 1000;
@@ -3433,19 +3390,6 @@ a {
   }
 }
 
-.colorbar-container sub {
-    vertical-align: sub !important;
-    line-height: 1.25  !important;
-  }
-
-.colorbar-container sup {
-    vertical-align: super  !important;
-    line-height: 1.25  !important;
-  }
-.colorbar-container sub ,
-.colorbar-container sup {
-    top: 0  !important;
-  }
 
 #slider-row {
   display: flex;
@@ -3750,12 +3694,6 @@ button:focus-visible,
       right: 0;
     }
 
-    .colorbar-container-horizontal {
-      margin-top: 1rem;
-      margin-bottom: 0.5rem;
-      z-index: 5000;
-      --height: 0.75rem;
-    }
 
   }
 
@@ -3841,10 +3779,6 @@ div.callout-wrapper {
   100% {
     transform: scale(1);
   }
-}
-
-canvas.maplibregl-canvas {
-  background-color: whitesmoke;
 }
 
 .dataset-loading {
