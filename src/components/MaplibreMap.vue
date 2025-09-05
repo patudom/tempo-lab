@@ -125,9 +125,9 @@ const whenMapReady: Promise<Map> = new Promise((resolve, _reject) => {
 const onMapReady = (m: Map) => {
   console.log("Map is ready", m);
   mapReady.value = true;
-  attachAllEvents(m, props.events);
   emit('ready', m);
   promiseResolve(m);
+  attachAllEvents(m, props.events);
 };
 
 const {

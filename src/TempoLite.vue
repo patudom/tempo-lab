@@ -348,7 +348,7 @@
                 </template>
               </v-tooltip>
             </v-toolbar>
-            <maplibre-map
+            <EsriMap
               mapID="map"
               :initial="initState"
               :home="homeState"
@@ -357,34 +357,17 @@
                 'moveend': updateURL,
                 'zoomend': updateURL,
               }"
+              :timestamp="timestamp"
+              :molecule="whichMolecule"
+              :opacity="opacity"
+              :show-field-of-regard="showFieldOfRegard"
               @zoomhome="onZoomhome"
               @ready="onMapReady"
+              @esri-timesteps-loaded="onEsriTimestepsLoaded"
               ref="maplibreMap"
               width="100%"
               height="calc(100% - 48px)"
-              >
-              <v-overlay
-                :modelValue="loadingEsriTimeSteps"
-                style="z-index: 1000;"
-                class="align-center justify-center"
-                contained
-                opacity=".8"
-                >
-                <div id="loading-circle-progress-container" class="d-flex flex-column align-center justify-center ga-2">
-                  <label class="text-white" for="loading-circle-progress">Fetching time steps from NASA Earthdata GIS service...</label>
-                  <v-progress-circular
-                    id="loading-circle-progress"
-                    style="z-index: 1000;"
-                    :size="100"
-                    :width="15"
-                    :indeterminate="loadingEsriTimeSteps"
-                    color="#092088"
-                  >
-                  
-                </v-progress-circular>
-                </div>
-              </v-overlay>
-            </maplibre-map>
+            />
 
             <div v-if="showFieldOfRegard" id="map-legend"><hr class="line-legend">TEMPO Field of Regard</div>
             <!-- show hide cloud data, disable if none is available -->
@@ -1238,7 +1221,7 @@ import { useUniqueTimeSelection } from "./composables/useUniqueTimeSelection";
 import DateTimeRangeSelection from "./date_time_range_selection/DateTimeRangeSelection.vue";
 import TimeChips from "./components/TimeChips.vue";
 import CTextField from "./components/CTextField.vue";
-import MaplibreMap from "./components/MaplibreMap.vue";
+import EsriMap from "./components/EsriMap.vue";
 import MapColorbarWrap from "./components/MapColorbarWrap.vue";
 // Import Leaflet Composables
 // import { useMap } from "./composables/leaflet/useMap";
@@ -1255,14 +1238,14 @@ import MapColorbarWrap from "./components/MapColorbarWrap.vue";
 // Import Maplibre Composables
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { useImageOverlay } from "./composables/maplibre/useImageOverlay";
-import { useFieldOfRegard} from "./composables/maplibre/useFieldOfRegard";
+// import { useFieldOfRegard} from "./composables/maplibre/useFieldOfRegard";
 import { useLocationMarker } from "./composables/maplibre/useMarker";
 import { useRectangleSelection } from "./composables/maplibre/useRectangleSelection";
 import { addRectangleLayer, updateRectangleBounds, removeRectangleLayer } from "./composables/maplibre/utils";
 import { usePointSelection } from "./composables/maplibre/usePointSelection";
 import { addPointLayer, updatePointLocation, removePointLayer, regionBounds, fitBounds } from "./composables/maplibre/utils";
 import { useMultiMarker } from './composables/maplibre/useMultiMarker';
-import { useEsriLayer } from "./esri/maplibre/useEsriImageLayer";
+// ESRI layer now handled inside EsriMap component
 const zoomScale = 0.5; // for matplibre-gl
 // import { useEsriLayer } from "./esri/maplibre/useEsriImageLayerPlain"; // do not use
 
@@ -1578,20 +1561,15 @@ const esriVariable = computed(() => {
 const tempoDataService = new TempoDataService(esriUrl.value, esriVariable.value);
 
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const {getEsriTimeSteps, loadingEsriTimeSteps, addEsriSource, esriTimesteps, changeUrl, renderOptions} = useEsriLayer(
-  esriUrl.value,
-  esriVariable.value,
-  timestamp,
-  opacity,
-);
-getEsriTimeSteps();
-watch(esriTimesteps, (newSteps, _oldSteps) => {
-  if (newSteps.length > 0) {
-    timestamps.value = newSteps.sort();
+// ESRI timesteps arrive from EsriMap component; store directly in timestamps
+function onEsriTimestepsLoaded(steps: number[]) {
+  if (!Array.isArray(steps) || steps.length === 0) return;
+  const sorted = steps.slice().sort();
+  timestamps.value = sorted;
+  if (timeIndex.value >= sorted.length) {
+    timeIndex.value = 0;
   }
-});
-// renderOptions.value.colormap = 'Plasma';
+}
 
 function handleEsriTimeSelected(ts:number, _index: number) {
   const idx = timestamps.value.indexOf(ts);
@@ -1604,12 +1582,9 @@ function handleEsriTimeSelected(ts:number, _index: number) {
 }
 
 watch(whichMolecule, (newMolecule) => {
-  changeUrl(ESRI_URLS[newMolecule].url, ESRI_URLS[newMolecule].variable);
   // Update TempoDataService with new URL and variable
   tempoDataService.setBaseUrl(ESRI_URLS[newMolecule].url);
   tempoDataService.setVariable(ESRI_URLS[newMolecule].variable);
-  getEsriTimeSteps();
-  console.log(colorbarOptions[newMolecule].colormap.toLowerCase());
   colorMap.value = colorbarOptions[newMolecule].colormap.toLowerCase();
 });
 
@@ -1618,21 +1593,16 @@ const showRoads = ref(true);
 // const { map, createMap, setView } = useMap("map", initState.value, showRoads, onMapReady);
 import type { Map } from "maplibre-gl";
 import { useTemplateRef } from "vue";
-const maplibreMap = useTemplateRef<InstanceType<typeof MaplibreMap>>("maplibreMap");
+const maplibreMap = useTemplateRef<InstanceType<typeof EsriMap>>("maplibreMap");
 type MapType = Map | null;
 type MapTypeRef = Ref<MapType>;
 const map = ref<MapType>(null);
 
 const onMapReady = (m) => {
-  map.value = m;
-  addEsriSource(m);
+  map.value = m; // ESRI source already added by EsriMap
 };
 
-const { 
-  addFieldOfRegard,
-  showFieldOfRegard,
-  updateFieldOfRegard 
-} = useFieldOfRegard(singleDateSelected, map as Ref<Map | null>);
+const showFieldOfRegard = ref(true);
 
 const {
   setMarker,
@@ -2052,7 +2022,9 @@ function createDraftSelection(info: RectangleSelectionInfo | PointSelectionInfo,
     layer: layer
   } as UnifiedRegionType;
   
-  regions.value = [...regions.value, newSelection];
+  // eslint-disable-next-line
+  // @ts-ignore not actually infinitely deep
+  regions.value = [...regions.value, newSelection] as UnifiedRegionType[];
   console.log(`Created ${geometryType} ${newSelection.name}`);
 }
 
@@ -2118,6 +2090,9 @@ const regionBeingEdited = ref<UnifiedRegionType | null>(null);
 function editRegionName(region: UnifiedRegionType) {
   console.log(`Editing ${region.geometryType}: ${region.name}`);
   // Set the region to edit
+
+  // eslint-disable-next-line
+  // @ts-ignore it is not actually deep
   const existing = (regions.value as UnifiedRegionType[]).find(r => r.id === region.id);
   if (!existing) {
     console.error(`Region with ID ${region.id} not found.`);
@@ -2133,6 +2108,8 @@ function setRegionName(region: UnifiedRegionType, newName: string) {
     regionBeingEdited.value = null;
     return;
   }
+  // eslint-disable-next-line
+  // @ts-ignore it is not actually deep
   const existing = (regions.value as UnifiedRegionType[]).find(r => r.name === newName && r.id !== region.id);
   if (existing) {
     console.error(`A region with the name "${newName}" already exists.`);
@@ -2143,6 +2120,8 @@ function setRegionName(region: UnifiedRegionType, newName: string) {
   regionBeingEdited.value = null;
 }
 
+import { StyleLayer } from "maplibre-gl";
+
 function deleteRegion(region: UnifiedRegionType) {
   const index = regions.value.findIndex(r => r.id === region.id);
   if (index < 0) {
@@ -2150,9 +2129,9 @@ function deleteRegion(region: UnifiedRegionType) {
   }
   if (map.value && region.layer) {
     if (isRectangleSelection(region)) {
-      removeRectangleLayer(map.value as Map, region.layer);
+      removeRectangleLayer(map.value as Map, region.layer as unknown as StyleLayer);
     } else if (isPointSelection(region)) {
-      removePointLayer(map.value as Map, region.layer);
+      removePointLayer(map.value as Map, region.layer as unknown as StyleLayer);
     }
   }
   regions.value.splice(index, 1);
@@ -2197,8 +2176,6 @@ onMounted(() => {
   
   maplibreMap.value?.onReady.then( () => {
     console.log("Maplibre map is ready (onMounted)");
-    addFieldOfRegard();
-    updateFieldOfRegard();
   });
 
   createUserEntry();
