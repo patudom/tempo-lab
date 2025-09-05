@@ -14,7 +14,7 @@ interface UseEsriLayer {
   loadingEsriTimeSteps: Ref<boolean>;
   updateEsriOpacity: (value?: number | null | undefined) => void;
   updateEsriTimeRange: () => void;
-  addEsriSource: (Map) => void;
+  addEsriSource: (map: Map) => void;
   changeUrl: (newUrl: string, variableName: VariableNames) => void;
   renderOptions: Ref<RenderingRuleOptions>;
 }

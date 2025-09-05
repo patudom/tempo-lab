@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <v-app id="app">
     <div ref="root" class="layout-root"></div>
 
     <teleport v-if="mapTarget" :to="mapTarget">
@@ -9,13 +9,10 @@
     <teleport v-if="controlsTarget" :to="controlsTarget">
       <div>CONTROLS</div>
     </teleport>
-  </div>
+  </v-app>
 </template>
 
 <script setup lang="ts">
-import "golden-layout/dist/css/goldenlayout-base.css";
-import "golden-layout/dist/css/themes/goldenlayout-dark-theme.css";
-
 import { onMounted, ref, useTemplateRef, type Ref } from "vue";
 import { GoldenLayout } from "golden-layout";
 
@@ -51,11 +48,13 @@ onMounted(() => {
           type: 'component',
           componentType: 'map',
           title: 'Map',
+          draggable: false,
         },
         {
           type: 'component',
           componentType: 'controls',
           title: 'Controls',
+          draggable: false,
         },
       ],
     },
@@ -64,8 +63,13 @@ onMounted(() => {
 </script>
 
 <style>
-.layout-root {
+html, body .layout-root {
   width: 100%;
   height: 100vh;
+}
+
+html, body {
+  padding: 0;
+  margin: 0;
 }
 </style>

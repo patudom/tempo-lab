@@ -43,6 +43,9 @@ library.add(faCircleXmark);
 library.add(faSquareXmark);
 library.add(faHome);
 
+// TODO: This doesn't work. Why??
+// import "golden-layout/dist/css/goldenlayout-base.css";
+// import "golden-layout/dist/css/themes/goldenlayout-dark-theme.css";
 
 /** v-hide directive taken from https://www.ryansouthgate.com/2020/01/30/vue-js-v-hide-element-whilst-keeping-occupied-space/ */
 // Extract the function out, up here, so I'm not writing it twice
@@ -50,8 +53,8 @@ const update = (el: HTMLElement, binding: Vue.DirectiveBinding) => el.style.visi
 
 createApp(TempoLite, {})
 
-// Plugins
-// .use(vuetify)
+  // Plugins
+  .use(vuetify)
 
   // Directives
   .directive(
