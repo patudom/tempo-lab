@@ -92,7 +92,9 @@ export function useFieldOfRegard(
       if (map.value.loaded()) {
         createFoRLayer();
       } else {
-        map.value.on('style.load', () => {
+        // style.load as already fired depending on where this is placed
+        // so we use 'load' event of the map itself
+        map.value.on('load', () => {
           createFoRLayer();
         });
       }
