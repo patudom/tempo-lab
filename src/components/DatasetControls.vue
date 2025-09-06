@@ -32,11 +32,11 @@
               :allowed-dates="uniqueDays"
               @ranges-change="handleDateTimeRangeSelectionChange"
             />
-            <div class="my-selections" v-if="availableTimeRanges.length>0" style="margin-top: 1em;">
+            <div class="my-selections" v-if="timeRanges.length>0" style="margin-top: 1em;">
               <h4>My Time Ranges</h4>
               <v-list>
                 <v-list-item
-                  v-for="(timeRange, index) in availableTimeRanges"
+                  v-for="(timeRange, index) in timeRanges"
                   :key="index"
                   :title="timeRange.name === 'Displayed Day' ? `Displayed Day: ${ formatTimeRange(timeRange.range) }`  : formatTimeRange(timeRange.range)"
                   style="background-color: #444444"
@@ -83,11 +83,11 @@
                 {{ rectangleSelectionActive ? "Cancel" : "New Region" }}
               </v-btn>
             </div>
-            <div class="my-selections" v-if="availableRegions.length>0" style="margin-top: 1em;">
+            <div class="my-selections" v-if="regions.length>0" style="margin-top: 1em;">
             <h4>My Regions</h4>                   
               <v-list>
                 <v-list-item
-                  v-for="(region, index) in availableRegions"
+                  v-for="(region, index) in regions"
                   :key="index"
                   :title="region.name"
                   :style="{ 'background-color': region.color }"
@@ -138,78 +138,77 @@
         <template #text>
           <v-btn
             size="small"
-            :active="createSelectionActive"
+            :active="createDatasetActive"
             :color="accentColor2"                    
-            @click="createSelectionActive = !createSelectionActive"
+            @click="createDatasetActive = !createDatasetActive"
             class="mt-3"
           >
             <template #prepend>
-              <v-icon v-if="!createSelectionActive" icon="mdi-plus"></v-icon>
+              <v-icon v-if="!createDatasetActive" icon="mdi-plus"></v-icon>
             </template>
-            {{ createSelectionActive ? "Cancel" : "New Dataset" }}
+            {{ createDatasetActive ? "Cancel" : "New Dataset" }}
           </v-btn>
           <selection-composer
-            v-show="createSelectionActive"
-            :backend="BACKEND"
-            :time-ranges="availableTimeRanges"
-            :regions="availableRegions"
+            v-show="createDatasetActive"
+            :backend="backend"
+            :time-ranges="timeRanges"
+            :regions="regions"
             :disabled="{ region: rectangleSelectionActive, point: pointSelectionActive, timeRange: createTimeRangeActive }"
-            @create="handleSelectionCreated"
-            :tempo-data-service="tempoDataService"
+            @create="handleDatasetCreated"
           >
           </selection-composer>
-          <div class="my-selections" v-if="selections.length>0" style="margin-top: 1em;">
+          <div class="my-selections" v-if="datasets.length>0" style="margin-top: 1em;">
 
             <h4>My Datasets</h4>
             <v-list>
               <v-hover
                 v-slot="{ isHovering, props }"
-                v-for="sel in selections"
-                :key="sel.id"
+                v-for="dataset in datasets"
+                :key="dataset.id"
               >
                 <v-list-item
                   v-bind="props"
-                  :ref="(el) => datasetRowRefs[sel.id] = el"
+                  :ref="(el) => datasetRowRefs[dataset.id] = el"
                   class="selection-item"
-                  :style="{ 'background-color': sel.region.color }"
+                  :style="{ 'background-color': dataset.region.color }"
                   :ripple="touchscreen"
                   @click="() => {
                     if (touchscreen) {
-                      openSelection = (openSelection == sel.id) ? null : sel.id;
+                      openSelection = (openSelection == dataset.id) ? null : dataset.id;
                     }
                   }"
                   lines="two"
                 >
                   <template #default>
                     <div>
-                      <v-chip size="small">{{ sel.region.name }}</v-chip>
-                      <v-chip size="small">{{ moleculeName(sel.molecule) }}</v-chip>
-                      <v-chip v-if="sel.timeRange" size="small" class="text-caption">
-                        {{ sel.timeRange.description }}
+                      <v-chip size="small">{{ dataset.region.name }}</v-chip>
+                      <v-chip size="small">{{ moleculeName(dataset.molecule) }}</v-chip>
+                      <v-chip v-if="dataset.timeRange" size="small" class="text-caption">
+                        {{ dataset.timeRange.description }}
                       </v-chip>
                     </div>
                     <div
-                      v-if="sel.loading || !sel.samples"
+                      v-if="dataset.loading || !dataset.samples"
                       class="dataset-loading"
                     >
                       <v-progress-linear
-                        :class="['dataset-loading-progress', !(sel.loading && sel.samples) ? 'dataset-loading-failed' : '']"
-                        :active="sel.loading || !sel.samples"
-                        :color="sel.loading ? 'primary' : 'red'"
-                        :indeterminate="sel.loading"
-                        :value="!sel.loading ? 100 : 0"
-                        :striped="!sel.loading"
+                        :class="['dataset-loading-progress', !(dataset.loading && dataset.samples) ? 'dataset-loading-failed' : '']"
+                        :active="dataset.loading || !dataset.samples"
+                        :color="dataset.loading ? 'primary' : 'red'"
+                        :indeterminate="dataset.loading"
+                        :value="!dataset.loading ? 100 : 0"
+                        :striped="!dataset.loading"
                         bottom
                         rounded
                         height="20"
                       >
                         <template #default>
                           <span class="text-subtitle-2">
-                            {{ sel.loading ? 'Data Loading' : (!sel.samples ? 'Error Loading Data' : '') }}
+                            {{ dataset.loading ? 'Data Loading' : (!dataset.samples ? 'Error Loading Data' : '') }}
                           </span>
                         </template>
                       </v-progress-linear>
-                      <div v-if="!(sel.loading || sel.samples)">
+                      <div v-if="!(dataset.loading || dataset.samples)">
                         <v-tooltip
                           text="Failure info"
                           location="top"
@@ -220,7 +219,7 @@
                               size="x-small"
                               icon="mdi-help-circle"
                               variant="plain"
-                              @click="() => sampleErrorID = sel.id"
+                              @click="() => sampleErrorID = dataset.id"
                             ></v-btn>
                           </template>
                         </v-tooltip>
@@ -234,7 +233,7 @@
                               size="x-small"
                               icon="mdi-trash-can"
                               variant="plain"
-                              @click="() => deleteSelection(sel)"
+                              @click="() => removeDataset(dataset)"
                             ></v-btn>
                           </template>
                         </v-tooltip>
@@ -244,22 +243,8 @@
                     <v-expand-transition>
                       <div
                         class="selection-icons"
-                        v-show="sel.samples && (touchscreen ? openSelection == sel.id : isHovering)"
+                        v-show="dataset.samples && (touchscreen ? openSelection == dataset.id : isHovering)"
                       >
-                        <v-tooltip
-                          text="Change Selection Name"
-                          location="top"
-                        >
-                          <template #activator="{ props }">
-                            <v-btn
-                              v-bind="props"
-                              size="x-small"
-                              icon="mdi-pencil"
-                              @click="() => editSelectionName(sel)"
-                              variant="plain"
-                            ></v-btn>
-                          </template>
-                        </v-tooltip>
                         <v-tooltip
                           text="Get Center Point Sample"
                           location="top"
@@ -268,10 +253,10 @@
                             <v-btn
                               v-bind="props"
                               size="x-small"
-                              :loading="loadingPointSample === sel.id"
+                              :loading="loadingPointSample === dataset.id"
                               icon="mdi-image-filter-center-focus"
                               variant="plain"
-                              @click="() => fetchCenterPointDataForSelection(sel)"
+                              @click="() => store.fetchCenterPointDataForSelection(dataset)"
                             ></v-btn>
                           </template>
                         </v-tooltip> 
@@ -284,9 +269,9 @@
                               v-bind="props"
                               size="x-small"
                               icon="mdi-table"
-                              :disabled="!sel.samples"
+                              :disabled="!dataset.samples"
                               variant="plain"
-                              @click="() => tableSelection = sel"
+                              @click="() => tableSelection = dataset"
                             ></v-btn>
                           </template>
                         </v-tooltip>
@@ -299,9 +284,9 @@
                               v-bind="props"
                               size="x-small"
                               icon="mdi-chart-line"
-                              :disabled="!sel.samples"
+                              :disabled="!dataset.samples"
                               variant="plain"
-                              @click="() => openGraphs[sel.id] = true"
+                              @click="() => openGraphs[dataset.id] = true"
                             ></v-btn>
                           </template>
                         </v-tooltip>
@@ -315,15 +300,15 @@
                               size="x-small"
                               icon="mdi-trash-can"
                               variant="plain"
-                              @click="() => deleteSelection(sel)"
+                              @click="() => removeDataset(dataset)"
                             ></v-btn>
                           </template>
                         </v-tooltip>
                       </div>
                     </v-expand-transition>
                     <cds-dialog
-                      :title="graphTitle(sel)"
-                      v-model="openGraphs[sel.id]"
+                      :title="graphTitle(dataset)"
+                      v-model="openGraphs[dataset.id]"
                       title-color="#F44336"
                       draggable
                       persistent
@@ -338,7 +323,7 @@
                       >
                       </v-checkbox>
                       <timeseries-graph
-                        :data="sel ? [sel] : []"
+                        :data="dataset ? [dataset] : []"
                         :show-errors="showErrorBands"
                       />
                     </cds-dialog>
@@ -451,16 +436,66 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { storeToRefs } from "pinia";
 import { supportsTouchscreen } from "@cosmicds/vue-toolkit";
 
+import type { UserSelection } from "../types";
 import { useTempoStore } from "../stores/app";
+import { moleculeName, MOLECULE_OPTIONS } from "../esri/utils";
+
 const store = useTempoStore();
-const { availableRegions, availableTimeRanges, selections } = storeToRefs(store);
+const {
+  accentColor2,
+  backend,
+  regions,
+  datasets,
+  timeRanges,
+} = storeToRefs(store);
 
 const touchscreen = supportsTouchscreen();
 
 const openPanels = ref<number[]>([]);
 const openGraphs = ref<Record<string,boolean>>({});
+const openSelection = ref<string | null>(null);
+const tableSelection = ref<UserSelection | null>(null);
+
+const pointSelectionActive = ref(false);
+const rectangleSelectionActive = ref(false);
+const createTimeRangeActive = ref(false);
+const createDatasetActive = ref(false);
+const datasetRowRefs = ref({});
+
+
+function removeDataset(selection: UserSelection) {
+  store.deleteDataset(selection);
+
+  delete openGraphs[selection.id];
+  delete datasetRowRefs[selection.id];
+}
+
+function graphTitle(selection: UserSelection): string {
+  const molecule = selection.molecule;
+  const molTitle = MOLECULE_OPTIONS.find(m => m.value === molecule)?.title || '';
+  return `${molTitle} Time Series for ${selection.region.name}`;
+}
+
+const showNO2Graph = ref(false);
+const no2GraphData = computed(() =>{
+  return datasets.value.filter(s => s.molecule.includes('no2') && selectionHasSamples(s));
+});
+
+// ozone version
+const showO3Graph = ref(false);
+const o3GraphData = computed(() =>{
+  return datasets.value.filter(s => s.molecule.includes('o3') && selectionHasSamples(s));
+});
+
+// formaldehyde version
+const showHCHOGraph = ref(false);
+const hchoGraphData = computed(() =>{
+  return datasets.value.filter(s => s.molecule.includes('hcho') && selectionHasSamples(s));
+});
+
+const showErrorBands = ref(true);
 </script>

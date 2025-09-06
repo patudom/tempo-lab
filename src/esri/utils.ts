@@ -42,3 +42,7 @@ export const MOLECULE_OPTIONS = [
 ] as const;
 
 export type MoleculeType = keyof typeof ESRI_URLS;
+
+export function moleculeName(molecule: MoleculeType): string {
+  return MOLECULE_OPTIONS.find(m => m.value == molecule)?.title ?? "";
+}
