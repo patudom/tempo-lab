@@ -169,7 +169,6 @@ export async function fetchEsriTimeSteps(esriUrl: string, variableName: Variable
   });
 }
 
-
 export function extractTimeSteps(data: EsriSliceResponse): number[] {
   const slices = data.slices;
   const timesteps = slices.map(slice => slice.multidimensionalDefinition[0].values[0]);

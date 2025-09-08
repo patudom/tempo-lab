@@ -136,7 +136,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { ref, watch } from "vue";
 import { storeToRefs } from "pinia";
 import { DatePickerInstance } from "@vuepic/vue-datepicker";
 import { supportsTouchscreen } from "@cosmicds/vue-toolkit";
@@ -165,9 +165,7 @@ const whichMolecule = ref<MoleculeType>('no2');
 const colorMap = ref<AllAvailableColorMaps>('None');
 const calendar = ref<DatePickerInstance | null>(null);
 
-const service = computed(() => store.getTempoDataService(whichMolecule.value);
-
-function handleEsriTimeSelected(ts:number, _index: number) {
+function handleEsriTimeSelected(ts: number, _index: number) {
   const idx = timestamps.value.indexOf(ts);
   console.log(`ESRI time selected: ${new Date(ts)} (nearest index ${idx})`);
   if (idx >= 0) {
