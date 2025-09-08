@@ -33,14 +33,17 @@ export function useDateTimeSelector(
     formatTime 
   } = useTimezone(selectedTimezone);
   
-  // Extend selection type locally to include 'singledate' without altering global type
-  const selectionType = ref<SelectionType | 'singledate'>('weekday');
+  // Extend selection type locally to include 'singledate' and 'pattern' without altering global type
+  const selectionType = ref<SelectionType | 'singledate' | 'pattern'>('weekday');
   
   // Weekday selection state
   const selectedDayOfWeek = ref<number>(1); // Default to Monday
   const selectedTime = ref<string>('09:00');
   const instancesBack = ref<number>(4);
   const timePlusMinus = ref<number>(1); // +/- 1 hour for hour selection
+  // Pattern selection state (multi-day and multi-time)
+  const selectedDays = ref<number[]>([1, 2, 3, 4, 5]); // Default Mon-Fri
+  const selectedTimes = ref<string[]>(['09:00']); // Default 9 AM
   
   // Track if user has manually set the weekday start date
   const hasManualWeekdayStartDate = ref<boolean>(false);
@@ -78,6 +81,8 @@ export function useDateTimeSelector(
   function generateMillisecondRanges(): MillisecondRange[] {
     if (selectionType.value === 'weekday') {
       return generateWeekdayRanges();
+    } else if (selectionType.value === 'pattern') {
+      return generatePatternRanges();
     } else if (selectionType.value === 'singledate') {
       return generateSingleDateRange();
     } else {
@@ -131,6 +136,44 @@ export function useDateTimeSelector(
     });
     
     return ranges.sort((a, b) => - (a.start - b.start));
+  }
+
+  // Generate ranges for pattern mode (multi-day, multi-time) by reusing weekday generator
+  function generatePatternRanges(): MillisecondRange[] {
+    if (selectedDays.value.length === 0 || selectedTimes.value.length === 0) {
+      return [];
+    }
+
+    const originalDay = selectedDayOfWeek.value;
+    const originalTime = selectedTime.value;
+
+    const results: MillisecondRange[] = [];
+    try {
+      for (const day of selectedDays.value) {
+        for (const time of selectedTimes.value) {
+          selectedDayOfWeek.value = day;
+          selectedTime.value = time;
+          results.push(...generateWeekdayRanges());
+        }
+      }
+    } finally {
+      // Restore original selection to avoid side effects
+      selectedDayOfWeek.value = originalDay;
+      selectedTime.value = originalTime;
+    }
+
+    // Sort newest-first and dedupe identical start/end pairs
+    results.sort((a, b) => b.start - a.start);
+    const seen = new Set<string>();
+    const deduped: MillisecondRange[] = [];
+    for (const r of results) {
+      const key = `${r.start}-${r.end}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        deduped.push(r);
+      }
+    }
+    return deduped;
   }
   
   function generateDateRangeRanges(): MillisecondRange[] {
@@ -192,6 +235,8 @@ export function useDateTimeSelector(
     dayNames,
     timePlusMinus,
     singleDate,
+    selectedDays,
+    selectedTimes,
     
     // Computed properties for date picker integration
     weekdayStartDate,
@@ -211,6 +256,7 @@ export function useDateTimeSelector(
     // Utilities
     generateMillisecondRanges,
     formatTime,
-    generateSingleDateRange
+    generateSingleDateRange,
+    generatePatternRanges
   };
 }
