@@ -193,7 +193,7 @@
 import { watch, computed, ref, onMounted } from 'vue';
 import DatePicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
-import { useTimezone } from './useTimezone';
+import { useTimezone } from '../composables/useTimezone';
 import { useDateTimeSelector } from './useDateTimeSelector';
 import type { MillisecondRange } from '../types/datetime';
 
@@ -408,19 +408,6 @@ watch(() => endDate.value, (newTimestamp) => {
 </script>
 
 <style scoped>
-/* === COMPONENT STYLES === */
-.datetime-range-selector {
-  /* Component-specific styles can be added here */
-}
-
-/* === SECTION STYLES === */
-.weekday-pattern-section,
-.date-range-section,
-.single-date-section {
-  /* Section-specific styles */
-}
-
-
 /* === INPUT STYLES === */
 .time-input {
   width: 100%;
@@ -439,5 +426,4 @@ watch(() => endDate.value, (newTimestamp) => {
   border-color: rgb(var(--v-theme-primary));
   box-shadow: 0 0 0 2px rgba(var(--v-theme-primary), 0.2);
 }
-
 </style>

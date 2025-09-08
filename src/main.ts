@@ -14,6 +14,7 @@ import CDSDialog from "./components/CDSDialog.vue";
 import MarqeeAlert from "./components/MarqeeAlert.vue";
 import TimeseriesGraph from "./components/TimeseriesGraph.vue";
 import SelectionComposer from "./components/SelectionComposer.vue";
+import DatasetControls from "./components/DatasetControls.vue";
 
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { library } from "@fortawesome/fontawesome-svg-core";
@@ -33,6 +34,8 @@ import VueDatePicker from "@vuepic/vue-datepicker";
 import '@vuepic/vue-datepicker/dist/main.css';
 import { UseClipboard } from "@vueuse/components";
 
+import { createPinia } from "pinia";
+
 library.add(faBookOpen);
 library.add(faPlay);
 library.add(faPause);
@@ -51,10 +54,13 @@ library.add(faHome);
 // Extract the function out, up here, so I'm not writing it twice
 const update = (el: HTMLElement, binding: Vue.DirectiveBinding) => el.style.visibility = (binding.value) ? "hidden" : "";
 
+const pinia = createPinia();
+
 createApp(TempoLite, {})
 
   // Plugins
   .use(vuetify)
+  .use(pinia)
 
   // Directives
   .directive(
@@ -89,6 +95,7 @@ createApp(TempoLite, {})
   .component('marquee-alert', MarqeeAlert)
   .component('timeseries-graph', TimeseriesGraph)
   .component('selection-composer', SelectionComposer)
+  .component('dataset-controls', DatasetControls)
 
   // Mount
   .mount("#app");

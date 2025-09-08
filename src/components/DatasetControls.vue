@@ -44,12 +44,12 @@
 
                   <template #append>
                     <v-btn
-                      v-if="timeRange.id !== 'displayed-day' && !selections.some(s => areEquivalentTimeRanges(s.timeRange, timeRange))"
+                      v-if="timeRange.id !== 'displayed-day' && !datasets.some(s => areEquivalentTimeRanges(s.timeRange, timeRange))"
                       variant="plain"
                       v-tooltip="'Delete'"
                       icon="mdi-delete"
                       color="white"
-                      @click="() => deleteTimeRange(timeRange)"
+                      @click="() => store.deleteTimeRange(timeRange)"
                     >
                     </v-btn>
                   </template>
@@ -66,21 +66,17 @@
             <div id="add-region-buttons">
               <v-btn
                 size="small"
-                :active="rectangleSelectionActive"
-                :disabled="pointSelectionActive"
+                :active="selectionActive === 'rectangle'"
+                :disabled="selectionActive === 'point'"
                 :color="accentColor2"
                 @click="() => {
-                  if (rectangleSelectionActive) {
-                    rectangleSelectionActive = false;
-                  } else {
-                    createNewSelection('rectangle');
-                  }
+                  selectionActive = (selectionActive === 'rectangle') ? null : 'rectangle';
                 }"
               >
                 <template #prepend>
-                  <v-icon v-if="!rectangleSelectionActive" icon="mdi-plus"></v-icon>
+                  <v-icon v-if="selectionActive !== 'rectangle'" icon="mdi-plus"></v-icon>
                 </template>
-                {{ rectangleSelectionActive ? "Cancel" : "New Region" }}
+                {{ selectionActive === 'rectangle' ? "Cancel" : "New Region" }}
               </v-btn>
             </div>
             <div class="my-selections" v-if="regions.length>0" style="margin-top: 1em;">
@@ -91,7 +87,7 @@
                   :key="index"
                   :title="region.name"
                   :style="{ 'background-color': region.color }"
-                  @click="() => moveMapToRegion(region as UnifiedRegionType)"
+                  @click="() => emit('region-trigger', region.id)"
                 >
                   <template #append>
                     <!-- New: Edit Geometry button (disabled if any selection using region has samples) -->
@@ -111,12 +107,12 @@
                       @click="() => editRegionName(region as UnifiedRegionType)"
                     ></v-btn>
                     <v-btn
-                      v-if="!regionHasDatasets(region as UnifiedRegionType)"
+                      v-if="!store.regionHasDatasets(region as UnifiedRegionType)"
                       variant="plain"
                       v-tooltip="'Delete'"
                       icon="mdi-delete"
                       color="white"
-                      @click="() => deleteRegion(region as UnifiedRegionType)"
+                      @click="() => store.deleteRegion(region as UnifiedRegionType)"
                     ></v-btn>
                   </template>
                 </v-list-item>
@@ -153,7 +149,7 @@
             :backend="backend"
             :time-ranges="timeRanges"
             :regions="regions"
-            :disabled="{ region: rectangleSelectionActive, point: pointSelectionActive, timeRange: createTimeRangeActive }"
+            :disabled="{ region: selectionActive === 'rectangle', point: selectionActive === 'point', timeRange: createTimeRangeActive }"
             @create="handleDatasetCreated"
           >
           </selection-composer>
@@ -256,7 +252,7 @@
                               :loading="loadingPointSample === dataset.id"
                               icon="mdi-image-filter-center-focus"
                               variant="plain"
-                              @click="() => store.fetchCenterPointDataForSelection(dataset)"
+                              @click="() => store.fetchCenterPointDataForDataset(dataset)"
                             ></v-btn>
                           </template>
                         </v-tooltip> 
@@ -431,70 +427,175 @@
         :show-errors="showErrorBands"
       />
     </cds-dialog>
+
+    <v-dialog
+          v-model="showEditRegionNameDialog"
+          >
+          <!-- text field that requires a confirmation -->
+            <c-text-field
+              label="Region Name"
+              title="Enter a new name for this region"
+              hide-details
+              dense
+              :button-color="accentColor"
+              @confirm="(name: string) => {
+                if (regionBeingEdited) {
+                  store.setRegionName(regionBeingEdited as UnifiedRegionType, name);
+                  showEditRegionNameDialog = false;
+                }
+              }"
+              @cancel="() => {
+                showEditRegionNameDialog = false;
+                regionBeingEdited = null;
+              }"
+            ></c-text-field>
+
+            </v-dialog>
+
   </div>
 
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { storeToRefs } from "pinia";
+import { v4 } from "uuid";
 import { supportsTouchscreen } from "@cosmicds/vue-toolkit";
 
-import type { UserSelection } from "../types";
+import type { MillisecondRange, TimeRange, UserDataset, UnifiedRegion } from "../types";
 import { useTempoStore } from "../stores/app";
 import { moleculeName, MOLECULE_OPTIONS } from "../esri/utils";
+import { areEquivalentTimeRanges, formatTimeRange } from "../utils/timeRange";
+import { atleast1d } from "../utils/atleast1d";
+
+import DateTimeRangeSelection from "../date_time_range_selection/DateTimeRangeSelection.vue";
+import CTextField from "./CTextField.vue";
+
+type UnifiedRegionType = UnifiedRegion<typeof backend.value>;
 
 const store = useTempoStore();
 const {
+  accentColor,
   accentColor2,
   backend,
   regions,
   datasets,
   timeRanges,
+  singleDateSelected,
+  selectedTimezone,
+  uniqueDays,
 } = storeToRefs(store);
+
+type SelectionType = "rectangle" | "point" | null;
+const emit = defineEmits<{
+  (event: "selection-active", value: SelectionType): void;
+  (event: "region-trigger", value: string): void;
+}>();
 
 const touchscreen = supportsTouchscreen();
 
 const openPanels = ref<number[]>([]);
 const openGraphs = ref<Record<string,boolean>>({});
 const openSelection = ref<string | null>(null);
-const tableSelection = ref<UserSelection | null>(null);
+const tableSelection = ref<UserDataset | null>(null);
 
-const pointSelectionActive = ref(false);
-const rectangleSelectionActive = ref(false);
+const selectionActive = ref<SelectionType>(null);
 const createTimeRangeActive = ref(false);
 const createDatasetActive = ref(false);
 const datasetRowRefs = ref({});
+const sampleErrorID = ref<string | null>(null);
+const loadingPointSample = ref<string | false>(false);
 
+const showEditRegionNameDialog = ref(false);
+const regionBeingEdited = ref<UnifiedRegionType | null>(null);
 
-function removeDataset(selection: UserSelection) {
-  store.deleteDataset(selection);
-
-  delete openGraphs[selection.id];
-  delete datasetRowRefs[selection.id];
+function handleDatasetCreated(dataset: UserDataset) {
+  store.addDataset(dataset);
+  createDatasetActive.value = false;
 }
 
-function graphTitle(selection: UserSelection): string {
-  const molecule = selection.molecule;
+function removeDataset(dataset: UserDataset) {
+  store.deleteDataset(dataset);
+
+  delete openGraphs[dataset.id];
+  delete datasetRowRefs[dataset.id];
+}
+
+function handleDateTimeRangeSelectionChange(timeRanges: MillisecondRange[], selectionType?: string) {
+  if (!Array.isArray(timeRanges) || timeRanges.length === 0) {
+    console.error('No time ranges received from DateTimeRangeSelection');
+    return;
+  }
+  const normalized = atleast1d(timeRanges);
+  // No dedup tracking now
+  // Build description based on selection type
+  let descriptionBase = 'Custom';
+  switch (selectionType) {
+  case 'weekday':
+    descriptionBase = 'Weekday Pattern';
+    break;
+  case 'daterange':
+    descriptionBase = 'Date Range';
+    break;
+  case 'singledate':
+    descriptionBase = 'Single Date';
+    break;
+  }
+  const formatted = formatTimeRange(normalized);
+  const description = `${descriptionBase} (${formatted})`;
+  const tr: TimeRange = {
+    id: v4(),
+    name: formatted,
+    description,
+    range: normalized.length === 1 ? normalized[0] : normalized
+  };
+  store.addTimeRange(tr);
+
+  createTimeRangeActive.value = false;
+  console.log(`Registered ${tr.name}: ${tr.description}`);
+}
+
+function editRegionName(region: UnifiedRegionType) {
+  console.log(`Editing ${region.geometryType}: ${region.name}`);
+  // Set the region to edit
+
+  // eslint-disable-next-line
+  // @ts-ignore it is not actually deep
+  const existing = (regions.value as UnifiedRegionType[]).find(r => r.id === region.id);
+  if (!existing) {
+    console.error(`Region with ID ${region.id} not found.`);
+    return;
+  }
+  regionBeingEdited.value = region;
+  // Open dialog for renaming
+  showEditRegionNameDialog.value = true;
+}
+
+watch(selectionActive, (type: SelectionType) => {
+  emit("selection-active", type);
+});
+
+function graphTitle(dataset: UserDataset): string {
+  const molecule = dataset.molecule;
   const molTitle = MOLECULE_OPTIONS.find(m => m.value === molecule)?.title || '';
-  return `${molTitle} Time Series for ${selection.region.name}`;
+  return `${molTitle} Time Series for ${dataset.region.name}`;
 }
 
 const showNO2Graph = ref(false);
 const no2GraphData = computed(() =>{
-  return datasets.value.filter(s => s.molecule.includes('no2') && selectionHasSamples(s));
+  return datasets.value.filter(s => s.molecule.includes('no2') && store.datasetHasSamples(s));
 });
 
 // ozone version
 const showO3Graph = ref(false);
 const o3GraphData = computed(() =>{
-  return datasets.value.filter(s => s.molecule.includes('o3') && selectionHasSamples(s));
+  return datasets.value.filter(s => s.molecule.includes('o3') && store.datasetHasSamples(s));
 });
 
 // formaldehyde version
 const showHCHOGraph = ref(false);
 const hchoGraphData = computed(() =>{
-  return datasets.value.filter(s => s.molecule.includes('hcho') && selectionHasSamples(s));
+  return datasets.value.filter(s => s.molecule.includes('hcho') && store.datasetHasSamples(s));
 });
 
 const showErrorBands = ref(true);

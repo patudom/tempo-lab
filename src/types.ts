@@ -136,7 +136,7 @@ export interface TimeRange {
   range: MillisecondRange | MillisecondRange[];
 }
 
-export interface UserSelection {
+export interface UserDataset {
   id: string;
   loading?: boolean;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

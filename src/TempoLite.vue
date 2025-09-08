@@ -7,14 +7,14 @@
     </teleport>
 
     <teleport v-if="controlsTarget" :to="controlsTarget">
-      <div>CONTROLS</div>
+      <dataset-controls />
     </teleport>
   </v-app>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref, useTemplateRef, type Ref } from "vue";
-import { GoldenLayout } from "golden-layout";
+import { GoldenLayout, LayoutConfig } from "golden-layout";
 
 const root = useTemplateRef("root");
 const mapTarget = ref<HTMLElement | null>(null);
@@ -37,9 +37,10 @@ onMounted(() => {
     });
   });
 
-  layout.loadLayout({
+  const config: LayoutConfig = {
     settings: {
       hasHeaders: false,
+      responsiveMode: "always",
     },
     root: {
       type: 'row',
@@ -49,16 +50,20 @@ onMounted(() => {
           componentType: 'map',
           title: 'Map',
           draggable: false,
+          width: 70,
         },
         {
           type: 'component',
           componentType: 'controls',
           title: 'Controls',
           draggable: false,
+          width: 30,
         },
       ],
     },
-  });
+  };
+  layout.resizeWithContainerAutomatically = true;
+  layout.loadLayout(config);
 });
 </script>
 
