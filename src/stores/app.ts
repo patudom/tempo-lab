@@ -1,11 +1,11 @@
 import { defineStore } from "pinia";
-import { ref } from "vue";
+import { computed, ref } from "vue";
 
 import type { MappingBackends, TimeRange, UnifiedRegion, UserDataset } from "../types";
 import { TempoDataService } from "../esri/services/TempoDataService";
 import { ESRI_URLS, MoleculeType } from "../esri/utils";
 import { useUniqueTimeSelection } from "../composables/useUniqueTimeSelection";
-import { type Timezone } from "../composables/useTimezone";
+import { useTimezone, type Timezone } from "../composables/useTimezone";
 import { atleast1d } from "../utils/atleast1d";
 
 const createTempoStore = <T extends MappingBackends>(backend: MappingBackends) => defineStore("tempods", () => {
@@ -21,6 +21,10 @@ const createTempoStore = <T extends MappingBackends>(backend: MappingBackends) =
   const sampleErrors = ref<Record<string, string | null>>({});
 
   const selectedTimezone = ref<Timezone>("US/Eastern");
+  const { isDST, timezoneOptions: tzOptions } = useTimezone(selectedTimezone);
+
+  const dateIsDST = computed(() => isDST(singleDateSelected.value));
+  const timezoneOptions = computed(() => tzOptions(singleDateSelected.value));
      
   // This part is still assuming that multiple maps will be temporally linked
   // If/when we want to make that not the case, we'll need to rethink this
@@ -189,6 +193,9 @@ const createTempoStore = <T extends MappingBackends>(backend: MappingBackends) =
     accentColor2,
 
     selectedTimezone,
+    dateIsDST,
+    timezoneOptions,
+
     regions,
     timeRanges,
     backend: backendRef,

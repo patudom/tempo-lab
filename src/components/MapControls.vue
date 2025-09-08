@@ -61,8 +61,8 @@
             <v-btn
               v-bind="props"
               class="rounded-icon-wrapper"
-              @click="moveBackwardOneDay"
-              @keyup.enter="moveBackwardOneDay"
+              @click="store.moveBackwardOneDay"
+              @keyup.enter="store.moveBackwardOneDay"
               :disabled="singleDateSelected === uniqueDays[0]"
               color="#009ade"
               variant="outlined"
@@ -97,8 +97,8 @@
             <v-btn
               v-bind="props"
               class="rounded-icon-wrapper"
-              @click="moveForwardOneDay"
-              @keyup.enter="moveForwardOneDay"
+              @click="store.moveForwardOneDay"
+              @keyup.enter="store.moveForwardOneDay"
               :disabled="singleDateSelected === uniqueDays[uniqueDays.length - 1]"
               color="#009ade"
               variant="outlined"
@@ -113,7 +113,7 @@
 
     </div>
     <v-select
-      v-model="timezone"
+      v-model="selectedTimezone"
       label="Timezone"
       :items="timezoneOptions"
       item-title="name"
@@ -136,30 +136,27 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
+import { storeToRefs } from "pinia";
 import { DatePickerInstance } from "@vuepic/vue-datepicker";
 import { supportsTouchscreen } from "@cosmicds/vue-toolkit";
 
 import type { AllAvailableColorMaps } from "../colormaps";
 import { MOLECULE_OPTIONS, type MoleculeType } from "../esri/utils";
-import { useTimezone } from "../composables/useTimezone";
-import { useUniqueTimeSelection } from "../composables/useUniqueTimeSelection";
+import { useTempoStore } from "../stores/app";
+import { stretches, colorramps } from "./esri/ImageLayerConfig";
 
+const store = useTempoStore();
 const {
-  timeIndex,
-  timestamp,
-  date,
+  timestamps,
   singleDateSelected,
-  maxIndex,
-  minIndex,
   uniqueDays,
-  uniqueDaysIndex,
-  setNearestDate,
-  moveBackwardOneDay,
-  moveForwardOneDay,
-  nearestDateIndex
-} = useUniqueTimeSelection(timestamps);
-const { timezone, timezoneOptions } = useTimezone(date, "US/Eastern");
+  selectedTimezone,
+  timezoneOptions,
+  timeIndex,
+  minIndex,
+  maxIndex,
+} = storeToRefs(store);
 
 const radio = ref<number | null>(null);
 const touchscreen = supportsTouchscreen();
@@ -167,6 +164,8 @@ const touchscreen = supportsTouchscreen();
 const whichMolecule = ref<MoleculeType>('no2');
 const colorMap = ref<AllAvailableColorMaps>('None');
 const calendar = ref<DatePickerInstance | null>(null);
+
+const service = computed(() => store.getTempoDataService(whichMolecule.value);
 
 function handleEsriTimeSelected(ts:number, _index: number) {
   const idx = timestamps.value.indexOf(ts);
@@ -178,10 +177,18 @@ function handleEsriTimeSelected(ts:number, _index: number) {
   //singleDateSelected.value = new Date(ts);
 }
 
+const colorbarOptions = {
+  'no2': {stretch: stretches['NO2_Troposphere'], cbarScale: 1e14, colormap: colorramps['NO2_Troposphere'] + '_r', label:'NO<sub>2</sub>&nbsp;&nbsp;'},
+  'no2Monthly': {stretch: stretches['NO2_Troposphere'], cbarScale: 1e14, colormap: colorramps['NO2_Troposphere'] + '_r', label: 'NO<sub>2</sub>&nbsp;&nbsp;'},
+  'no2DailyMax': {stretch: stretches['NO2_Troposphere'], cbarScale: 1e14, colormap: colorramps['NO2_Troposphere'] + '_r', label: 'NO<sub>2</sub>&nbsp;&nbsp;'},
+  'o3': {stretch: stretches['Ozone_Column_Amount'], cbarScale: 1, colormap: colorramps['Ozone_Column_Amount'] + '_r', label: 'Ozone&nbsp;'},
+  'hcho': {stretch: stretches['HCHO'], cbarScale: 1e14, colormap: colorramps['HCHO'] + '_r', label: 'Formaldehyde&nbsp;&nbsp;'},
+  'hchoMonthly': {stretch: stretches['HCHO'], cbarScale: 1e14, colormap: colorramps['HCHO'] + '_r', label: 'Formaldehyde&nbsp;&nbsp;'},
+  'hchoDailyMax': {stretch: stretches['HCHO'], cbarScale: 1e14, colormap: colorramps['HCHO'] + '_r', label: 'Formaldehyde&nbsp;&nbsp;'},
+};
+
 watch(whichMolecule, (newMolecule) => {
   // Update TempoDataService with new URL and variable
-  tempoDataService.setBaseUrl(ESRI_URLS[newMolecule].url);
-  tempoDataService.setVariable(ESRI_URLS[newMolecule].variable);
   colorMap.value = colorbarOptions[newMolecule].colormap.toLowerCase();
 });
 </script>
