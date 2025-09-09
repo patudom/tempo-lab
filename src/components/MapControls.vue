@@ -44,13 +44,13 @@
           </date-picker>
           <!-- time chips to select time specifically for esri times -->
           <time-chips
-            v-if="whichMolecule.toLowerCase().includes('month')"
+            v-if="molecule.toLowerCase().includes('month')"
             :timestamps="esriTimesteps.slice(minIndex, maxIndex + 1)"
             @select="handleEsriTimeSelected($event.value, $event.index)"
             :selected-index="timeIndex - minIndex"
-            :use-utc="whichMolecule.toLowerCase().includes('month')"
-            :date-only="whichMolecule.toLowerCase().includes('month')"
-            :hour-only="!whichMolecule.toLowerCase().includes('month')"
+            :use-utc="molecule.toLowerCase().includes('month')"
+            :date-only="molecule.toLowerCase().includes('month')"
+            :hour-only="!molecule.toLowerCase().includes('month')"
           />
         </v-radio-group>
       </div>        
@@ -123,7 +123,7 @@
       class="mt-3 pl-3"
     ></v-select>
     <v-select
-      v-model="whichMolecule"
+      v-model="molecule"
       :items="MOLECULE_OPTIONS"
       item-title="title"
       item-value="value"
@@ -141,10 +141,11 @@ import { storeToRefs } from "pinia";
 import { DatePickerInstance } from "@vuepic/vue-datepicker";
 import { supportsTouchscreen } from "@cosmicds/vue-toolkit";
 
-import type { AllAvailableColorMaps } from "../colormaps";
-import { MOLECULE_OPTIONS, type MoleculeType } from "../esri/utils";
-import { useTempoStore } from "../stores/app";
-import { stretches, colorramps } from "./esri/ImageLayerConfig";
+import { MOLECULE_OPTIONS, type MoleculeType } from "@/esri/utils";
+import { useTempoStore } from "@/stores/app";
+import { useEsriTimesteps } from "@/composables/useEsriTimesteps";
+
+import TimeChips from "@/components/TimeChips.vue";
 
 const store = useTempoStore();
 const {
@@ -158,11 +159,16 @@ const {
   maxIndex,
 } = storeToRefs(store);
 
+const emit = defineEmits<{
+  (event: "molecule", molecule: MoleculeType): void;
+}>();
+
+const molecule = ref<MoleculeType>('no2');
+const { esriTimesteps } = useEsriTimesteps(molecule);
+
 const radio = ref<number | null>(null);
 const touchscreen = supportsTouchscreen();
 
-const whichMolecule = ref<MoleculeType>('no2');
-const colorMap = ref<AllAvailableColorMaps>('None');
 const calendar = ref<DatePickerInstance | null>(null);
 
 function handleEsriTimeSelected(ts: number, _index: number) {
@@ -175,18 +181,7 @@ function handleEsriTimeSelected(ts: number, _index: number) {
   //singleDateSelected.value = new Date(ts);
 }
 
-const colorbarOptions = {
-  'no2': {stretch: stretches['NO2_Troposphere'], cbarScale: 1e14, colormap: colorramps['NO2_Troposphere'] + '_r', label:'NO<sub>2</sub>&nbsp;&nbsp;'},
-  'no2Monthly': {stretch: stretches['NO2_Troposphere'], cbarScale: 1e14, colormap: colorramps['NO2_Troposphere'] + '_r', label: 'NO<sub>2</sub>&nbsp;&nbsp;'},
-  'no2DailyMax': {stretch: stretches['NO2_Troposphere'], cbarScale: 1e14, colormap: colorramps['NO2_Troposphere'] + '_r', label: 'NO<sub>2</sub>&nbsp;&nbsp;'},
-  'o3': {stretch: stretches['Ozone_Column_Amount'], cbarScale: 1, colormap: colorramps['Ozone_Column_Amount'] + '_r', label: 'Ozone&nbsp;'},
-  'hcho': {stretch: stretches['HCHO'], cbarScale: 1e14, colormap: colorramps['HCHO'] + '_r', label: 'Formaldehyde&nbsp;&nbsp;'},
-  'hchoMonthly': {stretch: stretches['HCHO'], cbarScale: 1e14, colormap: colorramps['HCHO'] + '_r', label: 'Formaldehyde&nbsp;&nbsp;'},
-  'hchoDailyMax': {stretch: stretches['HCHO'], cbarScale: 1e14, colormap: colorramps['HCHO'] + '_r', label: 'Formaldehyde&nbsp;&nbsp;'},
-};
-
-watch(whichMolecule, (newMolecule) => {
-  // Update TempoDataService with new URL and variable
-  colorMap.value = colorbarOptions[newMolecule].colormap.toLowerCase();
+watch(molecule, (newMol: MoleculeType) => {
+  emit("molecule", newMol);
 });
 </script>

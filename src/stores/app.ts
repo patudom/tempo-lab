@@ -20,6 +20,15 @@ const createTempoStore = <T extends MappingBackends>(backend: MappingBackends) =
   const maxSampleCount = ref(50);
   const sampleErrors = ref<Record<string, string | null>>({});
 
+  const userSelectedCalendarDates: number[] = [];
+  const userSelectedTimezones: string[] = [];
+  const userSelectedLocations: string[] = [];
+  const userSelectedNotableEvents: [string, string][] = [];
+  const shareButtonClickedCount = ref(0);
+  const playButtonClickedCount = ref(0);
+  const timeSliderUsedCount = ref(0);
+  const opacitySliderUsedCount = ref(0);
+
   const selectedTimezone = ref<Timezone>("US/Eastern");
   const { isDST, timezoneOptions: tzOptions } = useTimezone(selectedTimezone);
 
@@ -180,14 +189,6 @@ const createTempoStore = <T extends MappingBackends>(backend: MappingBackends) =
     // }
   }
 
-  // ESRI layer composable
-  // const { getEsriTimeSteps, loadingEsriTimeSteps, addEsriSource, esriTimesteps, changeUrl, renderOptions } = useEsriLayer(
-  //   esriUrl.value,
-  //   esriVariable.value,
-  //   timestampRef,
-  //   opacityRef
-  // );
-
   return {
     accentColor,
     accentColor2,
@@ -218,6 +219,15 @@ const createTempoStore = <T extends MappingBackends>(backend: MappingBackends) =
     deleteTimeRange,
     deleteRegion,
     deleteDataset,
+
+    userSelectedLocations,
+    userSelectedTimezones,
+    userSelectedCalendarDates,
+    userSelectedNotableEvents,
+    shareButtonClickedCount,
+    playButtonClickedCount,
+    timeSliderUsedCount,
+    opacitySliderUsedCount,
 
     timeIndex,
     timestamp,

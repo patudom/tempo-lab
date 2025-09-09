@@ -15,6 +15,8 @@ import MarqeeAlert from "./components/MarqeeAlert.vue";
 import TimeseriesGraph from "./components/TimeseriesGraph.vue";
 import SelectionComposer from "./components/SelectionComposer.vue";
 import DatasetControls from "./components/DatasetControls.vue";
+import MapControls from "./components/MapControls.vue";
+import MapWithControls from "./components/MapWithControls.vue";
 
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { library } from "@fortawesome/fontawesome-svg-core";
@@ -96,6 +98,8 @@ createApp(TempoLite, {})
   .component('timeseries-graph', TimeseriesGraph)
   .component('selection-composer', SelectionComposer)
   .component('dataset-controls', DatasetControls)
+  .component('map-controls', MapControls)
+  .component('map-with-controls', MapWithControls)
 
   // Mount
   .mount("#app");

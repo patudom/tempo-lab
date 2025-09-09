@@ -3,7 +3,7 @@
     <div ref="root" class="layout-root"></div>
 
     <teleport v-if="mapTarget" :to="mapTarget">
-      <div>MAP CONTENT</div>
+      <map-with-controls />
     </teleport>
 
     <teleport v-if="controlsTarget" :to="controlsTarget">

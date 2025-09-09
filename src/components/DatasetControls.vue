@@ -600,3 +600,35 @@ const hchoGraphData = computed(() =>{
 
 const showErrorBands = ref(true);
 </script>
+
+<style scoped lang="less">
+#dataset-sections {
+  padding: 0.5rem 1rem;
+  border: 5px solid var(--tempo-red);
+  border-radius: 10px;
+  margin: 10px;
+}
+
+// prevent overflows of the content
+#add-region-time {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 5px;
+}
+
+.my-selections {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 5px;
+  padding: 0.5rem;
+  border-radius: 10px;
+  // background-color: #555555;
+}
+
+.h3-panel-titles .v-expansion-panel-title {
+  font-size: 1.17em;
+  font-weight: bold;
+}
+</style>
