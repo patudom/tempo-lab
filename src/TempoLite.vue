@@ -1,5 +1,8 @@
 <template>
-  <v-app id="app">
+  <v-app
+    id="app"
+    :style="cssVars"
+  >
     <div ref="root" class="layout-root"></div>
 
     <teleport v-if="mapTarget" :to="mapTarget">
@@ -13,12 +16,30 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, useTemplateRef, type Ref } from "vue";
+import { computed, onMounted, ref, useTemplateRef, type Ref } from "vue";
+import { storeToRefs } from "pinia";
 import { GoldenLayout, LayoutConfig } from "golden-layout";
+
+import { useTempoStore } from "@/stores/app";
 
 const root = useTemplateRef("root");
 const mapTarget = ref<HTMLElement | null>(null);
 const controlsTarget = ref<HTMLElement | null>(null);
+
+const store = useTempoStore();
+const {
+  accentColor,
+  accentColor2,
+} = storeToRefs(store);
+
+const infoColor = "#092088";
+const cssVars = computed(() => {
+  return {
+    '--accent-color': accentColor.value,
+    '--accent-color-2': accentColor2.value,
+    '--info-background': infoColor,
+  };
+});
 
 onMounted(() => {
   const rootEl = root.value as HTMLElement;
