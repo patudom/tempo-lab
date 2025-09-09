@@ -7,7 +7,9 @@
     <div ref="root" class="layout-root"></div>
 
     <teleport v-if="mapTarget" :to="mapTarget">
+      <!--
       <map-with-controls />
+      -->
     </teleport>
 
     <teleport v-if="sidePanelTarget" :to="sidePanelTarget">
@@ -100,4 +102,10 @@ html, body {
   margin: 0;
 }
 
+#app {
+  userh1, h2, h3, h4, h5, h6, p, div {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+}
 </style>
