@@ -49,6 +49,7 @@ import { useFieldOfRegard } from '@/composables/maplibre/useFieldOfRegard';
 import { type MoleculeType } from '@/esri/utils';
 import type { InitMapOptions, LatLngPair } from '@/types';
 import type { MapEventType, Listener } from 'maplibre-gl';
+import type { AvailableColorMaps } from "@/colormaps";
 
 
 const props = defineProps({
@@ -118,6 +119,7 @@ const emit = defineEmits<{
   // Single, simplified ready event: base map (Maplibre) is ready.
   (e:'ready', map: Map): void; 
   (e:'zoomhome'): void; 
+  (e: 'colormap', colormap: AvailableColorMaps): void;
   // Timesteps loaded (can fire multiple times e.g., molecule switch)
   (e:'esri-timesteps-loaded', steps: number[]): void;
 }>();
@@ -160,6 +162,8 @@ watch(esriTimesteps, (newSteps, old) => {
     emit('esri-timesteps-loaded', newSteps);
   }
 });
+
+watch(() => renderOptions.value.colormap, cmap => emit("colormap", cmap));
 
 const singleDateSelected = computed(() => {
   // a date object with the current day
