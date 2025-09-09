@@ -14,6 +14,7 @@ import CDSDialog from "./components/CDSDialog.vue";
 import MarqeeAlert from "./components/MarqeeAlert.vue";
 import TimeseriesGraph from "./components/TimeseriesGraph.vue";
 import SelectionComposer from "./components/SelectionComposer.vue";
+import HeaderBar from "./components/HeaderBar.vue";
 import DatasetControls from "./components/DatasetControls.vue";
 import MapControls from "./components/MapControls.vue";
 import MapWithControls from "./components/MapWithControls.vue";
@@ -100,6 +101,7 @@ createApp(TempoLite, {})
   .component('dataset-controls', DatasetControls)
   .component('map-controls', MapControls)
   .component('map-with-controls', MapWithControls)
+  .component("header-bar", HeaderBar)
 
   // Mount
   .mount("#app");

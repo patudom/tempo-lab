@@ -3,13 +3,14 @@
     id="app"
     :style="cssVars"
   >
+    <header-bar />
     <div ref="root" class="layout-root"></div>
 
     <teleport v-if="mapTarget" :to="mapTarget">
       <map-with-controls />
     </teleport>
 
-    <teleport v-if="controlsTarget" :to="controlsTarget">
+    <teleport v-if="sidePanelTarget" :to="sidePanelTarget">
       <dataset-controls />
     </teleport>
   </v-app>
@@ -24,7 +25,7 @@ import { useTempoStore } from "@/stores/app";
 
 const root = useTemplateRef("root");
 const mapTarget = ref<HTMLElement | null>(null);
-const controlsTarget = ref<HTMLElement | null>(null);
+const sidePanelTarget = ref<HTMLElement | null>(null);
 
 const store = useTempoStore();
 const {
@@ -49,7 +50,7 @@ onMounted(() => {
   const layout = new GoldenLayout(rootEl);
   const components: [string, Ref<HTMLElement | null>][] = [
     ["map", mapTarget],
-    ["controls", controlsTarget]
+    ["controls", sidePanelTarget]
   ];
 
   components.forEach(([tag, elementRef]) => {
@@ -91,11 +92,12 @@ onMounted(() => {
 <style>
 html, body .layout-root {
   width: 100%;
-  height: 100vh;
+  height: 100%;
 }
 
 html, body {
   padding: 0;
   margin: 0;
 }
+
 </style>

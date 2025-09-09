@@ -91,7 +91,6 @@
 </li>
                 </ul>
                 <p class="mt-3">
-                For each date, you can see the scans beginning on the East Coast in the morning, and ending on the West Coast as the Sun sets.
                 </p> 
               </div>
             </v-window-item>

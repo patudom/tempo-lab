@@ -125,7 +125,7 @@
                   density="compact"
                   hide-details
                   class="mb-4"
-                  @end="store.opacitySliderUsedCount += 1"
+                  @end="opacitySliderUsedCount += 1"
                 >
               </v-slider>
             </div>
@@ -206,6 +206,7 @@ const maplibreMap = useTemplateRef<InstanceType<typeof EsriMap>>("maplibreMap");
 const store = useTempoStore();
 const {
   accentColor2,
+  opacitySliderUsedCount,
   regions,
   timestamp,
   timeIndex,
