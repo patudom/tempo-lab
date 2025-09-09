@@ -7,9 +7,7 @@
     <div ref="root" class="layout-root"></div>
 
     <teleport v-if="mapTarget" :to="mapTarget">
-      <!--
       <map-with-controls />
-      -->
     </teleport>
 
     <teleport v-if="sidePanelTarget" :to="sidePanelTarget">
@@ -92,6 +90,10 @@ onMounted(() => {
 </script>
 
 <style lang="less">
+// NB: The styles here are NOT scoped - these are intended to apply to the overall application,
+// as this component is really just a layout container.
+// If we do want component-only styles, just add a <style scoped> block below this one
+
 @font-face {
   font-family: "Highway Gothic Narrow";
   src: url("./assets/HighwayGothicNarrow.ttf");

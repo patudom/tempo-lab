@@ -271,10 +271,10 @@ function activatePointSelectionMode() {
   pointSelectionActive.value = !pointSelectionActive.value;
 }
 
-const colorMap = ref<AllAvailableColorMaps>('None');
+const colorMap = ref<AllAvailableColorMaps>('magma');
 const currentColormap = computed(() => {
   return (x: number): string => {
-    const rgb = colormap(colorMap.value, 0 ,1 ,x);
+    const rgb = colormap(colorMap.value, 0, 1, x);
     return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]},1)`;
   };
 });
