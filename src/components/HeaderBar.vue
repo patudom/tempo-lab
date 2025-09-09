@@ -171,7 +171,22 @@ const mobile = computed(() => {
 
 </script>
 
-<style scoped>
+<style scoped lang="less">
+#title {
+  color: var(--smithsonian-yellow);
+  font-weight: 600;
+  font-size: 2.5rem;
+  text-align: center;
+  text-wrap: nowrap;
+  flex-grow: 1;
+}
+
+a[href="https://tempo.si.edu"]>img {
+  // display: inline;
+  height: 70px !important;
+  width: auto !important;
+}
+
 .header {
   display: flex;
   flex-direction: row;
@@ -194,6 +209,5 @@ const mobile = computed(() => {
     gap: 1rem;
     align-items: center;
   }
-
 }
 </style>

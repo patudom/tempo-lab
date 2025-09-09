@@ -91,7 +91,15 @@ onMounted(() => {
 });
 </script>
 
-<style>
+<style lang="less">
+@font-face {
+  font-family: "Highway Gothic Narrow";
+  src: url("./assets/HighwayGothicNarrow.ttf");
+}
+
+// JC: This was commented out, but I put it back in because my browser (Chrome on Ubuntu) didn't already have Lexend
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&display=swap');
+
 html, body .layout-root {
   width: 100%;
   height: 100%;
@@ -102,10 +110,51 @@ html, body {
   margin: 0;
 }
 
+body {
+  font-family: Verdana, Arial, Helvetica, sans-serif;
+}
+
 #app {
-  userh1, h2, h3, h4, h5, h6, p, div {
+  h1, h2, h3, h4, h5, h6, p, div {
     user-select: none;
     -webkit-user-select: none;
   }
+  font-family: "Lexend", sans-serif;
 }
+
+:root {
+  // font-size: clamp(14px, 1.7vw, 16px);
+  // --default-font-size: 1rem; // we don't use this
+  font-size: 16px; // this is the standard browser default
+  --default-line-height: clamp(1rem, min(2.2vh, 2.2vw), 1.6rem); // we don't use this
+  --smithsonian-blue: #009ade;
+  --smithsonian-yellow: #ffcc33;
+  --info-background: #092088;
+  --map-height: 500px;
+  --tempo-red: #b60e32;
+}
+
+@media (max-width: 750px) {
+  :root {
+    --map-height: 60vh;
+    --map-height: 60dvh;
+    --map-height: 60svh;
+    font-size: 14px;
+  }
+}
+
+// Some Golden Layout adjustments
+.lm_content {
+  background: rgb(var(--v-theme-background));
+}
+
+.lm_splitter {
+  background-color: #333333;
+  opacity: 0.7;
+
+  &.lm_dragging {
+    background-color: var(--smithsonian-blue);
+  }
+}
+
 </style>
