@@ -1,16 +1,15 @@
 import { ref, watch, Ref, MaybeRef, toRef, nextTick, computed } from 'vue';
-import { renderingRule, fetchEsriTimeSteps, extractTimeSteps, VariableNames, stretches, colorramps, RenderingRuleOptions, ColorRamps } from '../ImageLayerConfig';
+import { renderingRule, VariableNames, stretches, colorramps, RenderingRuleOptions, ColorRamps } from '../ImageLayerConfig';
 import { Map } from 'maplibre-gl';
 
 import { ImageService } from 'mapbox-gl-esri-sources';
+import { useEsriTimesteps } from '../../composables/useEsriTimesteps';
 
 
 interface UseEsriLayer {
   esriImageSource: Ref<maplibregl.RasterTileSource | null>;
   opacity: Ref<number>;
   noEsriData: Ref<boolean>;
-  esriTimesteps: Ref<number[]>;
-  getEsriTimeSteps: () => void;
   loadingEsriTimeSteps: Ref<boolean>;
   updateEsriOpacity: (value?: number | null | undefined) => void;
   updateEsriTimeRange: () => void;
@@ -25,7 +24,6 @@ export function useEsriLayer(url: string, variableName: VariableNames, timestamp
   const esriImageSource = ref<maplibregl.RasterTileSource | null>(null);
   const map = ref<Map | null>(null);
 
-  const esriTimesteps = ref([] as number[]);
   const opacityRef = toRef(opacity);
   const noEsriData = ref(false);
   const variableNameRef = toRef(variableName);
@@ -35,6 +33,8 @@ export function useEsriLayer(url: string, variableName: VariableNames, timestamp
     range: stretches[variableNameRef.value],
     colormap: colorramps[variableNameRef.value],
   });
+
+  const { esriTimesteps } = useEsriTimesteps(urlRef, variableNameRef);
 
   
   const options = computed(() => {
@@ -122,26 +122,15 @@ export function useEsriLayer(url: string, variableName: VariableNames, timestamp
       console.error('Dynamic Map Service is not initialized');
     }
   }
-  
-  async function getEsriTimeSteps() {
-    loadingEsriTimeSteps.value = true;
-    fetchEsriTimeSteps(urlRef.value, variableNameRef.value)
-      .then((json) => {
-        esriTimesteps.value = extractTimeSteps(json);
-      }).then(() => {
-        nextTick(updateEsriTimeRange);
-        loadingEsriTimeSteps.value = false;
-      }).catch((error) => {
-        console.error('Error fetching ESRI time steps:', error);
-      });
-  }
-  
+
+  watch(esriTimesteps, _timesteps => {
+    nextTick(updateEsriTimeRange);
+  });
 
 
   watch(timestamp, (_value) => {
     updateEsriTimeRange();
   });
-
   
   
   function updateEsriOpacity(value: number | null | undefined = undefined) {
@@ -204,7 +193,6 @@ export function useEsriLayer(url: string, variableName: VariableNames, timestamp
     opacity: opacityRef,
     noEsriData,
     esriTimesteps,
-    getEsriTimeSteps,
     loadingEsriTimeSteps,
     updateEsriOpacity,
     updateEsriTimeRange,

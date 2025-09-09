@@ -1,27 +1,35 @@
-import { nextTick, ref, type Ref } from "vue";
+import { toRef, ref, watch, type MaybeRef } from "vue";
 
-import { renderingRule, fetchEsriTimeSteps, extractTimeSteps, VariableNames, stretches, colorramps, RenderingRuleOptions, ColorRamps } from '../ImageLayerConfig';
+import { getEsriTimesteps } from "../esri/utils";
+import { VariableNames } from "@/esri/ImageLayerConfig";
 
-export function useEsriTimesteps(initialUrl: string, initialVariable: string, timestamp: Ref<number | null>) {
-  const url = ref(initialUrl);
-  const variable = ref(initialVariable);
+export function useEsriTimesteps(initialUrl: MaybeRef<string>, initialVariable: MaybeRef<VariableNames>) {
+  const url = toRef(initialUrl);
+  const variable = toRef(initialVariable);
   const loadingTimesteps = ref(false);
   const esriTimesteps = ref<number[]>([]);
-  const noEsriData = ref(false);
+  const error = ref<string | null>(null);
 
-  async function getEsriTimeSteps(): Promise<void> {
+  async function updateEsriTimeSteps(): Promise<void> {
     loadingTimesteps.value = true;
-    return fetchEsriTimeSteps(url.value, variable.value)
-      .then(json => {
-        esriTimesteps.value = extractTimeSteps(json);
+    return getEsriTimesteps(url.value, variable.value)
+      .then(timesteps => {
+        esriTimesteps.value = timesteps;
       })
-      .catch(error => {
-        console.error(`Error fetching ESRI time steps: ${error}`);
+      .catch((err: Error) => {
+        console.error(`Error fetching ESRI time steps: ${err}`);
+        error.value = err.message;
       });
   }
 
+  watch(() => [url, variable], _newValues => {
+    updateEsriTimeSteps();
+  });
+
   return {
+    loadingTimesteps,
+    url,
+    variable,
     esriTimesteps,
-    getEsriTimeSteps,
-  }
+  };
 }
