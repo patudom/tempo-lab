@@ -1,28 +1,110 @@
-export function isBad(v: number | null | undefined): boolean {
+export function isBad(v: number | null | undefined): v is null | undefined {
   return v === null || v === undefined || isNaN(v);
 }
 
-export function mean(arr: number[]): number {
+export function nan2null(v: number): number | null {
+  return isNaN(v) ? null : v;
+}
+
+// typeof NaN is 'number'. Just included here 
+type DirtyNumberArray = Array<number | null | typeof NaN | undefined>;
+
+function _getValidData(arr: DirtyNumberArray) {
+  const validArr: number[] = [];
+  let sum = 0;
+  for (const v of arr) {
+    if (!isBad(v)) {
+      validArr.push(v);
+      sum += v;
+    }
+  }
+  return { validArr, sum, length: validArr.length };
+}
+
+function _length(arr: DirtyNumberArray): number {
+  return arr.length;
+}
+
+function _nanLength(arr: DirtyNumberArray): number {
+  return arr.filter(v => !isBad(v)).length;
+}
+
+export function sum(arr: DirtyNumberArray): number | null {
+  if (arr.length === 0 || arr.some(v => isBad(v))) {
+    return NaN;
+  }
+  return (arr as number[]).reduce((a, b) => a + b, 0);
+}
+
+export function nansum(arr: DirtyNumberArray): number {
+  const { sum } = _getValidData(arr);
+  return sum;
+}
+
+export function mean(arr: DirtyNumberArray): number {
   // filter nan, null, undefined
   if (arr.length === 0 || arr.some(v => isBad(v))) {
     return NaN;
   }
-  const sum = arr.reduce((a, b) => a + b, 0);
+  const sum = (arr as number[]).reduce((a, b) => a + b, 0);
   return sum / arr.length;
 }
 
-export function nanmean(_arr: number[]): number {
-  // filter nan, null, undefined
-  const arr = _arr.filter(v => !isBad(v));
-  if (arr.length === 0) return NaN;
-  const sum = arr.reduce((a, b) => a + b, 0);
-  return sum / arr.length;
+export function nanmean(_arr: DirtyNumberArray): number {
+  const { sum, length } = _getValidData(_arr);
+  if (length === 0) return NaN;
+  return sum / length;
 }
 
-export function diff(arr: number[]): number[] {
+export function difference(a: number | null | undefined, b: number | null | undefined): number {
+  if (isBad(a) || isBad(b)) return NaN;
+  return a - b;
+}
+
+export function diff(arr: DirtyNumberArray): number[] {
   const result: number[] = [];
   for (let i = 1; i < arr.length; i++) {
-    result.push(arr[i] - arr[i - 1]);
+    result.push(difference(arr[i],arr[i - 1]));
   }
   return result;
+}
+
+
+export function variance(arr: DirtyNumberArray): number {
+  if (arr.length < 2 || arr.some(v => isBad(v))) {
+    return NaN;
+  }
+  const m = mean(arr);
+  const diffs = arr.map(v => (v - m) * (v - m));
+  return mean(diffs); // mean = sum(diffs) / n
+}
+
+export function stdev(arr: DirtyNumberArray): number {
+  return Math.sqrt(variance(arr));
+}
+
+export function standardError(arr: DirtyNumberArray): number {
+  return stdev(arr) / Math.sqrt(arr.length);
+}
+
+export function nanvariance(arr: DirtyNumberArray): number {
+  const { validArr, length } = _getValidData(arr);
+  if (length < 2) {
+    return NaN;
+  }
+  const m = nanmean(validArr);
+  const diffs = validArr.map(v => (v - m) * (v - m));
+  const result = nanmean(diffs);
+  return result;
+}
+
+
+export function nanstdev(arr: DirtyNumberArray): number {
+  return Math.sqrt(nanvariance(arr));
+}
+
+export function nanstandardError(arr: DirtyNumberArray): number {
+  const stdev = nanstdev(arr);
+  const length = _nanLength(arr);
+  return stdev / length;
 }

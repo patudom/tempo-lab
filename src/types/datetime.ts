@@ -16,7 +16,7 @@ export interface DateRangeSelection {
   endDate: Date;
 }
 
-export type SelectionType = 'weekday' | 'daterange';
+export type SelectionType = 'weekday' | 'daterange' | 'pattern';
 
 export interface DateTimeSelection {
   type: SelectionType;

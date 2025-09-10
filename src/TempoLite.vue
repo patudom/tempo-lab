@@ -1859,7 +1859,7 @@ function regionHasSamples(region: UnifiedRegionType): boolean {
 const customTimeRange = ref<TimeRange | null>(null);
 
 // Add TimeRange object support for custom time ranges, update handler to accept (ranges, selectionType), name and describe new custom ranges, and adjust dependent logic.
-function handleDateTimeRangeSelectionChange(timeRanges: MillisecondRange[], selectionType?: string) {
+function handleDateTimeRangeSelectionChange(timeRanges: MillisecondRange[], selectionType: string) {
   if (!Array.isArray(timeRanges) || timeRanges.length === 0) {
     console.error('No time ranges received from DateTimeRangeSelection');
     return;
@@ -1878,6 +1878,9 @@ function handleDateTimeRangeSelectionChange(timeRanges: MillisecondRange[], sele
   case 'singledate':
     descriptionBase = 'Single Date';
     break;
+  case 'pattern':
+    descriptionBase = 'Pattern';
+    break;
   }
   const formatted = formatTimeRange(normalized);
   const description = `${descriptionBase} (${formatted})`;
@@ -1886,7 +1889,8 @@ function handleDateTimeRangeSelectionChange(timeRanges: MillisecondRange[], sele
     id: v4(),
     name: formatted,
     description,
-    range: normalized.length === 1 ? normalized[0] : normalized
+    range: normalized.length === 1 ? normalized[0] : normalized,
+    type: selectionType,
   };
   customTimeRange.value = tr;
   useCustomTimeRange.value = true;

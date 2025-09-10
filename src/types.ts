@@ -134,6 +134,7 @@ export interface TimeRange {
   name: string; // user editable
   description: string; // not editable
   range: MillisecondRange | MillisecondRange[];
+  type: string; 
 }
 
 export interface UserSelection {
