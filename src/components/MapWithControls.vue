@@ -572,7 +572,7 @@ watch([showSamplingPreviewMarkers, regions, ()=> regions.value.length], (newVal)
   position: relative;
   display: flex;
   flex-direction: column;
-  padding-right: 10px;
+  padding: 10px;
 
   .location-and-sharing {
     position: absolute;
