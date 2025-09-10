@@ -484,11 +484,11 @@ const {
   singleDateSelected,
   selectedTimezone,
   uniqueDays,
+  selectionActive,
 } = storeToRefs(store);
 
 type SelectionType = "rectangle" | "point" | null;
 const emit = defineEmits<{
-  (event: "selection-active", value: SelectionType): void;
   (event: "region-trigger", value: string): void;
 }>();
 
@@ -499,7 +499,6 @@ const openGraphs = ref<Record<string,boolean>>({});
 const openSelection = ref<string | null>(null);
 const tableSelection = ref<UserDataset | null>(null);
 
-const selectionActive = ref<SelectionType>(null);
 const createTimeRangeActive = ref(false);
 const createDatasetActive = ref(false);
 const datasetRowRefs = ref({});
@@ -570,10 +569,6 @@ function editRegionName(region: UnifiedRegionType) {
   // Open dialog for renaming
   showEditRegionNameDialog.value = true;
 }
-
-watch(selectionActive, (type: SelectionType) => {
-  emit("selection-active", type);
-});
 
 function graphTitle(dataset: UserDataset): string {
   const molecule = dataset.molecule;

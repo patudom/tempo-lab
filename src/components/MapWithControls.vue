@@ -4,10 +4,10 @@
       :horizontal="display.width.value <= 750"
       :current-colormap="currentColormap"
       :color-map="colorMap"
-      :start-value="colorbarOptions[whichMolecule].stretch[0] / colorbarOptions[whichMolecule].cbarScale"
-      :end-value="colorbarOptions[whichMolecule].stretch[1] / colorbarOptions[whichMolecule].cbarScale"
-      :molecule-label="colorbarOptions[whichMolecule].label"
-      :cbar-scale="colorbarOptions[whichMolecule].cbarScale"
+      :start-value="colorbarOptions[molecule].stretch[0] / colorbarOptions[molecule].cbarScale"
+      :end-value="colorbarOptions[molecule].stretch[1] / colorbarOptions[molecule].cbarScale"
+      :molecule-label="colorbarOptions[molecule].label"
+      :cbar-scale="colorbarOptions[molecule].cbarScale"
     >
       <v-card class="map-contents" style="width:100%; height: 100%;">
         <v-toolbar
@@ -28,26 +28,26 @@
             class="me-3"
             :style="{'--v-theme-on-surface': 'var(--accent-color)'}"
             />
-          <v-tooltip :text="rectangleSelectionActive ? 'Cancel selection' : 'Select a region'">
+          <v-tooltip :text="selectionActive === 'rectangle' ? 'Cancel selection' : 'Select a region'">
             <template #activator="{ props }">
               <v-btn
                 v-bind="props"
                 icon="mdi-select"
-                :color="rectangleSelectionActive ? 'info' : 'default'"
-                :variant="rectangleSelectionActive ? 'tonal' : 'text'"
-                :disabled="pointSelectionActive"
+                :color="selectionActive === 'rectangle' ? 'info' : 'default'"
+                :variant="selectionActive === 'rectangle' ? 'tonal' : 'text'"
+                :disabled="selectionActive === 'point'"
                 @click="activateRectangleSelectionMode"
               ></v-btn>
             </template>
           </v-tooltip>
-          <v-tooltip :text="pointSelectionActive ? 'Cancel selection' : 'Select a point'">
+          <v-tooltip :text="selectionActive === 'point' ? 'Cancel selection' : 'Select a point'">
             <template #activator="{ props }">
               <v-btn
                 v-bind="props"
                 icon="mdi-plus"
-                :color="pointSelectionActive ? 'info' : 'default'"
-                :variant="pointSelectionActive ? 'tonal' : 'text'"
-                :disabled="rectangleSelectionActive"
+                :color="selectionActive === 'point' ? 'info' : 'default'"
+                :variant="selectionActive === 'point' ? 'tonal' : 'text'"
+                :disabled="selectionActive === 'rectangle'"
                 @click="activatePointSelectionMode"
               ></v-btn>
             </template>
@@ -63,7 +63,7 @@
             'zoomend': updateURL,
           }"
           :timestamp="timestamp"
-          :molecule="whichMolecule"
+          :molecule="molecule"
           :opacity="opacity"
           :show-field-of-regard="showFieldOfRegard"
           @zoomhome="onZoomhome"
@@ -176,18 +176,46 @@
       </div>
       </v-card>
     </map-colorbar-wrap>
+    <div id="slider-row">
+      <v-slider
+        class="time-slider"
+        v-model="timeIndex"
+        :min="minIndex"
+        :max="maxIndex"
+        :step="1"
+        color="#068ede95"
+        thumb-label="always"
+        :track-size="10"
+        show-ticks="always"
+        hide-details
+        @end="timeSliderUsedCount += 1"
+      >
+        <template v-slot:thumb-label>
+          <div class="thumb-label">
+            {{ thumbLabel }}
+          </div>
+        </template>
+      </v-slider>
+      <icon-button
+        id="play-pause"
+        :fa-icon="playing ? 'pause' : 'play'"
+        fa-size="sm"
+        @activate="playing = !playing"
+      ></icon-button>
+        </div>
     <map-controls
-      @molecule="(mol: MoleculeType) => { whichMolecule = mol }"
+      @molecule="(mol: MoleculeType) => { molecule = mol }"
     />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, useTemplateRef, type Ref } from "vue";
+import { computed, ref, useTemplateRef, watch, type Ref } from "vue";
 import { useDisplay } from 'vuetify';
 import { storeToRefs } from "pinia";
 import { MapBoxFeature, MapBoxFeatureCollection, MapBoxFeatureType, MapBoxForwardGeocodingOptions, geocodingInfoForSearch } from "@cosmicds/vue-toolkit";
 import { Map } from "maplibre-gl";
+import { getTimezoneOffset } from "date-fns-tz";
 
 import type { LatLngPair, InitMapOptions } from "@/types";
 import { type MoleculeType, MOLECULE_OPTIONS } from "@/esri/utils";
@@ -203,6 +231,8 @@ import MapColorbarWrap from "@/components/MapColorbarWrap.vue";
 type MapType = Map | null;
 const maplibreMap = useTemplateRef<InstanceType<typeof EsriMap>>("maplibreMap");
 
+type Timeout = ReturnType<typeof setTimeout>;
+
 const store = useTempoStore();
 const {
   accentColor2,
@@ -210,12 +240,21 @@ const {
   regions,
   timestamp,
   timeIndex,
+  molecule,
+  minIndex,
+  maxIndex,
+  date,
+  selectedTimezone,
+  timeSliderUsedCount,
+  playButtonClickedCount,
+  timestamps,
+  selectionActive,
 } = storeToRefs(store);
 
 
 const display = useDisplay();
-
 const map = ref<MapType>(null);
+
 
 const onMapReady = (m: Map) => {
   map.value = m; // ESRI source already added by EsriMap
@@ -254,21 +293,18 @@ const showControls = ref(false);
 const showRoads = ref(true);
 const opacity = ref(0.9);
 const showSamplingPreviewMarkers = ref(false);
+const playing = ref(false);
+const playInterval = ref<Timeout | null>(null);
 
-const whichMolecule = ref<MoleculeType>('no2');
-
-const timestamps = ref<number[]>([]);
 
 const searchOpen = ref(true);
 const searchErrorMessage = ref<string | null>(null);
-const pointSelectionActive = ref(false);
-const rectangleSelectionActive = ref(false);
 function activateRectangleSelectionMode() {
-  rectangleSelectionActive.value = !rectangleSelectionActive.value;
+  selectionActive.value = (selectionActive.value !== "rectangle") ? null : "rectangle";
 }
 
 function activatePointSelectionMode() {
-  pointSelectionActive.value = !pointSelectionActive.value;
+  selectionActive.value = (selectionActive.value !== "point") ? null : "point";
 }
 
 const colorMap = ref<AllAvailableColorMaps>('magma');
@@ -280,11 +316,27 @@ const currentColormap = computed(() => {
 });
 
 const mapTitle = computed(() => {
-  const currentMolecule = MOLECULE_OPTIONS.find(m => m.value === whichMolecule.value);
+  const currentMolecule = MOLECULE_OPTIONS.find(m => m.value === molecule.value);
   if (!currentMolecule) {
     return '';
   }
   return currentMolecule.title;
+});
+
+// TODO: Maybe there's a built-in Date function to get this formatting?
+const thumbLabel = computed(() => {
+  if (date.value === null || timestamp.value === null) {
+    return '';
+  }
+  const offset = getTimezoneOffset(selectedTimezone.value, date.value);
+  const dateObj = new Date(timestamp.value + offset);
+  const hours = dateObj.getUTCHours();
+  const amPm = hours >= 12 ? "PM" : "AM";
+  let hourValue = hours % 12;
+  if (hourValue === 0) {
+    hourValue = 12;
+  }
+  return `${date.value.getUTCMonth() + 1}/${dateObj.getUTCDate()}/${dateObj.getUTCFullYear()} ${hourValue}:${dateObj.getUTCMinutes().toString().padStart(2, '0')} ${amPm}`;
 });
 
 const defaultMapboxOptions = {
@@ -342,11 +394,44 @@ function updateURL() {
 
 // ESRI timesteps arrive from EsriMap component; store directly in timestamps
 function onEsriTimestepsLoaded(steps: number[]) {
+  console.log("Loading steps");
+  console.log(steps);
   if (!Array.isArray(steps) || steps.length === 0) return;
   const sorted = steps.slice().sort();
   timestamps.value = sorted;
   if (timeIndex.value >= sorted.length) {
     timeIndex.value = 0;
+  }
+}
+
+watch(playing, (val: boolean) => {
+  if (val) {
+    play();
+    playButtonClickedCount.value += 1;
+  } else {
+    pause();
+  }
+});
+
+function play() {
+  playInterval.value = setInterval(() => {
+    if (timeIndex.value >= maxIndex.value) {
+      if (playInterval.value) {
+        // clearInterval(this.playInterval);
+        // this.playInterval = null;
+        // let it loop
+        timeIndex.value = minIndex.value;
+      }
+    } else {
+      timeIndex.value += 1;
+    }
+  }, 1000);
+}
+
+
+function pause() {
+  if (playInterval.value) {
+    clearInterval(playInterval.value);
   }
 }
 

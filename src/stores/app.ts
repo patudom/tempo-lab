@@ -8,6 +8,8 @@ import { useUniqueTimeSelection } from "../composables/useUniqueTimeSelection";
 import { useTimezone, type Timezone } from "../composables/useTimezone";
 import { atleast1d } from "../utils/atleast1d";
 
+type SelectionType = "rectangle" | "point" | null;
+
 const createTempoStore = <T extends MappingBackends>(backend: MappingBackends) => defineStore("tempods", () => {
   type UnifiedRegionType = UnifiedRegion<T>;
   const timeRanges = ref<TimeRange[]>([]);
@@ -19,6 +21,7 @@ const createTempoStore = <T extends MappingBackends>(backend: MappingBackends) =
   const backendRef = ref<MappingBackends>(backend);
   const maxSampleCount = ref(50);
   const sampleErrors = ref<Record<string, string | null>>({});
+  const molecule = ref<MoleculeType>('no2');
 
   const userSelectedCalendarDates: number[] = [];
   const userSelectedTimezones: string[] = [];
@@ -28,6 +31,8 @@ const createTempoStore = <T extends MappingBackends>(backend: MappingBackends) =
   const playButtonClickedCount = ref(0);
   const timeSliderUsedCount = ref(0);
   const opacitySliderUsedCount = ref(0);
+
+  const selectionActive = ref<SelectionType>(null);
 
   const selectedTimezone = ref<Timezone>("US/Eastern");
   const { isDST, timezoneOptions: tzOptions } = useTimezone(selectedTimezone);
@@ -197,6 +202,8 @@ const createTempoStore = <T extends MappingBackends>(backend: MappingBackends) =
     dateIsDST,
     timezoneOptions,
 
+    selectionActive,
+
     regions,
     timeRanges,
     backend: backendRef,
@@ -206,6 +213,7 @@ const createTempoStore = <T extends MappingBackends>(backend: MappingBackends) =
     datasets,
     timestamps,
     timestampsLoaded,
+    molecule,
 
     addTimeRange,
     addDataset,
