@@ -71,7 +71,7 @@
           @esri-timesteps-loaded="onEsriTimestepsLoaded"
           ref="maplibreMap"
           width="100%"
-          height="500px"
+          height="450px"
         />
 
         <div v-if="showFieldOfRegard" class="map-legend"><hr class="line-legend">TEMPO Field of Regard</div>
@@ -176,7 +176,7 @@
       </div>
       </v-card>
     </map-colorbar-wrap>
-    <div id="slider-row">
+    <div class="slider-row">
       <v-slider
         class="time-slider"
         v-model="timeIndex"
@@ -230,6 +230,8 @@ import { addRectangleLayer } from "@/composables/maplibre/utils";
 import { usePointSelection } from "@/composables/maplibre/usePointSelection";
 import { addPointLayer } from "@/composables/maplibre/utils";
 import { COLORS } from "@/utils/color";
+import { EsriSampler } from "@/esri/services/sampling";
+import { useMultiMarker } from '@/composables/maplibre/useMultiMarker';
 
 import EsriMap from "@/components/EsriMap.vue";
 import MapColorbarWrap from "@/components/MapColorbarWrap.vue";
@@ -258,6 +260,8 @@ const {
   timestamps,
   selectionActive,
   regionsCreatedCount,
+  currentTempoDataService,
+  maxSampleCount,
 } = storeToRefs(store);
 
 function createSelectionComputed(selection: SelectionType): WritableComputedRef<boolean> {
@@ -523,9 +527,46 @@ watch(pointInfo, (info: PointSelectionInfo | null) => {
   pointSelectionActive.value = false;
 });
 
+const samplingPreviewMarkers = useMultiMarker(map as MapTypeRef , {
+  shape: 'circle',
+  color: '#0000ff',
+  fillColor: '#0000ff',
+  fillOpacity: 0.5,
+  opacity: 1,
+  radius: 0.02 / 2, // degrees
+  scale: 'world',
+  outlineColor: '#0000ff',
+  label: 'predicted-samples-locations'
+});
+
+const sampler = ref<EsriSampler>(null);
+currentTempoDataService.value.withMetadataCache().then(meta => {
+  sampler.value = new EsriSampler(meta);
+});
+watch([showSamplingPreviewMarkers, regions, ()=> regions.value.length], (newVal) => {
+  const tempoDataService = currentTempoDataService.value;
+  const show = newVal[0];
+  const regs = newVal[1];
+  samplingPreviewMarkers.clearMarkers();
+  let locations: {x: number, y:number}[] = [];
+  if (sampler.value && show && regs.length > 0) {
+    regs.forEach(r => {
+      if (r.geometryType === 'rectangle') {
+        sampler.value.setGeometry(r.geometryInfo);
+        if (tempoDataService.meta) {
+          sampler.value.setMetadata(tempoDataService.meta);
+        }
+        locations = [...locations, ...sampler.value.getSampleLocationsGrid(maxSampleCount.value)];
+        // samplingPreviewMarkers.addMarkers(locations);
+      }
+    });
+    samplingPreviewMarkers.addMarkers(locations);
+  }
+});
+
 </script>
 
-<style scoped>
+<style lang="less">
 .map-container {
   width: 100%;
   position: relative;
@@ -581,5 +622,110 @@ watch(pointInfo, (info: PointSelectionInfo | null) => {
     }
   }
 
+  .controls-card {
+    padding: 1rem;
+    border: 1px solid #068ede;
+  }
+
+  .slider-row {
+    display: flex;
+    flex-direction: row;
+    padding-left: 0;
+  }
+
+  >#play-pause-button {
+    height: fit-content;
+    align-self: center;
+    padding-inline: 0.5rem;
+    margin-left: 0.75rem;
+    width: 2.5rem;
+    color: var(--accent-color);
+    border: 2px solid var(--accent-color);
+  }
+
+  #play-pause-button[disabled] {
+    filter: grayscale(100%);
+    cursor: progress;
+    cursor: not-allowed;
+  }
+
+  .icon-wrapper {
+    padding-inline: 0.5rem !important;
+  }
+}
+
+.time-slider {
+
+  .v-slider-thumb {
+
+    .v-slider-thumb__surface::after {
+      background-image: url("@/assets/smithsonian.png");
+      background-size: 30px 30px;
+      height: 30px;
+      width: 30px;
+    }
+
+    .v-slider-thumb__label {
+      background-color: var(--accent-color-2);
+      border: 0.25rem solid var(--accent-color);
+      width: max-content;
+      height: 2.5rem;
+      font-size: 1rem;
+
+      &::before {
+        color: var(--accent-color);
+      }
+    }
+  }
+
+  .v-slider-track__tick {
+    background-color: var(--accent-color);
+    /* Change color */
+    height: 15px;
+    /* Change size */
+    width: 4px;
+    margin-top: 0 !important;
+    // top: -10%;
+  }
+
+  .v-slider {
+
+    .v-slider.v-input--horizontal {
+      grid-template-rows: auto 0px;
+    }
+
+    .v-slider.v-input--horizontal .v-slider-thumb__label {
+      // top: calc(var(--v-slider-thumb-size) * 1.5);
+      z-index: 2000;
+    }
+
+    .v-slider.v-input--horizontal .v-slider-thumb__label::before {
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-bottom: 6px solid transparent;
+      border-top: 6px solid currentColor;
+      bottom: -15px;
+    }
+  }
+}
+
+#opacity-slider-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding-left: 7%;
+  padding-right: 7%;
+  gap: 2px;
+
+  .v-slider {
+    margin-right: 0;
+    width: 100%;
+  }
+
+  #opacity-slider-label {
+    opacity: 0.7;
+    width: fit-content;
+  }
 }
 </style>

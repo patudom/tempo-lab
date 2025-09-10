@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
+import { v4 } from "uuid";
 
 import type { MappingBackends, SelectionType, TimeRange, UnifiedRegion, UserDataset } from "@/types";
 import { ESRI_URLS, MoleculeType } from "@/esri/utils";
@@ -7,6 +8,7 @@ import { TempoDataService } from "@/esri/services/TempoDataService";
 import { useUniqueTimeSelection } from "@/composables/useUniqueTimeSelection";
 import { useTimezone, type Timezone } from "@/composables/useTimezone";
 import { atleast1d } from "@/utils/atleast1d";
+import { formatSingleRange, rangeForSingleDay } from "@/utils/timeRange";
 
 
 const createTempoStore = <T extends MappingBackends>(backend: MappingBackends) => defineStore("tempods", () => {
@@ -58,6 +60,16 @@ const createTempoStore = <T extends MappingBackends>(backend: MappingBackends) =
     nearestDateIndex
   } = useUniqueTimeSelection(timestamps);
 
+  const displayedDayTimeRange = computed<TimeRange>(() => {
+    const range = rangeForSingleDay(singleDateSelected.value, selectedTimezone.value);
+    return {
+      id: 'displayed-day',
+      name: 'Displayed Day',
+      description: `Displayed Day (${new Date(range.start).toLocaleDateString()})`,
+      range,
+    };
+  });
+
   const accentColor = ref("#068ede");
   const accentColor2 = ref("#ffcc33");
 
@@ -71,6 +83,8 @@ const createTempoStore = <T extends MappingBackends>(backend: MappingBackends) =
     return service;
   }
 
+  const currentTempoDataService = computed(() => getTempoDataService(molecule.value));
+
   function addTimeRange(range: TimeRange) {
     timeRanges.value.push(range);
   }
@@ -82,6 +96,45 @@ const createTempoStore = <T extends MappingBackends>(backend: MappingBackends) =
     }
     timeRanges.value.splice(index, 1);
   }
+
+  watch(singleDateSelected, (_newDate, oldDate) => {
+    const oldRange = rangeForSingleDay(oldDate, selectedTimezone.value);
+    const displayedDateSelections = datasets.value.filter(sel => {
+      const range = sel.timeRange.range;
+      return !Array.isArray(range) &&
+             range.start === oldRange.start &&
+             range.end === oldRange.end;
+    });
+    if (displayedDateSelections.length === 0) {
+      return;
+    }
+  
+    const index = timeRanges.value.findIndex(timeRange => {
+      const range = timeRange.range;
+      return !Array.isArray(range) &&
+             range.start === oldRange.start &&
+             range.end === oldRange.end &&
+             timeRange.id !== "displayed-day";
+    });
+    if (index < 0) {
+      const formatted = formatSingleRange(oldRange);
+      const oldTimeRange: TimeRange = {
+        id: v4(),
+        name: formatted,
+        description: formatted,
+        range: oldRange,
+      };
+      timeRanges.value.push(oldTimeRange);
+    }
+  });
+
+  watch(displayedDayTimeRange, (val) => {
+    if (!timeRanges.value.length) {
+      timeRanges.value.push(val);
+    } else {
+      timeRanges.value[0] = val;
+    }
+  }, { immediate: true });
 
   function addRegion(region: UnifiedRegionType) {
     // TODO: Fix the typing here
@@ -222,6 +275,8 @@ const createTempoStore = <T extends MappingBackends>(backend: MappingBackends) =
     timestamps,
     timestampsLoaded,
     molecule,
+    displayedDayTimeRange,
+    currentTempoDataService,
 
     addTimeRange,
     addRegion,

@@ -51,7 +51,6 @@ export function areEquivalentMsRanges(first: MillisecondRange, second: Milliseco
 }
 
 export function areEquivalentTimeRanges(first: TimeRange, second: TimeRange): boolean {
-  console.log(first, second);
   if (first.id === second.id) {
     return true;
   }
