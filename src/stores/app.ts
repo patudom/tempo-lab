@@ -9,6 +9,7 @@ import { useUniqueTimeSelection } from "@/composables/useUniqueTimeSelection";
 import { useTimezone, type Timezone } from "@/composables/useTimezone";
 import { atleast1d } from "@/utils/atleast1d";
 import { formatSingleRange, rangeForSingleDay } from "@/utils/timeRange";
+import { colorbarOptions } from "@/esri/ImageLayerConfig";
 
 
 const createTempoStore = <T extends MappingBackends>(backend: MappingBackends) => defineStore("tempods", () => {
@@ -35,6 +36,8 @@ const createTempoStore = <T extends MappingBackends>(backend: MappingBackends) =
   const opacitySliderUsedCount = ref(0);
 
   const selectionActive = ref<SelectionType>(null);
+
+  const colorMap = computed(() => colorbarOptions[molecule.value].colormap.toLowerCase());
 
   const selectedTimezone = ref<Timezone>("US/Eastern");
   const { isDST, timezoneOptions: tzOptions } = useTimezone(selectedTimezone);
@@ -277,6 +280,7 @@ const createTempoStore = <T extends MappingBackends>(backend: MappingBackends) =
     molecule,
     displayedDayTimeRange,
     currentTempoDataService,
+    colorMap,
 
     addTimeRange,
     addRegion,

@@ -262,6 +262,7 @@ const {
   regionsCreatedCount,
   currentTempoDataService,
   maxSampleCount,
+  colorMap,
 } = storeToRefs(store);
 
 function createSelectionComputed(selection: SelectionType): WritableComputedRef<boolean> {
@@ -339,7 +340,6 @@ function activatePointSelectionMode() {
   pointSelectionActive.value = !pointSelectionActive.value;
 }
 
-const colorMap = ref<AllAvailableColorMaps>('magma');
 const currentColormap = computed(() => {
   return (x: number): string => {
     const rgb = colormap(colorMap.value, 0, 1, x);
