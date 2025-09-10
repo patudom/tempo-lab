@@ -210,26 +210,34 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, useTemplateRef, watch, type Ref } from "vue";
+import { computed, ref, useTemplateRef, watch, type Ref, type WritableComputedRef } from "vue";
 import { useDisplay } from 'vuetify';
 import { storeToRefs } from "pinia";
 import { MapBoxFeature, MapBoxFeatureCollection, MapBoxFeatureType, MapBoxForwardGeocodingOptions, geocodingInfoForSearch } from "@cosmicds/vue-toolkit";
 import { Map } from "maplibre-gl";
 import { getTimezoneOffset } from "date-fns-tz";
+import { v4 } from "uuid";
 
-import type { LatLngPair, InitMapOptions } from "@/types";
+import type { LatLngPair, InitMapOptions, PointSelectionInfo, RectangleSelectionInfo, SelectionType } from "@/types";
 import { type MoleculeType, MOLECULE_OPTIONS } from "@/esri/utils";
 import { colorbarOptions } from "@/esri/ImageLayerConfig";
 import type { AllAvailableColorMaps } from "@/colormaps";
 import { colormap } from "@/colormaps/utils";
 import { useTempoStore } from "@/stores/app";
 import { useLocationMarker } from "@/composables/maplibre/useMarker";
+import { useRectangleSelection } from "@/composables/maplibre/useRectangleSelection";
+import { addRectangleLayer } from "@/composables/maplibre/utils";
+import { usePointSelection } from "@/composables/maplibre/usePointSelection";
+import { addPointLayer } from "@/composables/maplibre/utils";
+import { COLORS } from "@/utils/color";
 
 import EsriMap from "@/components/EsriMap.vue";
 import MapColorbarWrap from "@/components/MapColorbarWrap.vue";
 
 type MapType = Map | null;
+type MapTypeRef = Ref<MapType>;
 const maplibreMap = useTemplateRef<InstanceType<typeof EsriMap>>("maplibreMap");
+const map = ref<MapType>(null);
 
 type Timeout = ReturnType<typeof setTimeout>;
 
@@ -249,11 +257,31 @@ const {
   playButtonClickedCount,
   timestamps,
   selectionActive,
+  regionsCreatedCount,
 } = storeToRefs(store);
 
+function createSelectionComputed(selection: SelectionType): WritableComputedRef<boolean> {
+  return computed({
+    get() {
+      return selectionActive.value === selection;
+    },
+    set(value: boolean) {
+      if (value === (selectionActive.value !== selection)) {
+        selectionActive.value = value ? selection : null;
+      }
+    },
+  });
+}
+
+const pointSelectionActive = createSelectionComputed("point");
+const rectangleSelectionActive = createSelectionComputed("rectangle");
+
+const { selectionInfo: rectangleInfo } = useRectangleSelection(map as MapTypeRef, "red", rectangleSelectionActive);
+const { selectionInfo: pointInfo } = usePointSelection(map as MapTypeRef, pointSelectionActive);
+
+type UnifiedRegionType = typeof regions.value[number];
 
 const display = useDisplay();
-const map = ref<MapType>(null);
 
 
 const onMapReady = (m: Map) => {
@@ -300,11 +328,11 @@ const playInterval = ref<Timeout | null>(null);
 const searchOpen = ref(true);
 const searchErrorMessage = ref<string | null>(null);
 function activateRectangleSelectionMode() {
-  selectionActive.value = (selectionActive.value !== "rectangle") ? null : "rectangle";
+  rectangleSelectionActive.value = !rectangleSelectionActive.value;
 }
 
 function activatePointSelectionMode() {
-  selectionActive.value = (selectionActive.value !== "point") ? null : "point";
+  pointSelectionActive.value = !pointSelectionActive.value;
 }
 
 const colorMap = ref<AllAvailableColorMaps>('magma');
@@ -434,6 +462,66 @@ function pause() {
     clearInterval(playInterval.value);
   }
 }
+
+function rectangleIsDegenerate(info: RectangleSelectionInfo): boolean {
+  return info.xmax === info.xmin || info.ymax === info.ymin;
+}
+
+function createRegion(info: RectangleSelectionInfo | PointSelectionInfo, geometryType: "rectangle" | "point"): UnifiedRegionType {
+  const color = COLORS[regionsCreatedCount.value % COLORS.length];
+  regionsCreatedCount.value += 1;
+
+  const isRect = geometryType === 'rectangle';
+  const { layer } = isRect ? 
+    addRectangleLayer((map.value as MapType)!, info as RectangleSelectionInfo, color)
+    : addPointLayer((map.value as MapType)!, info as PointSelectionInfo, color);
+  return {
+    id: v4(),
+    name: `${isRect ? 'Region' : 'Point'} ${regionsCreatedCount.value}`,
+    geometryInfo: info,
+    geometryType: geometryType,
+    color,
+    layer,
+  };
+
+}
+
+watch(rectangleInfo, (info: RectangleSelectionInfo | null) => {
+  if (info === null || map.value === null) {
+    rectangleSelectionActive.value = false;
+    return;
+  }
+  if (rectangleIsDegenerate(info)) {
+    // make it a point selection instead
+    // TODO: only implement when we have a solution to only do this on a double-click
+    // pointInfo.value = {
+    //   x: info.xmin,
+    //   y: info.ymin
+    // };
+    rectangleSelectionActive.value = false;
+    return;
+  }
+
+  const newRegion = createRegion(info, "rectangle");
+  store.addRegion(newRegion);
+  rectangleSelectionActive.value = false;
+  
+  // do not permit editing a region on a selection
+  // handleSelectionRegionEdit(info);
+  
+
+});
+
+// Add watcher for point selection
+watch(pointInfo, (info: PointSelectionInfo | null) => {
+  if (info === null || map.value === null) {
+    pointSelectionActive.value = false;
+    return;
+  }
+  const newRegion = createRegion(info, "point"); 
+  store.addRegion(newRegion);
+  pointSelectionActive.value = false;
+});
 
 </script>
 

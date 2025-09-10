@@ -457,7 +457,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, ref } from "vue";
 import { storeToRefs } from "pinia";
 import { v4 } from "uuid";
 import { supportsTouchscreen } from "@cosmicds/vue-toolkit";
@@ -487,7 +487,6 @@ const {
   selectionActive,
 } = storeToRefs(store);
 
-type SelectionType = "rectangle" | "point" | null;
 const emit = defineEmits<{
   (event: "region-trigger", value: string): void;
 }>();

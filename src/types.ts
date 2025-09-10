@@ -1,7 +1,7 @@
 // Types
 
 import M, { GeoJSONSource, } from 'maplibre-gl';
-import { Ref, toValue } from 'vue';
+import { type MaybeRef, type Ref, toValue } from 'vue';
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 export type Prettify<T> = { [K in keyof T]: T[K]; } & {};
@@ -158,7 +158,9 @@ export interface SelectionHandler<EventType, SelectionInfo> {
 export interface UseSelectionOptions<MapType, EventType, SelectionInfo> {
   map: Ref<MapType | null>;
   handler: SelectionHandler<EventType, SelectionInfo>;
-  startActive?: boolean;
+  active?: MaybeRef<boolean>;
 }
 
 export type UnifiedRegion<T extends MappingBackends> = RectangleSelection<T> | PointSelection<T>;
+
+export type SelectionType = "rectangle" | "point" | null;

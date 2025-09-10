@@ -1,17 +1,17 @@
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
 
-import type { MappingBackends, TimeRange, UnifiedRegion, UserDataset } from "../types";
-import { TempoDataService } from "../esri/services/TempoDataService";
-import { ESRI_URLS, MoleculeType } from "../esri/utils";
-import { useUniqueTimeSelection } from "../composables/useUniqueTimeSelection";
-import { useTimezone, type Timezone } from "../composables/useTimezone";
-import { atleast1d } from "../utils/atleast1d";
+import type { MappingBackends, SelectionType, TimeRange, UnifiedRegion, UserDataset } from "@/types";
+import { ESRI_URLS, MoleculeType } from "@/esri/utils";
+import { TempoDataService } from "@/esri/services/TempoDataService";
+import { useUniqueTimeSelection } from "@/composables/useUniqueTimeSelection";
+import { useTimezone, type Timezone } from "@/composables/useTimezone";
+import { atleast1d } from "@/utils/atleast1d";
 
-type SelectionType = "rectangle" | "point" | null;
 
 const createTempoStore = <T extends MappingBackends>(backend: MappingBackends) => defineStore("tempods", () => {
   type UnifiedRegionType = UnifiedRegion<T>;
+
   const timeRanges = ref<TimeRange[]>([]);
   const regions = ref<UnifiedRegionType[]>([]);
   const datasets = ref<UserDataset[]>([]);
@@ -22,7 +22,7 @@ const createTempoStore = <T extends MappingBackends>(backend: MappingBackends) =
   const maxSampleCount = ref(50);
   const sampleErrors = ref<Record<string, string | null>>({});
   const molecule = ref<MoleculeType>('no2');
-
+  const regionsCreatedCount = ref(0);
   const userSelectedCalendarDates: number[] = [];
   const userSelectedTimezones: string[] = [];
   const userSelectedLocations: string[] = [];
@@ -81,6 +81,13 @@ const createTempoStore = <T extends MappingBackends>(backend: MappingBackends) =
       return;
     }
     timeRanges.value.splice(index, 1);
+  }
+
+  function addRegion(region: UnifiedRegionType) {
+    // TODO: Fix the typing here
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    regions.value.push(region);
   }
 
   function deleteDataset(dataset: UserDataset) {
@@ -205,6 +212,7 @@ const createTempoStore = <T extends MappingBackends>(backend: MappingBackends) =
     selectionActive,
 
     regions,
+    regionsCreatedCount,
     timeRanges,
     backend: backendRef,
     maxSampleCount,
@@ -216,6 +224,7 @@ const createTempoStore = <T extends MappingBackends>(backend: MappingBackends) =
     molecule,
 
     addTimeRange,
+    addRegion,
     addDataset,
     fetchDataForDataset,
     fetchCenterPointDataForDataset,
