@@ -221,7 +221,6 @@ import { v4 } from "uuid";
 import type { LatLngPair, InitMapOptions, PointSelectionInfo, RectangleSelectionInfo, SelectionType } from "@/types";
 import { type MoleculeType, MOLECULE_OPTIONS } from "@/esri/utils";
 import { colorbarOptions } from "@/esri/ImageLayerConfig";
-import type { AllAvailableColorMaps } from "@/colormaps";
 import { colormap } from "@/colormaps/utils";
 import { useTempoStore } from "@/stores/app";
 import { useLocationMarker } from "@/composables/maplibre/useMarker";

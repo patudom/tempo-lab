@@ -1,5 +1,5 @@
 import { ref, watch, Ref, MaybeRef, toRef, nextTick, computed } from 'vue';
-import { renderingRule, fetchEsriTimeSteps, extractTimeSteps, VariableNames, stretches, colorramps, RenderingRuleOptions, ColorRamps } from '../ImageLayerConfig';
+import { renderingRule, stretches, colorramps, RenderingRuleOptions, ColorRamps } from '../ImageLayerConfig';
 import { Map, type MapSourceDataEvent } from 'maplibre-gl';
 
 import { ImageService } from 'mapbox-gl-esri-sources';
