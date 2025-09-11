@@ -1,6 +1,6 @@
 import { ref, watch, Ref, MaybeRef, toRef, nextTick, computed } from 'vue';
 import { renderingRule, fetchEsriTimeSteps, extractTimeSteps, VariableNames, stretches, colorramps, RenderingRuleOptions, ColorRamps } from '../ImageLayerConfig';
-import { Map } from 'maplibre-gl';
+import { Map, type MapSourceDataEvent } from 'maplibre-gl';
 
 import { ImageService } from 'mapbox-gl-esri-sources';
 
@@ -75,6 +75,17 @@ export function useEsriLayer(url: string, variableName: VariableNames, timestamp
   
   const dynamicMapService = ref<ImageService | null>(null);
   
+  function onSourceLoad(e: MapSourceDataEvent) {
+    console.log('Source data event: ', e.sourceId, e.isSourceLoaded);
+    if (e.sourceId === esriLayerId && e.isSourceLoaded && map.value?.getSource(esriLayerId)) {
+      console.log('ESRI source loaded');
+      esriImageSource.value = map.value?.getSource(esriLayerId) as maplibregl.RasterTileSource;
+      updateEsriOpacity();
+      updateEsriTimeRange();
+      map.value?.off('sourcedata', onSourceLoad);
+    }
+  }
+  
   function createImageService(map: Map, url: string, options) {
     return new ImageService(
       esriLayerId,
@@ -97,8 +108,13 @@ export function useEsriLayer(url: string, variableName: VariableNames, timestamp
     dynamicMapService.value = createImageService(_map, urlRef.value, options.value);
 
     addLayer(_map);
+    // this event will run until the source is loaded
+    _map.on('sourcedata', onSourceLoad);
   }
   
+  function hasEsriSource() {
+    return map.value?.getSource(esriLayerId) !== undefined;
+  }
 
   
   function updateEsriTimeRange() {
@@ -139,7 +155,11 @@ export function useEsriLayer(url: string, variableName: VariableNames, timestamp
 
 
   watch(timestamp, (_value) => {
-    updateEsriTimeRange();
+    if ( hasEsriSource() ) {
+      updateEsriTimeRange();
+    } else {
+      console.error('ESRI source not yet available');
+    }
   });
 
   
