@@ -42,7 +42,9 @@ const hashDataset = (data: DataSet) => {
 
 interface TimeseriesProps {
   datasets: DataSet[];
+  colors?: string[];
   showErrors?: boolean;
+  dataOptions?: Partial<Data>[];
 }
 
 const props = defineProps<TimeseriesProps>();
@@ -67,6 +69,57 @@ const legendGroups: Record<string, string> = {};
 let errorTraces: number[] = [];
 const traceVisible = ref<Map<string, boolean>>(new Map());
 
+function normalizeBadValue(v: number | null | undefined): number | null {
+  if (v === null || v === undefined || isNaN(v)) {
+    return null;
+  }
+  return v;
+}
+
+function nanMean(arr: (number | null)[]): number | null {
+  const validValues = arr.filter((v): v is number => v !== null && !isNaN(v));
+  if (validValues.length === 0) return null;
+  const sum = validValues.reduce((a, b) => a + b, 0);
+  return sum / validValues.length;
+}
+
+const filterNulls = ref(true);
+
+function filterNullValues(data: DataSet): DataSet {
+  // filter out any place where
+  // data.x or data.y is null or undefined or NaN
+  const filteredX: Datum[] = [];
+  const filteredY: number[] = [];
+  const filteredLower: (number | null)[] = [];
+  const filteredUpper: (number | null)[] = [];
+  data.x.forEach((x, idx) => {
+    const y = data.y[idx];
+    if (x !== null && x !== undefined && y !== null && y !== undefined && !isNaN(y)) {
+      filteredX.push(x);
+      filteredY.push(y);
+      if (data.lower) {
+        filteredLower.push(data.lower[idx] ?? null); // keep length consistent 
+      }
+      if (data.upper) {
+        filteredUpper.push(data.upper[idx] ?? null); // keep length consistent 
+      }
+    }
+  });
+  const result: DataSet = {
+    x: filteredX,
+    y: filteredY,
+  };
+  if (data.lower) {
+    result.lower = filteredLower;
+  } 
+  if (data.upper) {
+    result.upper = filteredUpper;
+  }
+  result.errorType = data.errorType;
+  
+  return result;
+}
+
 function renderPlot() {
 
   errorTraces = [];
@@ -79,8 +132,10 @@ function renderPlot() {
   
 
   let max = 0;
+  
   props.datasets.forEach((data, index) => {
     // create a hash from the data.x and data.y to be it's "id"
+    data = filterNulls.value ? filterNullValues(data) : data;
     
     // check x, and have same length y
     if (!data.x || !data.y || data.x.length !== data.y.length) {
@@ -101,10 +156,10 @@ function renderPlot() {
     
     
     const errorOptions = {} as Record<'error_y',Plotly.ErrorBar>;
-    
+    console.log(index, data.errorType);
     // https://plotly.com/javascript/error-bars/
     if (data.errorType === 'bar') {
-      errorOptions['erroy_y'] = {
+      errorOptions['error_y'] = {
         type: 'data',
         symmetric: false,
         array: data.upper as Datum[],
@@ -115,15 +170,16 @@ function renderPlot() {
       };
       
     }
-    
+    console.log("Error options", errorOptions);
     const dataTraceOptions = {
       mode: "lines+markers",
       legendgroup: legendGroup,
       showlegend: true,
       name: `Dataset ${index + 1}`,
-      marker: { color: 'red' },
+      marker: { color: props.colors ? props.colors[index % props.colors.length] : 'red' },
       visible: traceVisible.value.get(id) ? true : "legendonly",
-      ...errorOptions
+      ...errorOptions,
+      ...props.dataOptions?.[index],
     };
     
     plotlyData.push({
@@ -133,7 +189,6 @@ function renderPlot() {
     } as Data);
     
     const hasErrors = data.lower && data.upper && data.lower.length === data.y.length && data.upper.length === data.y.length;
-    console.log("Dataset has errors:", hasErrors, data.lower, data.upper);
     // double checking to have valid types
     if (hasErrors && data.lower && data.upper && data.errorType !== 'bar') {
       console.log("Adding error traces for dataset", index);
@@ -141,19 +196,33 @@ function renderPlot() {
       const lowerY: (number | null)[] = [];
       
       data.y.forEach((y, idx) => {
-        if (y === null || data.lower === undefined || data.upper === undefined) {
+        if (y === null) {
           lowerY.push(null);
           upperY.push(null);
           return;
         }
-        const high = y + (data.upper[idx] ?? 0);
-        const low = y - (data.lower[idx] ?? 0);
-        max = Math.max(max, high !== null ? high : 0);
-        lowerY.push(low);
-        upperY.push(high);
+        
+        if (data.upper === undefined) {
+          upperY.push(null);
+        } else {
+          const high = y + (data.upper[idx] ?? nanMean(data.upper) ?? 0);
+          // console.log(y, data.upper[idx] ?? nanMean(data.upper) ?? 0);
+          upperY.push(high);
+          max = Math.max(max, high !== null ? high : 0);
+        }
+        
+        if (data.lower === undefined) {
+          lowerY.push(null);
+        } else {
+          const low = y - (data.lower[idx] ?? nanMean(data.lower) ?? 0);
+          // console.log(y, data.lower[idx] ?? nanMean(data.lower) ?? 0);
+          lowerY.push(low);
+          
+        }
+        
+        
       });
-      console.log("Upper Y:", upperY.map(v => v / 10**16));
-      console.log("Lower Y:", lowerY.map(v => v / 10**16));
+      // console.log({lowerY, upperY});
       const traceErrorOptions = {
         x: data.x,
         mode: "lines",
@@ -161,19 +230,19 @@ function renderPlot() {
         showlegend: false,
         legendgroup: legendGroup,
         name: `Dataset ${index + 1}`,
-        marker: { color: 'red' },
+        marker: { color: props.colors ? props.colors[index % props.colors.length] : 'red' },
         // visible: props.showErrors && traceVisible.value.get(id),
       };
 
 
       plotlyData.push({
-        y: lowerY,
+        y: lowerY.map(normalizeBadValue),
         ...traceErrorOptions
       });
       errorTraces.push(plotlyData.length - 1);
 
       plotlyData.push({
-        y: upperY,
+        y: upperY.map(normalizeBadValue),
         ...traceErrorOptions,
         fill: "tonexty",
       });

@@ -69,6 +69,14 @@
                 class="mb-3"
               />
               
+              <v-checkbox
+                v-model="useErrorBars"
+                label="Error Bars"
+                density="compact"
+                hide-details
+                class="mb-3"
+              />
+              
               <!-- Show Errors Toggle -->
               <v-checkbox
                 v-model="useSEM"
@@ -80,7 +88,7 @@
               
               <v-checkbox
                 v-model="includeBinPhase"
-                label="Include Bin Phase in Plot"
+                label="Use True Time"
                 density="compact"
                 hide-details
                 class="mb-3"
@@ -136,6 +144,11 @@
                 <plotly-graph
                   :datasets="graphData"
                   :show-errors="showErrors"
+                  :colors="[selection?.region.color ?? 'blue', '#333']"
+                  :data-options="[
+                    {mode: 'markers'}, // options for the original data
+                    {mode: 'lines+markers'} // options for the folded data
+                    ]"
                 />
               </div>
             </v-card>
@@ -196,9 +209,10 @@ const selectedFoldType = ref<FoldType>('hourOfDay');
 const selectedMethod = ref<AggregationMethod>('mean');
 const selectedTimezone = ref('US/Eastern');
 const showErrors = ref(true);
-const useSEM = ref(true);
+const useSEM = ref(false);
 const includeBinPhase = ref(true);
 const alignToBinCenter = ref(false);
+const useErrorBars = ref(true);
 
 // Computed properties
 const originalDataPointCount = computed(() => {
@@ -233,7 +247,7 @@ function timeseriesToDataSet(timeseries: TimeSeriesData): DataSet {
   const sortedEntries = Object.entries(timeseries.values).sort(([tsa, _a], [tsb, _b]) => parseInt(tsa) - parseInt(tsb));
   // get the first timestamp
   sortedEntries.forEach(([timestamp, aggValue]) => {
-    y.push(aggValue.value ?? NaN);
+    y.push(aggValue.value);
     x.push(new Date(parseInt(timestamp)));
     const error = timeseries.errors[timestamp];
     lower.push(error?.lower ?? null);
@@ -244,8 +258,8 @@ function timeseriesToDataSet(timeseries: TimeSeriesData): DataSet {
 }
 
 function foldedTimesSeriesToDataSet(foldedTimeSeries: FoldedTimeSeriesData): DataSet {
-  const x: number[] = [];
-  const y: number[] = [];
+  const x: (number | null)[] = [];
+  const y: (number | null)[] = [];
   const lower: (number | null)[] = [];
   const upper: (number | null)[] = [];
 
@@ -255,7 +269,7 @@ function foldedTimesSeriesToDataSet(foldedTimeSeries: FoldedTimeSeriesData): Dat
   sortedEntries.forEach(([binIndex, _binContent]) => {
     const idx = parseInt(binIndex);
     x.push(idx + (alignToBinCenter.value ? 0.5 : 0));
-    y.push(foldedTimeSeries.values[idx].value ?? NaN);
+    y.push(foldedTimeSeries.values[idx].value);
     const error = foldedTimeSeries.errors[idx];
     lower.push(error?.lower ?? null);
     upper.push(error?.upper ?? null);
@@ -263,10 +277,19 @@ function foldedTimesSeriesToDataSet(foldedTimeSeries: FoldedTimeSeriesData): Dat
 
   return { x, y, lower, upper };
 }
+
+function checkMonotonicIncreasing(arr: number[]): boolean {
+  for (let i = 1; i < arr.length; i++) {
+    if (arr[i] < arr[i - 1]) {
+      return false;
+    }
+  }
+  return true;
+}
   
 function foldedTimeSeriesRawToDataSet(foldedTimeSeries: FoldedTimeSeriesData): DataSet {
-  const x: number[] = [];
-  const y: number[] = [];
+  const x: (number | null)[] = [];
+  const y: (number | null)[] = [];
   const lower: (number | null)[] = [];
   const upper: (number | null)[] = [];
 
@@ -279,20 +302,25 @@ function foldedTimeSeriesRawToDataSet(foldedTimeSeries: FoldedTimeSeriesData): D
     const bins = sortedBinContent as Prettify<FoldBinContent>;
     bins.rawValues.forEach((rv, index) => {
       x.push(bins.bin + (includeBinPhase.value ? bins.binPhase[index] : 0));
-      y.push(rv ?? NaN);
+      y.push(rv);
     });
-    foldedTimeSeries.bins[idx].lowers.forEach(low => {
+    bins.lowers.forEach(low => {
       lower.push(low ?? null);
     });
-    foldedTimeSeries.bins[idx].uppers.forEach(up => {
+    bins.uppers.forEach(up => {
       upper.push(up ?? null);
     });
     // const error = foldedTimeSeries.errors[idx];
     // lower.push(error?.lower ?? null);
     // upper.push(error?.upper ?? null);
   });
-
-  return { x, y, lower, upper, errorType: 'band' };
+  
+  // Ensure x is strictly increasing for Plotly
+  if (!checkMonotonicIncreasing(x)) {
+    console.error("X values are not strictly increasing, adjusting for Plotly compatibility.");
+  }
+  
+  return { x, y, lower, upper, errorType: useErrorBars.value ? 'bar' : 'band' };
 }
 
 // Function to update graph data
@@ -334,7 +362,15 @@ function updateGraphData() {
 // }
 
 // Watch for changes in folding parameters
-watch([selectedFoldType, selectedMethod, selectedTimezone, useSEM, includeBinPhase, alignToBinCenter], () => {
+watch([
+  selectedFoldType, 
+  selectedMethod, 
+  selectedTimezone, 
+  useSEM, 
+  includeBinPhase, 
+  alignToBinCenter, 
+  useErrorBars
+], () => {
   updateAggregatedData();
 }, { immediate: true });
 
