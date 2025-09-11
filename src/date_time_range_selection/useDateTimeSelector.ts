@@ -43,7 +43,7 @@ export function useDateTimeSelector(
   const timePlusMinus = ref<number>(1); // +/- 1 hour for hour selection
   // Pattern selection state (multi-day and multi-time)
   const selectedDays = ref<number[]>([1, 2, 3, 4, 5]); // Default Mon-Fri
-  const selectedTimes = ref<string[]>(['09:00']); // Default 9 AM
+  const selectedTimes = ref<string[]>(['12:00']); // Default 9 AM
   
   // Track if user has manually set the weekday start date
   const hasManualWeekdayStartDate = ref<boolean>(false);

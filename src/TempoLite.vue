@@ -833,7 +833,7 @@
                               </v-chip>
                             </div>
                             <div
-                              v-if="sel.loading || !sel.samples"
+                              v-if="(sel.loading || !sel.samples) && !(sel.timeRange?.type === 'folded' && sel.plotlyDatasets)"
                               class="dataset-loading"
                             >
                               <v-progress-linear
@@ -853,7 +853,7 @@
                                   </span>
                                 </template>
                               </v-progress-linear>
-                              <div v-if="!(sel.loading || sel.samples)">
+                              <div v-if="!(sel.loading || sel.samples || sel.plotlyDatasets)" class="dataset-error-text">
                                 <v-tooltip
                                   text="Failure info"
                                   location="top"
@@ -888,7 +888,7 @@
                             <v-expand-transition>
                               <div
                                 class="selection-icons"
-                                v-show="sel.samples && (touchscreen ? openSelection == sel.id : isHovering)"
+                                v-show="(sel.samples || sel.plotlyDatasets) && (touchscreen ? openSelection == sel.id : isHovering)"
                               >
                                 <v-tooltip
                                   text="Change Selection Name"
@@ -943,7 +943,7 @@
                                       v-bind="props"
                                       size="x-small"
                                       icon="mdi-chart-line"
-                                      :disabled="!sel.samples"
+                                      :disabled="!(sel.samples || sel.plotlyDatasets)"
                                       variant="plain"
                                       @click="() => openGraphs[sel.id] = true"
                                     ></v-btn>
@@ -997,10 +997,20 @@
                                 hide-details
                               >
                               </v-checkbox>
-                              <timeseries-graph
-                                :data="sel ? [sel] : []"
-                                :show-errors="showErrorBands"
-                              />
+                              <template v-if="sel.timeRange.type === 'folded' && sel.plotlyDatasets">
+                                <plotly-graph
+                                  :datasets="sel.plotlyDatasets"
+                                  :show-errors="showErrorBands"
+                                  :colors="[sel.region.color, '#333']"
+                                  :data-options="[{mode: 'markers'}, {mode: 'lines+markers'}]"
+                                />
+                              </template>
+                              <template v-else>
+                                <timeseries-graph
+                                  :data="sel ? [sel] : []"
+                                  :show-errors="showErrorBands"
+                                />
+                              </template>
                             </cds-dialog>
                             <v-dialog
                               :model-value="sampleErrorID !== null"
@@ -1271,6 +1281,7 @@ import CTextField from "./components/CTextField.vue";
 import EsriMap from "./components/EsriMap.vue";
 import MapColorbarWrap from "./components/MapColorbarWrap.vue";
 import AdvancedOperations from "./components/AdvancedOperations.vue";
+import PlotlyGraph from './components/PlotlyGraph.vue';
 // Import Maplibre Composables
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { useImageOverlay } from "./composables/maplibre/useImageOverlay";
@@ -2208,6 +2219,7 @@ function handleAggregationSaved(aggregatedSelection: UserSelectionType) {
   showAggregationDialog.value = false;
   aggregationSelection.value = null;
 }
+
 
 import { StyleLayer } from "maplibre-gl";
 function deleteTimeRange(range: TimeRange) {

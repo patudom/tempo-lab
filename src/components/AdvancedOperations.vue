@@ -28,6 +28,7 @@
       v-if="mode === 'fold'"
       v-model="dialogOpen"
       :selection="selection"
+      @save="saveFolded"
     />
   </v-dialog>
 
@@ -57,6 +58,11 @@ const emit = defineEmits<{
 
 // Save the aggregation
 function saveAggregation(selection: UserSelection) {
+  emit('save', selection);
+}
+
+function saveFolded(selection: UserSelection) {
+  // Reuse same save channel for folded selections
   emit('save', selection);
 }
 

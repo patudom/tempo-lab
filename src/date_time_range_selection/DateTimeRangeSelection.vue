@@ -81,8 +81,8 @@
               <input 
                 v-model="timePlusMinus"
                 type="number"
-                min="-10"
-                max="10"
+                min="-12"
+                max="12"
                 step="0.5"
                 class="time-input"
                 style="width: 80px;"
@@ -98,7 +98,7 @@
               label="Number of Instances"
               :rules="instanceRules"
               :min="1"
-              :max="10"
+              :max="104"
               density="compact"
               variant="outlined"
               control-variant="split"
@@ -204,8 +204,8 @@
               <input 
                 v-model="timePlusMinus"
                 type="number"
-                min="-10"
-                max="10"
+                min="-12"
+                max="12"
                 step="0.5"
                 class="time-input"
                 style="width: 80px;"
@@ -221,7 +221,7 @@
               label="Number of Instances"
               :rules="instanceRules"
               :min="1"
-              :max="10"
+              :max="104"
               density="compact"
               variant="outlined"
               control-variant="split"
@@ -384,7 +384,7 @@ const dayOptions = computed(() =>
 
 // Validation rules
 const instanceRules = computed(() => [
-  (v: number) => v >= 1 && v <= 10 || 'Must be between 1 and 10'
+  (v: number) => v >= 1 && v <= 104 || 'Must be between 1 and 104 (2 years)'
 ]);
 
 // === METHODS ===

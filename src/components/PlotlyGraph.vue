@@ -14,15 +14,7 @@
 import { onMounted, ref, watch, nextTick } from "vue";
 import { v4 } from "uuid";
 import Plotly, { PlotlyHTMLElement, newPlot, restyle, type Data, type Datum, type PlotMouseEvent } from "plotly.js-dist-min";
-
-
-export type DataSet = {
-  x: Datum[],
-  y: (number | null)[],
-  lower? : (number | null)[],
-  upper? : (number | null)[],
-  errorType? : 'bar' | 'band',
-};
+import type { DataSet } from '../types';
 
 // https://stackoverflow.com/a/7616484
 const generateHash = (string) => {
@@ -252,8 +244,10 @@ function renderPlot() {
 
   const paddingFactor = 1.1;
   const axisMax = Math.max(1, paddingFactor * max);
+  // get width of parent element .plot-container.plotly
+  const width = document.querySelector('.plot-container.plotly')?.clientWidth ?? 600;
   const layout: Partial<Plotly.Layout> = {
-    // width: 600,
+    width: width,
     height: 400,
     yaxis: {
       title: { text: "Molecules / cm<sup>2</sup>" },

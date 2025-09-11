@@ -165,8 +165,7 @@ import { ref, computed, watch, nextTick } from 'vue';
 import { v4 } from 'uuid';
 import { TimeSeriesFolder, sortfoldBinContent } from '../esri/services/aggregation';
 import PlotlyGraph from './PlotlyGraph.vue';
-import type { DataSet } from './PlotlyGraph.vue';
-import type { Prettify, UserSelection } from '../types';
+import type { Prettify, UserSelection, DataSet } from '../types';
 import type { AggregationMethod, TimeSeriesData, FoldedTimeSeriesData , FoldType, FoldBinContent} from '../esri/services/aggregation';
 
 
@@ -177,7 +176,7 @@ interface DataFoldingProps {
 const props = defineProps<DataFoldingProps>();
 
 const emit = defineEmits<{
-  (event: 'save', foldedSelection: null): void;
+  (event: 'save', foldedSelection: UserSelection): void;
 }>();
 
 // Dialog state
@@ -227,7 +226,7 @@ const foldedDataPointCount = computed(() => {
 });
 
 const canSave = computed(() => {
-  return false;//props.selection && foldedData.value && foldedDataPointCount.value > 0;
+  return !!(props.selection && foldedData.value && foldedDataPointCount.value > 0);
 });
 
 // Aggregated data
@@ -345,22 +344,22 @@ function updateGraphData() {
 }
 
 // Create a time range for the folded data
-// function createAggregatedTimeRange(): TimeRange {
-//   if (!props.selection) {
-//     throw new Error('No selection available');
-//   }
+function createFoldedTimeRange() {
+  if (!props.selection) {
+    throw new Error('No selection available');
+  }
   
-//   const originalRange = props.selection.timeRange.range;
-//   const ranges = Array.isArray(originalRange) ? originalRange : [originalRange];
+  const originalRange = props.selection.timeRange.range;
+  const ranges = Array.isArray(originalRange) ? originalRange : [originalRange];
   
-//   return {
-//     id: v4(),
-//     name: `Aggregated (${selectedFoldType.value})`,
-//     description: `Aggregated data with ${selectedFoldType.value} window`,
-//     range: ranges,
-//     type: 'folded'
-//   };
-// }
+  return {
+    id: v4(),
+    name: `Folded (${selectedFoldType.value})`,
+    description: `Folded data (${selectedFoldType.value}) ${selectedMethod.value}`,
+    range: ranges,
+    type: 'folded'
+  };
+}
 
 // Watch for changes in folding parameters
 watch([
@@ -431,19 +430,35 @@ function updateAggregatedData() {
 
 // Save the folding
 function saveFolding() {
-  if (!canSave.value || !props.selection) return;
-  
-  // const foldedSelection: UserSelection = {
-  //   id: v4(),
-  //   region: props.selection.region,
-  //   timeRange: createAggregatedTimeRange(),
-  //   molecule: props.selection.molecule,
-  //   samples: foldedData.value!.values,
-  //   errors: foldedData.value!.errors,
-  //   locations: foldedData.value!.locations
-  // };
-  
-  emit('save', null);
+  if (!canSave.value || !props.selection || !foldedData.value) return;
+
+  // Precompute datasets so parent consumers don't need to transform again.
+  // We intentionally do NOT fabricate Dates for bins; x values remain numeric bin indices / phases.
+  const rawDataset = foldedTimeSeriesRawToDataSet(foldedData.value);
+  const summaryDataset = foldedTimesSeriesToDataSet(foldedData.value);
+
+  const foldedSelection: UserSelection = {
+    id: v4(),
+    region: { ...props.selection.region, color: '#333', name: props.selection.region.name } as typeof props.selection.region,
+    timeRange: createFoldedTimeRange(),
+    molecule: props.selection.molecule,
+    loading: false, // folded data is immediately available
+    // samples/errors intentionally omitted for folded since bins are synthetic; rely on plotlyDatasets
+    locations: foldedData.value.locations,
+    folded: {
+      foldType: selectedFoldType.value,
+      method: selectedMethod.value,
+      timezone: selectedTimezone.value,
+      useSEM: useSEM.value,
+      includeBinPhase: includeBinPhase.value,
+      alignToBinCenter: alignToBinCenter.value,
+      useErrorBars: useErrorBars.value,
+      raw: foldedData.value
+    },
+    plotlyDatasets: [rawDataset, summaryDataset]
+  } as unknown as UserSelection;
+  console.log(foldedSelection);
+  emit('save', foldedSelection);
   closeDialog();
 }
 
