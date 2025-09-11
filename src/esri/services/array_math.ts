@@ -2,8 +2,11 @@ export function isBad(v: number | null | undefined): v is null | undefined {
   return v === null || v === undefined || isNaN(v);
 }
 
-export function nan2null(v: number): number | null {
-  return isNaN(v) ? null : v;
+export function nan2null(v: number, val?: null): number | null;
+export function nan2null(v: number, val?: number): number;
+export function nan2null(v: number, val: number | null = null): number | null {
+  if (val === undefined) val = null;
+  return isNaN(v) ? val : v;
 }
 
 // typeof NaN is 'number'. Just included here 
@@ -75,7 +78,7 @@ export function variance(arr: DirtyNumberArray): number {
     return NaN;
   }
   const m = mean(arr);
-  const diffs = arr.map(v => (v - m) * (v - m));
+  const diffs = (arr as number[]).map(v => (v - m) * (v - m));
   return mean(diffs); // mean = sum(diffs) / n
 }
 
@@ -108,3 +111,80 @@ export function nanstandardError(arr: DirtyNumberArray): number {
   const length = _nanLength(arr);
   return stdev / length;
 }
+
+export function nanmedian(arr: DirtyNumberArray): number {
+  const { validArr } = _getValidData(arr);
+  if (validArr.length === 0) return NaN;
+  
+  const sorted = [...validArr].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  
+  if (sorted.length % 2 === 0) {
+    return (sorted[mid - 1] + sorted[mid]) / 2;
+  } else {
+    return sorted[mid];
+  }
+}
+
+export function nanmin(arr: DirtyNumberArray): number {
+  const { validArr } = _getValidData(arr);
+  if (validArr.length === 0) return NaN;
+  return Math.min(...validArr);
+}
+
+export function nanmax(arr: DirtyNumberArray): number {
+  const { validArr } = _getValidData(arr);
+  if (validArr.length === 0) return NaN;
+  return Math.max(...validArr);
+}
+
+
+
+// Combining errors in quadrature
+export function sumOfSquares(arr: number[]): number {
+  return arr.reduce((acc, val) => acc + val * val, 0);
+}
+
+export function nanSumOfSquares(arr: DirtyNumberArray): number {
+  const { validArr } = _getValidData(arr);
+  return sumOfSquares(validArr);
+}
+
+export function meanOfSquares(arr: DirtyNumberArray): number {
+  const { validArr, length } = _getValidData(arr);
+  if (length === 0) return NaN;
+  return sumOfSquares(validArr) / length;
+}
+export function nanMeanOfSquares(arr: DirtyNumberArray): number {
+  const { validArr, length } = _getValidData(arr);
+  if (length === 0) return NaN;
+  return sumOfSquares(validArr) / length;
+}
+
+export function rootMeanSquare(arr: DirtyNumberArray): number {
+  return Math.sqrt(meanOfSquares(arr));
+}
+
+export function nanRootMeanSquare(arr: DirtyNumberArray): number {
+  return Math.sqrt(nanMeanOfSquares(arr));
+}
+
+export function weightedMean(values: DirtyNumberArray, errors: DirtyNumberArray): {mean: number | null, error: number | null} {
+  if (values.length === 0 || values.length !== errors.length) {
+    return {mean: null, error: null};
+  }
+  let weightedSum = 0;
+  let weightTotal = 0;
+  for (let i = 0; i < values.length; i++) {
+    const v = values[i];
+    const e = errors[i];
+    if (isBad(v) || isBad(e) || e === 0) {
+      continue; // skip bad values or zero error
+    }
+    const weight = 1 / (e * e);
+    weightedSum += v * weight;
+    weightTotal += weight;
+  }
+  if (weightTotal === 0) return {mean: null, error: null};
+  return {mean: weightedSum / weightTotal, error: Math.sqrt(1 / weightTotal)};
+} 
