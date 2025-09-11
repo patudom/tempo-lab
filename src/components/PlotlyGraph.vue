@@ -253,7 +253,7 @@ function renderPlot() {
   const paddingFactor = 1.1;
   const axisMax = Math.max(1, paddingFactor * max);
   const layout: Partial<Plotly.Layout> = {
-    width: 600,
+    // width: 600,
     height: 400,
     yaxis: {
       title: { text: "Molecules / cm<sup>2</sup>" },
