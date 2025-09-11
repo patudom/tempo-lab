@@ -6,11 +6,16 @@
     <header-bar />
     <div ref="root" class="layout-root"></div>
 
-    <teleport v-if="mapTarget" :to="mapTarget">
+    <teleport
+      v-if="mapTarget"
+      :to="mapTarget"
+    >
       <map-with-controls />
     </teleport>
 
-    <teleport v-if="sidePanelTarget" :to="sidePanelTarget">
+    <teleport
+      v-if="sidePanelTarget"
+      :to="sidePanelTarget">
       <dataset-controls />
     </teleport>
   </v-app>
@@ -49,12 +54,13 @@ onMounted(() => {
   }
   const layout = new GoldenLayout(rootEl);
   const components: [string, Ref<HTMLElement | null>][] = [
-    ["map", mapTarget],
-    ["controls", sidePanelTarget]
+    ["map-panel", mapTarget],
+    ["side-panel", sidePanelTarget]
   ];
 
   components.forEach(([tag, elementRef]) => {
     layout.registerComponentFactoryFunction(tag, container => {
+      container.element.id = tag;
       elementRef.value = container.element;
     });
   });
@@ -69,14 +75,14 @@ onMounted(() => {
       content: [
         {
           type: 'component',
-          componentType: 'map',
+          componentType: 'map-panel',
           title: 'Map',
           draggable: false,
           width: 70,
         },
         {
           type: 'component',
-          componentType: 'controls',
+          componentType: 'side-panel',
           title: 'Controls',
           draggable: false,
           width: 30,
@@ -122,6 +128,10 @@ body {
     -webkit-user-select: none;
   }
   font-family: "Lexend", sans-serif;
+}
+
+#side-panel {
+  overflow-y: scroll;
 }
 
 :root {

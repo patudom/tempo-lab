@@ -197,7 +197,7 @@
         </template>
       </v-slider>
       <icon-button
-        id="play-pause"
+        class="play-pause"
         :fa-icon="playing ? 'pause' : 'play'"
         fa-size="sm"
         @activate="playing = !playing"
@@ -632,7 +632,7 @@ watch([showSamplingPreviewMarkers, regions, ()=> regions.value.length], (newVal)
     padding-left: 0;
   }
 
-  >#play-pause-button {
+  >.play-pause {
     height: fit-content;
     align-self: center;
     padding-inline: 0.5rem;
@@ -642,7 +642,7 @@ watch([showSamplingPreviewMarkers, regions, ()=> regions.value.length], (newVal)
     border: 2px solid var(--accent-color);
   }
 
-  #play-pause-button[disabled] {
+  .play-pause[disabled] {
     filter: grayscale(100%);
     cursor: progress;
     cursor: not-allowed;
