@@ -195,9 +195,9 @@ export class TimeSeriesResampler {
       values[timestamp] = { value: aggregatedValue, date: new Date(timestamp) };
       
       const standardError = this.errorMethod === 'sem' ? nanstandardError(groupValues) : (nanstdev(groupValues) || 0);
-      if (isNaN(standardError)) {
+      if (!standardError) {
         console.error(
-          'Standard error is NaN for group', 
+          'Standard error is null for group', 
           formatInTimeZone(new Date(timestamp), this.timezone ?? 'UTC', "yyyy-mm-dd"), 
           'with values', groupValues);
       }
@@ -258,9 +258,9 @@ export interface FoldBinContent {
 
 // functino to sort folded bin content by timestamps
 export function sortfoldBinContent(bin: FoldBinContent): FoldBinContent {
-  const sorted = bin.timestamps
-    .map((ts, idx) => ({ ts, idx }))
-    .sort((a, b) => a.ts - b.ts);
+  const sorted = bin.binPhase
+    .map((bp, idx) => ({ bp, idx }))
+    .sort((a, b) =>a.bp - b.bp);
   
   const sortedIndices = sorted.map(item => item.idx);
   function applySort<T>(arr: T[]): T[] {
@@ -269,8 +269,8 @@ export function sortfoldBinContent(bin: FoldBinContent): FoldBinContent {
   
   return {
     bin: bin.bin,
-    timestamps: sorted.map(item => item.ts),
-    binPhase: applySort(bin.binPhase),
+    timestamps: applySort(bin.timestamps),
+    binPhase: sorted.map(item => item.bp),
     rawValues: applySort(bin.rawValues),
     lowers: applySort(bin.lowers),
     uppers: applySort(bin.uppers)
@@ -467,9 +467,9 @@ export class TimeSeriesFolder {
         bin: binIndex,
         timestamps: [...timestamps],
         binPhase: timestamps.map(t => this._binPhase(new Date(t))),
-        rawValues: [...rawValues],
-        lowers: calibrationErrors.map(e => e.lower),
-        uppers: calibrationErrors.map(e => e.upper)
+        rawValues: [...rawValues].map(v => nan2null(v)),
+        lowers: calibrationErrors.map(e => e.lower).map(v => nan2null(v)),
+        uppers: calibrationErrors.map(e => e.upper).map(v => nan2null(v))
       };
       
     });
