@@ -296,7 +296,7 @@ function updateAggregatedData() {
     
     aggregatedSelection.value = {
       id: v4(),
-      region: props.selection.region,
+      region: {...props.selection.region, color: '#444', name: 'Aggregated'  } as typeof props.selection.region, // Different color for aggregated
       timeRange: createAggregatedTimeRange(),
       molecule: props.selection.molecule,
       samples: aggregatedData.value.values,
