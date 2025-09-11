@@ -21,6 +21,7 @@ export type DataSet = {
   y: (number | null)[],
   lower? : (number | null)[],
   upper? : (number | null)[],
+  errorType? : 'bar' | 'band',
 };
 
 // https://stackoverflow.com/a/7616484
@@ -35,7 +36,7 @@ const generateHash = (string) => {
 
 const hashDataset = (data: DataSet) => {
   const hash = JSON.stringify(data.x) + JSON.stringify(data.y) +
-              JSON.stringify(data.lower) + JSON.stringify(data.upper);
+              JSON.stringify(data.lower) + JSON.stringify(data.upper) + JSON.stringify(data.errorType);
   return generateHash(hash).toString();
 };
 
@@ -97,21 +98,44 @@ function renderPlot() {
       traceVisible.value.set(id, true);
     }
     legendGroups[id] = legendGroup;
-    plotlyData.push({
-      x: data.x,
-      y: data.y,
+    
+    
+    const errorOptions = {} as Record<'error_y',Plotly.ErrorBar>;
+    
+    // https://plotly.com/javascript/error-bars/
+    if (data.errorType === 'bar') {
+      errorOptions['erroy_y'] = {
+        type: 'data',
+        symmetric: false,
+        array: data.upper as Datum[],
+        arrayminus: data.lower as Datum[] | undefined,
+        visible: true,
+        thickness: 1.5,
+        width: 3,
+      };
+      
+    }
+    
+    const dataTraceOptions = {
       mode: "lines+markers",
       legendgroup: legendGroup,
       showlegend: true,
       name: `Dataset ${index + 1}`,
       marker: { color: 'red' },
       visible: traceVisible.value.get(id) ? true : "legendonly",
-    });
+      ...errorOptions
+    };
+    
+    plotlyData.push({
+      x: data.x,
+      y: data.y,
+      ...dataTraceOptions
+    } as Data);
     
     const hasErrors = data.lower && data.upper && data.lower.length === data.y.length && data.upper.length === data.y.length;
     console.log("Dataset has errors:", hasErrors, data.lower, data.upper);
     // double checking to have valid types
-    if (hasErrors && data.lower && data.upper) {
+    if (hasErrors && data.lower && data.upper && data.errorType !== 'bar') {
       console.log("Adding error traces for dataset", index);
       const upperY: (number | null)[] = [];
       const lowerY: (number | null)[] = [];

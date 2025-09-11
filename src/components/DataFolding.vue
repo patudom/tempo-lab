@@ -60,6 +60,7 @@
               />
               
               <!-- Show Errors Toggle -->
+              <div class="d-flex flex-row flex-wrap">
               <v-checkbox
                 v-model="showErrors"
                 label="Show Error Bands"
@@ -77,6 +78,22 @@
                 class="mb-3"
               />
               
+              <v-checkbox
+                v-model="includeBinPhase"
+                label="Include Bin Phase in Plot"
+                density="compact"
+                hide-details
+                class="mb-3"
+              />
+              
+              <v-checkbox
+                v-model="alignToBinCenter"
+                label="Center bins"
+                density="compact"
+                hide-details
+                class="mb-3"
+              />
+              </div>
               <!-- Preview Info -->
               <v-card variant="tonal" class="pa-2 mb-3">
                 <v-card-subtitle class="pa-0">Preview</v-card-subtitle>
@@ -133,11 +150,11 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { ref, computed, watch, nextTick } from 'vue';
 import { v4 } from 'uuid';
-import { TimeSeriesFolder } from '../esri/services/aggregation';
+import { TimeSeriesFolder, sortfoldBinContent } from '../esri/services/aggregation';
 import PlotlyGraph from './PlotlyGraph.vue';
 import type { DataSet } from './PlotlyGraph.vue';
-import type { UserSelection } from '../types';
-import type { AggregationMethod, TimeSeriesData, FoldedTimeSeriesData , FoldType} from '../esri/services/aggregation';
+import type { Prettify, UserSelection } from '../types';
+import type { AggregationMethod, TimeSeriesData, FoldedTimeSeriesData , FoldType, FoldBinContent} from '../esri/services/aggregation';
 
 
 interface DataFoldingProps {
@@ -180,6 +197,8 @@ const selectedMethod = ref<AggregationMethod>('mean');
 const selectedTimezone = ref('US/Eastern');
 const showErrors = ref(true);
 const useSEM = ref(true);
+const includeBinPhase = ref(true);
+const alignToBinCenter = ref(false);
 
 // Computed properties
 const originalDataPointCount = computed(() => {
@@ -235,7 +254,7 @@ function foldedTimesSeriesToDataSet(foldedTimeSeries: FoldedTimeSeriesData): Dat
 
   sortedEntries.forEach(([binIndex, _binContent]) => {
     const idx = parseInt(binIndex);
-    x.push(idx);
+    x.push(idx + (alignToBinCenter.value ? 0.5 : 0));
     y.push(foldedTimeSeries.values[idx].value ?? NaN);
     const error = foldedTimeSeries.errors[idx];
     lower.push(error?.lower ?? null);
@@ -254,19 +273,26 @@ function foldedTimeSeriesRawToDataSet(foldedTimeSeries: FoldedTimeSeriesData): D
   // tsa, tsb are the timestamps as strings
   const sortedEntries = Object.entries(foldedTimeSeries.bins).sort(([binIndexa, _a], [binIndexb, _b]) => parseInt(binIndexa) - parseInt(binIndexb));
 
-  sortedEntries.forEach(([binIndex, _binContent]) => {
-    const idx = parseInt(binIndex);
-    const rawData = foldedTimeSeries.bins[idx];
-    rawData.rawValues.forEach(rv => {
-      x.push(idx);
+  sortedEntries.forEach(([binIndex, binContent]) => {
+    const sortedBinContent = sortfoldBinContent(binContent);
+    const idx = sortedBinContent.bin;
+    const bins = sortedBinContent as Prettify<FoldBinContent>;
+    bins.rawValues.forEach((rv, index) => {
+      x.push(bins.bin + (includeBinPhase.value ? bins.binPhase[index] : 0));
       y.push(rv ?? NaN);
     });
-    const error = foldedTimeSeries.errors[idx];
-    lower.push(error?.lower ?? null);
-    upper.push(error?.upper ?? null);
+    foldedTimeSeries.bins[idx].lowers.forEach(low => {
+      lower.push(low ?? null);
+    });
+    foldedTimeSeries.bins[idx].uppers.forEach(up => {
+      upper.push(up ?? null);
+    });
+    // const error = foldedTimeSeries.errors[idx];
+    // lower.push(error?.lower ?? null);
+    // upper.push(error?.upper ?? null);
   });
 
-  return { x, y, lower, upper };
+  return { x, y, lower, upper, errorType: 'band' };
 }
 
 // Function to update graph data
@@ -308,7 +334,7 @@ function updateGraphData() {
 // }
 
 // Watch for changes in folding parameters
-watch([selectedFoldType, selectedMethod, selectedTimezone, useSEM], () => {
+watch([selectedFoldType, selectedMethod, selectedTimezone, useSEM, includeBinPhase, alignToBinCenter], () => {
   updateAggregatedData();
 }, { immediate: true });
 

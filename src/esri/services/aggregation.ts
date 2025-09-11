@@ -249,8 +249,34 @@ export type FoldType = 'hourOfDay' | 'dayOfWeek' | 'hourOfWeek';
 export interface FoldBinContent {
   bin: number;
   timestamps: number[];          // original UTC timestamps of samples contributing
+  binPhase: number[]
+  lowers: (number | null)[];    // original lower error values (may include nulls)
+  uppers: (number | null)[];    // original upper error values (may include nulls)
   rawValues: (number | null)[];  // raw numeric values (may include nulls)
 }
+
+
+// functino to sort folded bin content by timestamps
+export function sortfoldBinContent(bin: FoldBinContent): FoldBinContent {
+  const sorted = bin.timestamps
+    .map((ts, idx) => ({ ts, idx }))
+    .sort((a, b) => a.ts - b.ts);
+  
+  const sortedIndices = sorted.map(item => item.idx);
+  function applySort<T>(arr: T[]): T[] {
+    return sortedIndices.map(i => arr[i]);
+  }
+  
+  return {
+    bin: bin.bin,
+    timestamps: sorted.map(item => item.ts),
+    binPhase: applySort(bin.binPhase),
+    rawValues: applySort(bin.rawValues),
+    lowers: applySort(bin.lowers),
+    uppers: applySort(bin.uppers)
+  };
+}
+
 
 export interface FoldedAggValue {
   value: number | null;
@@ -318,6 +344,15 @@ export class TimeSeriesFolder {
       case 'hourOfDay': return z.getHours();                 // 0–23
       case 'dayOfWeek': return z.getDay();                   // 0–6
       case 'hourOfWeek': return z.getDay() * 24 + z.getHours(); // 0–167
+    }
+  }
+  
+  private _binPhase(date: Date): number {
+    const z = this._getZonedDate(date);
+    switch (this.foldType) {
+      case 'hourOfDay': return z.getMinutes() / 60 + z.getSeconds() / 3600; // fraction of hour
+      case 'dayOfWeek': return (z.getHours() + z.getMinutes() / 60 + z.getSeconds() / 3600) / 24; // fraction of day
+      case 'hourOfWeek': return (z.getMinutes() / 60 + z.getSeconds() / 3600) ; // fraction of hour
     }
   }
   
@@ -425,11 +460,16 @@ export class TimeSeriesFolder {
         }
       }
       
+      
+      
       // expose the full bin contents
       publicBins[binIndex] = {
         bin: binIndex,
         timestamps: [...timestamps],
-        rawValues: [...rawValues]
+        binPhase: timestamps.map(t => this._binPhase(new Date(t))),
+        rawValues: [...rawValues],
+        lowers: calibrationErrors.map(e => e.lower),
+        uppers: calibrationErrors.map(e => e.upper)
       };
       
     });
