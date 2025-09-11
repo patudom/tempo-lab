@@ -1,21 +1,5 @@
 <template>
-  <v-dialog
-    v-model="dialogOpen"
-    max-width="90vw"
-    max-height="90vh"
-    persistent
-    scrollable
-  > 
-    <v-btn-toggle
-      v-model="mode"
-      class="ma-4"
-      variant="outlined"
-      density="compact"
-    >
-      <v-btn value="aggregate" >Aggregate Data</v-btn>
-      <v-btn value="fold" >Fold Data</v-btn>
-    </v-btn-toggle>
-    <v-card v-if="mode === 'aggregate'">
+    <v-card>
       <v-toolbar
         density="compact"
         color="var(--info-background)"
@@ -77,7 +61,7 @@
                 class="mb-3"
               />
               
-              <!-- Show Errors Toggle -->
+              <!-- Use Standard Errors Toggle -->
               <v-checkbox
                 v-model="useSEM"
                 label="Use SEM"
@@ -87,7 +71,7 @@
               />
               
               <!-- Preview Info -->
-              <v-card variant="tonal" class="pa-2 mb-3">
+              <v-card height="fit-content" variant="tonal" class="pa-2 mb-3">
                 <v-card-subtitle class="pa-0">Preview</v-card-subtitle>
                 <div class="text-caption">
                   <div>Original points: {{ originalDataPointCount }}</div>
@@ -95,26 +79,6 @@
                   <div>Window: {{ selectedWindow }}</div>
                 </div>
               </v-card>
-              
-              <!-- Action Buttons -->
-              <div class="d-flex ga-2">
-                <v-btn
-                  color="primary"
-                  @click="saveAggregation"
-                  :disabled="!canSave"
-                  size="small"
-                >
-                  Save Aggregation
-                </v-btn>
-                <v-btn
-                  color="secondary"
-                  variant="outlined"
-                  @click="closeDialog"
-                  size="small"
-                >
-                  Cancel
-                </v-btn>
-              </div>
             </v-card>
           </v-col>
           
@@ -134,13 +98,29 @@
           </v-col>
         </v-row>
       </v-card-text>
+      <v-card-actions>
+        <div class="d-flex ga-2">
+          <v-btn
+            color="primary"
+            @click="saveAggregation"
+            :disabled="!canSave"
+            size="small"
+          >
+            Save Aggregation
+          </v-btn>
+          <v-btn
+            color="secondary"
+            variant="outlined"
+            @click="closeDialog"
+            size="small"
+          >
+            Cancel
+          </v-btn>
+          
+        </div>
+      </v-card-actions>
     </v-card>
-    <data-folding
-      v-else
-      v-model="dialogOpen"
-      :selection="selection"
-    />
-  </v-dialog>
+
 
   
 </template>
@@ -152,14 +132,11 @@ import { TimeSeriesResampler } from '../esri/services/aggregation';
 import TimeseriesGraph from './TimeseriesGraph.vue';
 import type { UserSelection, TimeRange } from '../types';
 import type { AggregationMethod, TimeSeriesData } from '../esri/services/aggregation';
-import DataFolding from './DataFolding.vue';
 interface DataAggregationProps {
   selection: UserSelection | null;
 }
 
 const props = defineProps<DataAggregationProps>();
-
-const mode = ref<'aggregate' | 'fold'>('aggregate');
 
 const emit = defineEmits<{
   (event: 'save', aggregatedSelection: UserSelection): void;

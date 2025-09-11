@@ -1133,7 +1133,7 @@
             </v-dialog>
 
           <!-- Data Aggregation Dialog -->
-          <data-aggregation
+          <advanced-operations
             v-model="showAggregationDialog"
             :selection="aggregationSelection"
             @save="handleAggregationSaved"
@@ -1270,7 +1270,7 @@ import TimeChips from "./components/TimeChips.vue";
 import CTextField from "./components/CTextField.vue";
 import EsriMap from "./components/EsriMap.vue";
 import MapColorbarWrap from "./components/MapColorbarWrap.vue";
-import DataAggregation from "./components/DataAggregation.vue";
+import AdvancedOperations from "./components/AdvancedOperations.vue";
 // Import Maplibre Composables
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { useImageOverlay } from "./composables/maplibre/useImageOverlay";
