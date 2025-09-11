@@ -103,7 +103,7 @@
               />
               </div>
               <!-- Preview Info -->
-              <v-card variant="tonal" class="pa-2 mb-3">
+              <v-card height="fit-content" variant="tonal" class="pa-2 mb-3">
                 <v-card-subtitle class="pa-0">Preview</v-card-subtitle>
                 <div class="text-caption">
                   <div>Original points: {{ originalDataPointCount }}</div>
@@ -227,7 +227,7 @@ const foldedDataPointCount = computed(() => {
 });
 
 const canSave = computed(() => {
-  return props.selection && foldedData.value && foldedDataPointCount.value > 0;
+  return false;//props.selection && foldedData.value && foldedDataPointCount.value > 0;
 });
 
 // Aggregated data
