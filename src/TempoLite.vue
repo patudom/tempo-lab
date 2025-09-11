@@ -1858,8 +1858,10 @@ function regionHasSamples(region: UnifiedRegionType): boolean {
 // const customTimeRange = ref<MillisecondRange | MillisecondRange[] | null>(null);
 const customTimeRange = ref<TimeRange | null>(null);
 
+import { TimeRangeSelectionType } from "./types/datetime";
 // Add TimeRange object support for custom time ranges, update handler to accept (ranges, selectionType), name and describe new custom ranges, and adjust dependent logic.
-function handleDateTimeRangeSelectionChange(timeRanges: MillisecondRange[], selectionType: string) {
+// Handle time range selection changes from DateTimeRangeSelection component
+function handleDateTimeRangeSelectionChange(timeRanges: MillisecondRange[], selectionType: TimeRangeSelectionType) {
   if (!Array.isArray(timeRanges) || timeRanges.length === 0) {
     console.error('No time ranges received from DateTimeRangeSelection');
     return;
@@ -2070,6 +2072,7 @@ const displayedDayTimeRange = computed<TimeRange>(() => {
     name: 'Displayed Day',
     description: `Displayed Day (${new Date(range.start).toLocaleDateString()})`,
     range,
+    type: 'displayed-day'
   };
 });
 
@@ -2099,6 +2102,7 @@ watch(singleDateSelected, (_newDate, oldDate) => {
       name: formatted,
       description: formatted,
       range: oldRange,
+      type: 'singledate'
     };
     availableTimeRanges.value.push(oldTimeRange);
   }
@@ -2836,7 +2840,8 @@ watch(useCustomTimeRange, (useCustom) => {
       id: v4(),
       name: `Time Range ${timeRangeCount}`,
       description: `Current Day (${new Date(start).toLocaleDateString()})`,
-      range: [{ start, end }]
+      range: [{ start, end }],
+      type: 'custom'
     };
   }
 });

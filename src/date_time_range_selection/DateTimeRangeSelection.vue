@@ -282,7 +282,7 @@ import DatePicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
 import { useTimezone } from './useTimezone';
 import { useDateTimeSelector } from './useDateTimeSelector';
-import type { MillisecondRange } from '../types/datetime';
+import type { MillisecondRange, TimeRangeSelectionType } from '../types/datetime';
 
 // === INTERFACES === 
 // === PROPS ===
@@ -297,7 +297,7 @@ const props = defineProps<{
 
 // === EMITS ===
 const emit = defineEmits<{
-  'ranges-change': [ranges: MillisecondRange[], selectionType: string]
+  'ranges-change': [ranges: MillisecondRange[], selectionType: TimeRangeSelectionType]
 }>();
 
 // === COMPOSABLE SETUP ===

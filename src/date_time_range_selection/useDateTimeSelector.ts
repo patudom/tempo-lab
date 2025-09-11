@@ -3,7 +3,7 @@ import type { Ref } from 'vue';
 import { useTimezone } from './useTimezone';
 import type { 
   MillisecondRange,
-  SelectionType 
+  TimeRangeSelectionType 
 } from '@/types/datetime';
 
 interface UseDateTimeSelectorOptions {
@@ -34,7 +34,7 @@ export function useDateTimeSelector(
   } = useTimezone(selectedTimezone);
   
   // Extend selection type locally to include 'singledate' and 'pattern' without altering global type
-  const selectionType = ref<SelectionType | 'singledate' | 'pattern'>('weekday');
+  const selectionType = ref<TimeRangeSelectionType>('weekday');
   
   // Weekday selection state
   const selectedDayOfWeek = ref<number>(1); // Default to Monday
