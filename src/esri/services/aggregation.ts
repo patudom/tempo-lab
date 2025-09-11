@@ -244,7 +244,11 @@ export class TimeSeriesResampler {
 
 
 
-export type FoldType = 'hourOfDay' | 'dayOfWeek' | 'hourOfWeek';
+export type FoldType = 
+    'hourOfDay' | 
+    'dayOfWeek' | 
+    'hourOfWeek'|
+    'weekdayWeekend';
 
 export interface FoldBinContent {
   bin: number;
@@ -277,6 +281,7 @@ export function sortfoldBinContent(bin: FoldBinContent): FoldBinContent {
   };
 }
 
+export type Seasons = 'DJF' | 'MAM' | 'JJA' | 'SON'; // meteorological seasons
 
 export interface FoldedAggValue {
   value: number | null;
@@ -333,7 +338,8 @@ export class TimeSeriesFolder {
     switch (this.foldType) {
       case 'hourOfDay': return 24;
       case 'dayOfWeek': return 7;
-      case 'hourOfWeek': return 168;
+      case 'hourOfWeek': return 24*7;
+      case 'weekdayWeekend': return 2;
     }
   }
   
@@ -344,6 +350,7 @@ export class TimeSeriesFolder {
       case 'hourOfDay': return z.getHours();                 // 0–23
       case 'dayOfWeek': return z.getDay();                   // 0–6
       case 'hourOfWeek': return z.getDay() * 24 + z.getHours(); // 0–167
+      case 'weekdayWeekend': return (z.getDay() % 6 > 0) ? 1 : 0; // 1=weekday, 0=weekend
     }
   }
   
@@ -353,6 +360,7 @@ export class TimeSeriesFolder {
       case 'hourOfDay': return z.getMinutes() / 60 + z.getSeconds() / 3600; // fraction of hour
       case 'dayOfWeek': return (z.getHours() + z.getMinutes() / 60 + z.getSeconds() / 3600) / 24; // fraction of day
       case 'hourOfWeek': return (z.getMinutes() / 60 + z.getSeconds() / 3600) ; // fraction of hour
+      case 'weekdayWeekend': return 0;  // this is a binary choice, no phase
     }
   }
   
@@ -367,6 +375,7 @@ export class TimeSeriesFolder {
     
     Object.entries(timeseries.values).forEach(([ts,d]) => {
       const binIndex = this._binIndex(d.date);
+      console.log('Folding date', d.date, 'to bin index', binIndex, 'with fold type', this.foldType);
       if (binIndex == null || binIndex < 0 || binIndex >= binCount) {
         console.error('Invalid bin index', binIndex, 'for date', d.date, 'with fold type', this.foldType);
         return;

@@ -187,7 +187,8 @@ const dialogOpen = defineModel<boolean>('modelValue', { type: Boolean, required:
 const foldingOptions = [
   { title: 'By Hour', value: 'hourOfDay' },
   { title: 'By Day of Week', value: 'dayOfWeek' },
-  { title: 'By Hour of Week', value: 'hourOfWeek' }
+  { title: 'By Hour of Week', value: 'hourOfWeek' },
+  { title: 'Weekday vs Weekend', value: 'weekdayWeekend' }
 ];
 
 const methodOptions = [
@@ -316,9 +317,9 @@ function foldedTimeSeriesRawToDataSet(foldedTimeSeries: FoldedTimeSeriesData): D
   });
   
   // Ensure x is strictly increasing for Plotly
-  if (!checkMonotonicIncreasing(x)) {
-    console.error("X values are not strictly increasing, adjusting for Plotly compatibility.");
-  }
+  // if (!checkMonotonicIncreasing(x)) {
+  //   console.error("X values are not strictly increasing, adjusting for Plotly compatibility.");
+  // }
   
   return { x, y, lower, upper, errorType: useErrorBars.value ? 'bar' : 'band' };
 }
