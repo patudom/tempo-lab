@@ -1,3 +1,4 @@
+/* eslint-disable indent */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /** A set of generic routines for aggregating data that comes from 
  * our Tempo Data Serivce
@@ -8,15 +9,24 @@ import type { RawSampleData } from "./TempoDataService";
 import type { CEsriTimeseries } from "../types";
 // import type { TimeSeriesData } from "./TempoDataService";
 import type { AggValue, DataPointError } from "@/types";
-import { toZonedTime, fromZonedTime, format as formatTz } from 'date-fns-tz';
+import { 
+  toZonedTime, // returns a Date object where the time is ajusted
+  fromZonedTime, 
+  format as formatTz,
+  formatInTimeZone
+} from 'date-fns-tz';
 import {
   nan2null,
   nanmean,
   nanstandardError,
+  nanstdev,
   nansum,
-  diff
+  nanmin,
+  nanmax,
+  nanRootMeanSquare,
 } from "./array_math";
-import { Data } from "plotly.js-dist-min";
+import { Period } from "vuetify/lib/components/VTimePicker/VTimePicker";
+
 
 export interface TimeSeriesData {
   values: Record<number, AggValue>;
@@ -29,7 +39,11 @@ export interface TimeSeriesData {
 // aggregation options
 // daily, multi-day, weekly
 
-// https://www.geeksforgeeks.org/javascript/calculate-current-week-number-in-javascript/
+/** https://www.geeksforgeeks.org/javascript/calculate-current-week-number-in-javascript/
+* getWeekoOfYear for Date object
+* If you have a UTC/js timestamp, and want the day of week for a 
+* specfic timezone
+*/
 function getWeekOfYear(date: Date) {
   const currentDate = 
     (typeof date === 'object') ? date : new Date();
@@ -51,116 +65,172 @@ function getWeekOfYear(date: Date) {
 function getBeginningOfWeek(date: Date, timezone?: string): Date {
   const zonedDate = timezone ? toZonedTime(date, timezone) : date;
   const day = zonedDate.getDay(); // 0 (Sun) to 6 (Sat)
-  const diff = zonedDate.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is Sunday
   const weekStart = new Date(zonedDate);
-  weekStart.setDate(diff);
+  weekStart.setDate(zonedDate.getDate() - day); // move back to sunday
   weekStart.setHours(0, 0, 0, 0);
-  return timezone ? toZonedTime(weekStart, timezone) : weekStart;
+  // want this to return the UTC time (so we can use the timestamp if we want)
+  return timezone ? fromZonedTime(weekStart, timezone) : weekStart;
 }
 
 function getEndOfWeek(date: Date, timezone?: string): Date {
   const zonedDate = timezone ? toZonedTime(date, timezone) : date;
-  const day = zonedDate.getDay(); // 0 (Sun) to 6 (Sat)
-  const diff = zonedDate.getDate() - day + (day === 0 ? 0 : 7); // adjust when day is Sunday
+  const day = zonedDate.getDay();
   const weekEnd = new Date(zonedDate);
-  weekEnd.setDate(diff);
+  // Move to Saturday (day 6) then set end of day
+  weekEnd.setDate(zonedDate.getDate() + (6 - day));
   weekEnd.setHours(23, 59, 59, 999);
-  return timezone ? toZonedTime(weekEnd, timezone) : weekEnd;
+  return timezone ? fromZonedTime(weekEnd, timezone) : weekEnd;
 }
 
-function sumOfSquares(x: number[]): number {
-  return nansum(x.map(v => v * v));
-}
-
-function ul2sig(u: number | null, l: number | null): number | null {
-  if (u === null || l === null) return null;
-  return (u - l) / 2;
-}
 
 type Window = string ; // e.g, '1d', '3d', '1w' , 'weekly'
 
-export class Grouper {
+export type AggregationMethod = 'mean' | 'median' | 'sum' | 'min' | 'max';
+
+
+export class TimeSeriesResampler {
   window: Window;
   timezone?: string;
+  method: AggregationMethod;
+  errorMethod: 'std' | 'sem' = 'sem'; // standard deviation or standard error of the mean
+  includeCalibrationUncertainty = true; // whether to include calibration uncertainty in the error propagation
 
-  constructor(window: Window, timezone?: string) {
+  constructor(
+    window: Window, 
+    timezone: string = 'UTC', 
+    method: AggregationMethod = 'mean',
+    errorMethod: 'std' | 'sem' = 'sem',
+    includeCalibrationUncertainty = true
+  ) {
+    console.log("Creating Grouper with window:", window, "timezone:", timezone, "method:", method);
     this.window = window;
     this.timezone = timezone;
+    this.method = method;
+    this.errorMethod = errorMethod;
+    this.includeCalibrationUncertainty = includeCalibrationUncertainty;
+    if (includeCalibrationUncertainty) {
+      console.error('This may not handle NaN values in the errors correctly which can lead to Zero values for errors');
+    }
+  }
+  
+  private _getZonedDate(date: Date): Date {
+    return this.timezone ? toZonedTime(date, this.timezone) : date;
   }
 
-  // have a goupers for weekly, daily, monthly
-  // formats are '1d', '3d', '7d', '1w', '1m'
-  // or numbers in milliseconds
   getGroupId(date: Date): string {
-    const zonedDate = this.timezone ? toZonedTime(date, this.timezone) : date;
-    // check the window type
+    const zonedDate = this._getZonedDate(date);
+    const groupDate = new Date(zonedDate);
+    
+    // handle daily or multi-day
     if (this.window.endsWith('d')) {
       const days = parseInt(this.window.slice(0, -1));
       const day = zonedDate.getDate();
       const groupDay = Math.floor((day - 1) / days) * days + 1;
-      const groupDate = new Date(zonedDate);
       groupDate.setDate(groupDay);
       groupDate.setHours(0, 0, 0, 0);
-      return this.timezone ? formatTz(groupDate, 'yyyy-MM-dd', { timeZone: this.timezone }) : formatTz(groupDate, 'yyyy-MM-dd');
-    }
-    if (this.window === '1w' || this.window === 'weekly') {
-      const weekStart = getBeginningOfWeek(zonedDate, this.timezone);
-      return this.timezone ? formatTz(weekStart, 'yyyy-MM-dd', { timeZone: this.timezone }) : formatTz(weekStart, 'yyyy-MM-dd');
-    }
-    if (this.window === '1m' || this.window === 'monthly') {
-      const groupDate = new Date(zonedDate);
+      
+      // handle weekly
+    } else if (this.window === '1w' || this.window === 'weekly') {
+      const weekStart = getBeginningOfWeek(date, this.timezone);
+      return String(weekStart.getTime());
+      
+      // handly monthly
+    } else if (this.window === '1m' || this.window === 'monthly') {
       groupDate.setDate(1);
       groupDate.setHours(0, 0, 0, 0);
-      return this.timezone ? formatTz(groupDate, 'yyyy-MM', { timeZone: this.timezone }) : formatTz(groupDate, 'yyyy-MM');
+      
+      // default to daily
+    } else {
+      groupDate.setHours(0, 0, 0, 0);
     }
-    // default to daily
-    const groupDate = new Date(zonedDate);
-    groupDate.setHours(0, 0, 0, 0);
-    return this.timezone ? formatTz(groupDate, 'yyyy-MM-dd', { timeZone: this.timezone }) : formatTz(groupDate, 'yyyy-MM-dd');
+    const utcMidnight = this.timezone ? fromZonedTime(groupDate, this.timezone) : groupDate;
+    return String(utcMidnight.getTime());
   }
   
-  // Aggregates data and returns TimeSeriesData
   groupData(timeseries: Prettify<TimeSeriesData>): TimeSeriesData {
+    console.log("Grouping data with window:", this.window, "and method:", this.method);
+    // the data and the error are in the same order
     const data = Object.values(timeseries.values); // AggValue[]
     const error = Object.values(timeseries.errors); // DataPointError[] | undefined
     
-    // create the group keys we will need
-    const groups: { [key: string]: AggValue[] } = {};
-    data.forEach(d => {
+    // colate the data and errors into groups (bins)
+    const groups: { [key: string]: { values: AggValue[]; errors: DataPointError[] } } = {};
+    data.forEach((d, idx) => {
       const groupId = this.getGroupId(d.date);
       if (!groups[groupId]) {
-        groups[groupId] = [];
+        groups[groupId] = { values: [], errors: [] };
       }
-      groups[groupId].push(d);
+      groups[groupId].values.push(d);
+      if (error) {
+        groups[groupId].errors.push(error[idx]);
+      }
     });
 
+    // these will be the time-aggregated values
     const values: Record<number, AggValue> = {};
     const errors: Record<number, DataPointError> = {};
-
+    
+    // loop over the groups
     for (const groupId in groups) {
       const groupData = groups[groupId];
-      // using the timezone might be a mistake :|. if so try the mean timestamp??
-      const zonedDate = this.timezone ? toZonedTime(new Date(groupId), this.timezone) : new Date(groupId);
-      const timestamp = zonedDate.getTime(); // cuz this is gonna be all utc
+      const timestamp = parseInt(groupId); // this is the UTC for the start of the group
 
-      const groupValues = groupData.map(d => d.value);
-      values[timestamp] = { value: nanmean(groupValues), date: zonedDate };
+      const groupValues = groupData.values.map(d => d.value);
+      let aggregatedValue: number | null;
+      
+      switch (this.method) {
+        case 'mean':
+          aggregatedValue = nanmean(groupValues);
+          break;
+        case 'min':
+          aggregatedValue = nanmin(groupValues);
+          break;
+        case 'max':
+          aggregatedValue = nanmax(groupValues);
+          break;
+        default:
+          aggregatedValue = nanmean(groupValues);
+      }
+      
+      values[timestamp] = { value: aggregatedValue, date: new Date(timestamp) };
+      
+      const standardError = this.errorMethod === 'sem' ? nanstandardError(groupValues) : (nanstdev(groupValues) || 0);
+      if (isNaN(standardError)) {
+        console.error(
+          'Standard error is NaN for group', 
+          formatInTimeZone(new Date(timestamp), this.timezone ?? 'UTC', "yyyy-mm-dd"), 
+          'with values', groupValues);
+      }
 
-      if (error) {
-        const groupErrors = error.filter((e, idx) => this.getGroupId(data[idx].date) === groupId);
-        const lowers = groupErrors.map(e => e.lower);
-        const uppers = groupErrors.map(e => e.upper);
-        const sigmas = uppers.map((u, i) => ul2sig(u, lowers[i])).filter(v => v !== null) as number[];
-        const meanSigma = Math.sqrt(sumOfSquares(sigmas)) / sigmas.length;
+      if (this.includeCalibrationUncertainty && groupData.errors.length > 0) {
+        const lowers = groupData.errors.map(e => e.lower).filter(v => v !== null) as number[];
+        const uppers = groupData.errors.map(e => e.upper).filter(v => v !== null) as number[];
+        
+        const newLower = nanRootMeanSquare(lowers);
+        const newUpper = nanRootMeanSquare(uppers);
+        
         errors[timestamp] = {
-          lower: values[timestamp].value ? values[timestamp].value - meanSigma : null,
-          upper: values[timestamp].value ? values[timestamp].value + meanSigma : null,
+          lower: nan2null(nanRootMeanSquare([standardError, newLower])),
+          upper: nan2null(nanRootMeanSquare([standardError, newUpper]))
         };
       } else {
-        errors[timestamp] = { lower: null, upper: null };
+        errors[timestamp] = { lower: nan2null(standardError), upper: nan2null(standardError) };
+      }
+      // end of loop over groups
+    }
+    
+    // DEBUG ONLY: this loop should never have to do anything
+    for (const ts in errors) {
+      if (errors[ts].lower !== null && isNaN(errors[ts].lower!)) {
+        console.error('Error lower is NaN for timestamp. Setting to null.', ts, errors[ts]);
+        errors[ts].lower = null;
+      }
+      if (errors[ts].upper !== null && isNaN(errors[ts].upper!)) {
+        console.error('Error upper is NaN for timestamp. Setting to null.', ts, errors[ts]);
+        errors[ts].upper = null;
       }
     }
-
+    
     return {
       values,
       errors,
@@ -168,4 +238,217 @@ export class Grouper {
       geometryType: timeseries.geometryType
     };
   }
+}
+
+
+
+
+
+export type FoldType = 'hourOfDay' | 'dayOfWeek' | 'hourOfWeek';
+
+export interface FoldBinContent {
+  bin: number;
+  timestamps: number[];          // original UTC timestamps of samples contributing
+  rawValues: (number | null)[];  // raw numeric values (may include nulls)
+}
+
+export interface FoldedAggValue {
+  value: number | null;
+  bin: number; // 0–23, 0–6, or 0–167 depending on fold
+}
+
+interface InternalBin {
+      bin: number;
+      timestamps: number[];
+      rawValues: (number | null)[];
+      numericValues: number[];           // non-null numeric values
+      calibrationErrors: DataPointError[]; // original per-sample errors
+    }
+
+export interface FoldedTimeSeriesData {
+  foldType: FoldType;
+  values: Record<number, FoldedAggValue>;         // binIndex -> aggregated value
+  errors: Record<number, DataPointError>;         // binIndex -> aggregated error
+  bins: Record<number, FoldBinContent>;           // binIndex -> full raw bin content
+  locations: Array<{ x: number; y: number }>;
+  geometryType: 'rectangle' | 'point';
+}
+
+/** Class for folding data periodically 
+ * We want to control the periodicity and resolution
+*/
+export class TimeSeriesFolder {
+  foldType: FoldType;
+  timezone: string;
+  method: AggregationMethod;
+  errorMethod: 'std' | 'sem';
+  includeCalibrationUncertainty: boolean;
+
+  constructor(
+    foldType: FoldType,
+    timezone: string = 'UTC',
+    method: AggregationMethod = 'mean',
+    errorMethod: 'std' | 'sem' = 'sem',
+    includeCalibrationUncertainty = true
+  ) {
+    this.foldType = foldType;
+    this.timezone = timezone;
+    this.method = method;
+    this.errorMethod = errorMethod;
+    this.includeCalibrationUncertainty = includeCalibrationUncertainty;
+  }
+  
+  private _getZonedDate(date: Date): Date {
+    return this.timezone ? toZonedTime(date, this.timezone) : date;
+  }
+
+  // convenience to get the number of bins
+  private _binCount(): number {
+    switch (this.foldType) {
+      case 'hourOfDay': return 24;
+      case 'dayOfWeek': return 7;
+      case 'hourOfWeek': return 168;
+    }
+  }
+  
+  // instead of a groupId we just need the bin index
+  private _binIndex(date: Date): number {
+    const z = this._getZonedDate(date);
+    switch (this.foldType) {
+      case 'hourOfDay': return z.getHours();                 // 0–23
+      case 'dayOfWeek': return z.getDay();                   // 0–6
+      case 'hourOfWeek': return z.getDay() * 24 + z.getHours(); // 0–167
+    }
+  }
+  
+  foldData(timeseries: Prettify<TimeSeriesData>): FoldedTimeSeriesData {
+    
+    // the data and the error are in the same order
+    const data = Object.values(timeseries.values) as Prettify<AggValue>[]; // AggValue[]
+    const error = Object.values(timeseries.errors); // DataPointError[] | undefined
+    
+    const binCount = this._binCount();
+    const binsRecord: Record<number, InternalBin> = {};
+    
+    Object.entries(timeseries.values).forEach(([ts,d]) => {
+      const binIndex = this._binIndex(d.date);
+      if (binIndex == null || binIndex < 0 || binIndex >= binCount) {
+        console.error('Invalid bin index', binIndex, 'for date', d.date, 'with fold type', this.foldType);
+        return;
+      }
+      if (!binsRecord[binIndex]) {
+        binsRecord[binIndex] = {
+          bin: binIndex,
+          timestamps: [],
+          rawValues: [],
+          numericValues: [],
+          calibrationErrors: []
+        };
+      }
+      
+      const bin = binsRecord[binIndex];
+      bin.timestamps.push(d.date.getTime());
+      bin.rawValues.push(d.value);
+      // get clean values
+      if (d.value !== null && !isNaN(d.value)) {
+        bin.numericValues.push(d.value);
+      }
+      
+      const err = timeseries.errors[ts];
+      if (err) {
+        bin.calibrationErrors.push(err);
+      } else {
+        console.error('No error found for timestamp', ts);
+      }
+      
+    });
+
+    // these will be the time-aggregated values
+    const values: Record<number, FoldedAggValue> = {};
+    const errors: Record<number, DataPointError> = {};
+    const publicBins: Record<number, FoldBinContent> = {};
+    
+    // loop over the groups
+    Object.values(binsRecord).forEach(bin => {
+      // const bin = binsRecord[binKey];
+      const { bin: binIndex, numericValues, calibrationErrors, rawValues, timestamps } = bin;
+      const groupValues = numericValues;
+      
+      let aggregatedValue: number | null;
+      
+      switch (this.method) {
+        case 'mean':
+          aggregatedValue = nanmean(groupValues);
+          break;
+        case 'min':
+          aggregatedValue = nanmin(groupValues);
+          break;
+        case 'max':
+          aggregatedValue = nanmax(groupValues);
+          break;
+        default:
+          aggregatedValue = nanmean(groupValues);
+      }
+      
+      // we just want to keep the bin index as the "timestamp"
+      // so use obviously wrong date
+      values[binIndex] = { value: aggregatedValue, bin: binIndex };
+      
+      const dispersionMeasure = this.errorMethod === 'sem' 
+        ? nanstandardError(groupValues) 
+        : (nanstdev(groupValues) || 0);
+      
+      if (this.includeCalibrationUncertainty && calibrationErrors.length > 0) {
+        const lowers = calibrationErrors.map(e => e.lower).filter(v => v !== null) as number[];
+        const uppers = calibrationErrors.map(e => e.upper).filter(v => v !== null) as number[];
+        
+        const newLower = nanRootMeanSquare(lowers);
+        const newUpper = nanRootMeanSquare(uppers);
+        
+        errors[binIndex] = {
+          lower: nan2null(nanRootMeanSquare([dispersionMeasure, newLower])),
+          upper: nan2null(nanRootMeanSquare([dispersionMeasure, newUpper]))
+        };
+      } else {
+        errors[binIndex] = { lower: nan2null(dispersionMeasure), upper: nan2null(dispersionMeasure) };
+      }
+      
+      // DEBUG ONLY: this loop should never have to do anything
+      for (const ts in errors) {
+        if (errors[ts].lower !== null && isNaN(errors[ts].lower)) {
+          console.error('Error lower is NaN for timestamp. Setting to null.', ts, errors[ts]);
+          errors[ts].lower = null;
+        }
+        if (errors[ts].upper !== null && isNaN(errors[ts].upper)) {
+          console.error('Error upper is NaN for timestamp. Setting to null.', ts, errors[ts]);
+          errors[ts].upper = null;
+        }
+      }
+      
+      // expose the full bin contents
+      publicBins[binIndex] = {
+        bin: binIndex,
+        timestamps: [...timestamps],
+        rawValues: [...rawValues]
+      };
+      
+    });
+    
+    
+    return {
+      foldType: this.foldType,
+      values,
+      errors,
+      bins: publicBins,
+      locations: timeseries.locations,
+      geometryType: timeseries.geometryType
+    };
+  }
+}
+
+
+export function hourOfWeekToDayHour(hourOfWeek: number): { day: number; hour: number } {
+  const day = Math.floor(hourOfWeek / 24);
+  const hour = hourOfWeek % 24;
+  return { day, hour };
 }

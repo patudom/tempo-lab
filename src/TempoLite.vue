@@ -551,7 +551,7 @@
                   <!-- time chips to select time specifically for esri times -->
                   <time-chips
                     v-if="whichMolecule.toLowerCase().includes('month')"
-                    :timestamps="esriTimesteps.slice(minIndex, maxIndex + 1)"
+                    :timestamps="maplibreMap?.esriTimesteps?.slice(minIndex, maxIndex + 1) || []"
                     @select="handleEsriTimeSelected($event.value, $event.index)"
                     :selected-index="timeIndex - minIndex"
                     :use-utc="whichMolecule.toLowerCase().includes('month')"
@@ -828,6 +828,9 @@
                               <v-chip v-if="sel.timeRange" size="small" class="text-caption">
                                 {{ sel.timeRange.description }}
                               </v-chip>
+                              <v-chip v-if="sel.timeRange" size="small" class="text-caption">
+                                {{ sel.timeRange?.type ?? 'no type' }}
+                              </v-chip>
                             </div>
                             <div
                               v-if="sel.loading || !sel.samples"
@@ -943,6 +946,22 @@
                                       :disabled="!sel.samples"
                                       variant="plain"
                                       @click="() => openGraphs[sel.id] = true"
+                                    ></v-btn>
+                                  </template>
+                                </v-tooltip>
+                                <v-tooltip
+                                  v-if="sel.timeRange.type === 'pattern'"
+                                  text="Aggregate Data"
+                                  location="top"
+                                >
+                                  <template #activator="{ props }">
+                                    <v-btn
+                                      v-bind="props"
+                                      size="x-small"
+                                      icon="mdi-chart-box"
+                                      :disabled="!sel.samples"
+                                      variant="plain"
+                                      @click="() => openAggregationDialog(sel)"
                                     ></v-btn>
                                   </template>
                                 </v-tooltip>
@@ -1113,6 +1132,13 @@
 
             </v-dialog>
 
+          <!-- Data Aggregation Dialog -->
+          <data-aggregation
+            v-model="showAggregationDialog"
+            :selection="aggregationSelection"
+            @save="handleAggregationSaved"
+          />
+
           <div id="bottom-options">
             <br>
               <cds-dialog
@@ -1244,6 +1270,7 @@ import TimeChips from "./components/TimeChips.vue";
 import CTextField from "./components/CTextField.vue";
 import EsriMap from "./components/EsriMap.vue";
 import MapColorbarWrap from "./components/MapColorbarWrap.vue";
+import DataAggregation from "./components/DataAggregation.vue";
 // Import Maplibre Composables
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { useImageOverlay } from "./composables/maplibre/useImageOverlay";
@@ -2133,6 +2160,10 @@ watch(selections, (newSelections, oldSelections) => {
 
 const showEditRegionNameDialog = ref(false);
 const regionBeingEdited = ref<UnifiedRegionType | null>(null);
+
+// Aggregation dialog state
+const showAggregationDialog = ref(false);
+const aggregationSelection = ref<UserSelectionType | null>(null);
 function editRegionName(region: UnifiedRegionType) {
   console.log(`Editing ${region.geometryType}: ${region.name}`);
   // Set the region to edit
@@ -2164,6 +2195,18 @@ function setRegionName(region: UnifiedRegionType, newName: string) {
   region.name = newName;
   console.log(`Renamed ${region.geometryType} region to: ${newName}`);
   regionBeingEdited.value = null;
+}
+
+// Aggregation dialog functions
+function openAggregationDialog(selection: UserSelectionType) {
+  aggregationSelection.value = selection;
+  showAggregationDialog.value = true;
+}
+
+function handleAggregationSaved(aggregatedSelection: UserSelectionType) {
+  addUserSelection(aggregatedSelection);
+  showAggregationDialog.value = false;
+  aggregationSelection.value = null;
 }
 
 import { StyleLayer } from "maplibre-gl";
