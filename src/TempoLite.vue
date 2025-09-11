@@ -950,7 +950,7 @@
                                   </template>
                                 </v-tooltip>
                                 <v-tooltip
-                                  v-if="sel.timeRange.type === 'pattern'"
+                                  v-if="sel.timeRange.type === 'pattern' || sel.timeRange.type === 'daterange'"
                                   text="Aggregate Data"
                                   location="top"
                                 >
