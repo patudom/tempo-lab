@@ -14,7 +14,10 @@ import CDSDialog from "./components/CDSDialog.vue";
 import MarqeeAlert from "./components/MarqeeAlert.vue";
 import TimeseriesGraph from "./components/TimeseriesGraph.vue";
 import SelectionComposer from "./components/SelectionComposer.vue";
-
+import HeaderBar from "./components/HeaderBar.vue";
+import DatasetControls from "./components/DatasetControls.vue";
+import MapControls from "./components/MapControls.vue";
+import MapWithControls from "./components/MapWithControls.vue";
 
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { library } from "@fortawesome/fontawesome-svg-core";
@@ -34,6 +37,8 @@ import VueDatePicker from "@vuepic/vue-datepicker";
 import '@vuepic/vue-datepicker/dist/main.css';
 import { UseClipboard } from "@vueuse/components";
 
+import { createPinia } from "pinia";
+
 library.add(faBookOpen);
 library.add(faPlay);
 library.add(faPause);
@@ -44,15 +49,21 @@ library.add(faCircleXmark);
 library.add(faSquareXmark);
 library.add(faHome);
 
+// TODO: This doesn't work. Why??
+// import "golden-layout/dist/css/goldenlayout-base.css";
+// import "golden-layout/dist/css/themes/goldenlayout-dark-theme.css";
 
 /** v-hide directive taken from https://www.ryansouthgate.com/2020/01/30/vue-js-v-hide-element-whilst-keeping-occupied-space/ */
 // Extract the function out, up here, so I'm not writing it twice
 const update = (el: HTMLElement, binding: Vue.DirectiveBinding) => el.style.visibility = (binding.value) ? "hidden" : "";
 
+const pinia = createPinia();
+
 createApp(TempoLite, {})
 
   // Plugins
   .use(vuetify)
+  .use(pinia)
 
   // Directives
   .directive(
@@ -87,6 +98,10 @@ createApp(TempoLite, {})
   .component('marquee-alert', MarqeeAlert)
   .component('timeseries-graph', TimeseriesGraph)
   .component('selection-composer', SelectionComposer)
+  .component('dataset-controls', DatasetControls)
+  .component('map-controls', MapControls)
+  .component('map-with-controls', MapWithControls)
+  .component("header-bar", HeaderBar)
 
   // Mount
   .mount("#app");

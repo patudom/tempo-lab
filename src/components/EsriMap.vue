@@ -46,9 +46,10 @@ import type { Map } from 'maplibre-gl';
 import MaplibreMap from './MaplibreMap.vue';
 import { useEsriLayer } from '@/esri/maplibre/useEsriImageLayer';
 import { useFieldOfRegard } from '@/composables/maplibre/useFieldOfRegard';
-import { ESRI_URLS, type MoleculeType } from '@/esri/utils';
+import { type MoleculeType } from '@/esri/utils';
 import type { InitMapOptions, LatLngPair } from '@/types';
 import type { MapEventType, Listener } from 'maplibre-gl';
+import type { AvailableColorMaps } from "@/colormaps";
 
 
 const props = defineProps({
@@ -118,6 +119,7 @@ const emit = defineEmits<{
   // Single, simplified ready event: base map (Maplibre) is ready.
   (e:'ready', map: Map): void; 
   (e:'zoomhome'): void; 
+  (e: 'colormap', colormap: AvailableColorMaps): void;
   // Timesteps loaded (can fire multiple times e.g., molecule switch)
   (e:'esri-timesteps-loaded', steps: number[]): void;
 }>();
@@ -141,14 +143,7 @@ const mapReady = ref(false);              // Underlying Maplibre map style loade
 let promiseResolve: (value: Map) => void;
 const onReady: Promise<Map> = new Promise((resolve) => { promiseResolve = resolve; });
 
-
-const esriUrl = computed(() => {
-  return ESRI_URLS[props.molecule].url;
-});
-const esriVariable = computed(() => {
-  return ESRI_URLS[props.molecule].variable;
-});
-
+const molecule = computed(() => props.molecule);
 
 //https://vuejs.org/api/reactivity-utilities#toref (two-way)
 // can also do toRef(()=>props.timestamp) in v 3.3+
@@ -156,36 +151,19 @@ const timestampRef = toRef(props, 'timestamp');
 const opacityRef = toRef(props, 'opacity');
 
 // ESRI layer composable
-const { getEsriTimeSteps, loadingEsriTimeSteps, addEsriSource, esriTimesteps, changeUrl, renderOptions } = useEsriLayer(
-  esriUrl.value,
-  esriVariable.value,
+const { loadingEsriTimeSteps, addEsriSource, esriTimesteps, renderOptions } = useEsriLayer(
+  molecule,
   timestampRef,
   opacityRef
 );
 
-const timestepCache: Record<MoleculeType, number[]> = {};
-// Fetch initial timesteps when mounted
-getEsriTimeSteps();
-
 watch(esriTimesteps, (newSteps, old) => {
   if (newSteps.length > 0 && newSteps !== old) {
     emit('esri-timesteps-loaded', newSteps);
-    timestepCache[props.molecule] = newSteps;
   }
 });
 
-// Update ESRI source when molecule changes
-watch(() => props.molecule, (newMol, oldMol) => {
-  if (newMol === oldMol) return;
-  
-  changeUrl(ESRI_URLS[newMol].url, ESRI_URLS[newMol].variable);
-  if (timestepCache[newMol]) {
-    esriTimesteps.value = timestepCache[newMol];
-  } else {
-    getEsriTimeSteps();
-  }
-  
-});
+watch(() => renderOptions.value.colormap, cmap => emit("colormap", cmap));
 
 const singleDateSelected = computed(() => {
   // a date object with the current day

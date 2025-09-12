@@ -30,7 +30,7 @@
 
 <script setup lang="ts">
 import { computed, toRef } from 'vue';
-import { useTimezone } from './useTimezone';
+import { useTimezone } from '../composables/useTimezone';
 import type { MillisecondRange } from '../types/datetime';
 
 const props = defineProps<{
@@ -159,5 +159,4 @@ const formattedUTCTime = computed(() => {
     transform: translateY(-1px);
   }
 }
-
 </style>

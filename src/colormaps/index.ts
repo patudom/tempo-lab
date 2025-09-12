@@ -11,7 +11,6 @@ import { sargassum, sargassumColorRamp } from "./sargassum";
 import type { ColorMaps } from "./types";
 
 export const colormaps: ColorMaps = {
-
   "magma": magma,
   "inferno": inferno,
   "plasma": plasma,
@@ -29,6 +28,5 @@ export const nonEsriColormaps = {
 };
 
 export type AvailableColorMaps = 'magma' | 'inferno' | 'plasma' | 'viridis' | 'cividis' | 'svs' | 'gray' | 'sargassum';
-// create an AvailableReverseColorMaps which is everything in AvailableColorMaps with '_r' appended to the end
-export type AvailableReverseColorMaps = 'magma_r' | 'inferno_r' | 'plasma_r' | 'viridis_r' | 'cividis_r' | 'svs_r' | 'gray_r' | 'sargassum_r';
+export type AvailableReverseColorMaps = `${AvailableColorMaps}_r`;
 export type AllAvailableColorMaps = AvailableColorMaps | AvailableReverseColorMaps | 'None';
