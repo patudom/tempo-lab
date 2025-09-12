@@ -159,19 +159,19 @@ import { ref, computed, watch, nextTick } from 'vue';
 import { v4 } from 'uuid';
 import { TimeSeriesResampler } from '../esri/services/aggregation';
 import PlotlyGraph from './PlotlyGraph.vue';
-import type { UserSelection, TimeRange } from '../types';
+import type { UserDataset, TimeRange } from '../types';
 import type { AggregationMethod, TimeSeriesData } from '../esri/services/aggregation';
 import type { DataSet } from '../types';
 import type { Data } from 'plotly.js-dist-min';
 
 interface DataAggregationProps {
-  selection: UserSelection | null;
+  selection: UserDataset | null;
 }
 
 const props = defineProps<DataAggregationProps>();
 
 const emit = defineEmits<{
-  (event: 'save', aggregatedSelection: UserSelection): void;
+  (event: 'save', aggregatedSelection: UserDataset): void;
 }>();
 
 // Dialog state
@@ -228,7 +228,7 @@ const canSave = computed(() => {
 
 // Aggregated data
 const aggregatedData = ref<TimeSeriesData | null>(null);
-const aggregatedSelection = ref<UserSelection | null>(null);
+const aggregatedSelection = ref<UserDataset | null>(null);
 // Graph data for display - now a ref that gets manually updated
 const graphData = ref<DataSet[]>([]);
 
@@ -246,7 +246,7 @@ const dataOptions = computed<Partial<Data>[]>(() => {
 });
 
 
-function selectionSamplesToDataSet(selection: UserSelection, errorType: 'band' | 'bar'): DataSet {
+function selectionSamplesToDataSet(selection: UserDataset, errorType: 'band' | 'bar'): DataSet {
   return timeSeriesDataToDataSet(selectionToTimeseries(selection), errorType);
 }
 
@@ -309,7 +309,7 @@ watch([selectedWindow, selectedMethod, selectedTimezone, useSEM], () => {
   updateAggregatedData();
 }, { immediate: true });
 
-function selectionToTimeseries(selection: UserSelection): TimeSeriesData {
+function selectionToTimeseries(selection: UserDataset): TimeSeriesData {
   return {
     values: selection.samples || {},
     errors: selection.errors || {},
@@ -371,7 +371,7 @@ function updateAggregatedData() {
 function saveAggregation() {
   if (!canSave.value || !props.selection) return;
   
-  const aggregatedSelection: UserSelection = {
+  const aggregatedSelection: UserDataset = {
     id: v4(),
     region: props.selection.region,
     timeRange: createAggregatedTimeRange(),

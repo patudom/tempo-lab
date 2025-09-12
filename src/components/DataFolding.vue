@@ -165,18 +165,18 @@ import { ref, computed, watch, nextTick } from 'vue';
 import { v4 } from 'uuid';
 import { TimeSeriesFolder, sortfoldBinContent } from '../esri/services/aggregation';
 import PlotlyGraph from './PlotlyGraph.vue';
-import type { Prettify, UserSelection, DataSet } from '../types';
+import type { Prettify, UserDataset, DataSet } from '../types';
 import type { AggregationMethod, TimeSeriesData, FoldedTimeSeriesData , FoldType, FoldBinContent} from '../esri/services/aggregation';
 
 
 interface DataFoldingProps {
-  selection: UserSelection | null;
+  selection: UserDataset | null;
 }
 
 const props = defineProps<DataFoldingProps>();
 
 const emit = defineEmits<{
-  (event: 'save', foldedSelection: UserSelection): void;
+  (event: 'save', foldedSelection: UserDataset): void;
 }>();
 
 // Dialog state
@@ -374,7 +374,7 @@ watch([
   updateAggregatedData();
 }, { immediate: true });
 
-function selectionToTimeseries(selection: UserSelection): TimeSeriesData {
+function selectionToTimeseries(selection: UserDataset): TimeSeriesData {
   return {
     values: selection.samples || {},
     errors: selection.errors || {},
@@ -437,7 +437,7 @@ function saveFolding() {
   const rawDataset = foldedTimeSeriesRawToDataSet(foldedData.value);
   const summaryDataset = foldedTimesSeriesToDataSet(foldedData.value);
 
-  const foldedSelection: UserSelection = {
+  const foldedSelection: UserDataset = {
     id: v4(),
     region: { ...props.selection.region, color: '#333', name: props.selection.region.name } as typeof props.selection.region,
     timeRange: createFoldedTimeRange(),
@@ -456,7 +456,7 @@ function saveFolding() {
       raw: foldedData.value
     },
     plotlyDatasets: [rawDataset, summaryDataset]
-  } as unknown as UserSelection;
+  } as unknown as UserDataset;
   console.log(foldedSelection);
   emit('save', foldedSelection);
   closeDialog();

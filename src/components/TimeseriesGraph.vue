@@ -14,11 +14,11 @@ import { onMounted, computed, ref, watch, nextTick } from "vue";
 import { v4 } from "uuid";
 import { PlotlyHTMLElement, newPlot, restyle, type Data, type Datum, type PlotMouseEvent } from "plotly.js-dist-min";
 
-import { AggValue, UserSelection } from "../types";
+import { AggValue, UserDataset } from "../types";
 
 
 interface TimeseriesProps {
-  data: UserSelection[]; // composed selections
+  data: UserDataset[]; // composed selections
   showErrors?: boolean;
 }
 

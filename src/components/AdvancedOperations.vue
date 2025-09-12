@@ -37,13 +37,13 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import type { UserSelection } from '../types';
+import type { UserDataset } from '../types';
 
 import DataAggregation from './DataAggregation.vue';
 import DataFolding from './DataFolding.vue';
 
 interface DataAggregationProps {
-  selection: UserSelection | null;
+  selection: UserDataset | null;
 }
 
 const { selection } = defineProps<DataAggregationProps>();
@@ -53,15 +53,15 @@ const dialogOpen = defineModel<boolean>('modelValue', { type: Boolean, required:
 const mode = ref<'aggregate' | 'fold'>('aggregate');
 
 const emit = defineEmits<{
-  (event: 'save', aggregatedSelection: UserSelection): void;
+  (event: 'save', aggregatedSelection: UserDataset): void;
 }>();
 
 // Save the aggregation
-function saveAggregation(selection: UserSelection) {
+function saveAggregation(selection: UserDataset) {
   emit('save', selection);
 }
 
-function saveFolded(selection: UserSelection) {
+function saveFolded(selection: UserDataset) {
   // Reuse same save channel for folded selections
   emit('save', selection);
 }
