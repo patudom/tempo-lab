@@ -182,9 +182,12 @@
                       <v-chip v-if="dataset.timeRange" size="small" class="text-caption">
                         {{ dataset.timeRange.description }}
                       </v-chip>
+                      <v-chip v-if="dataset.timeRange" size="small" class="text-caption">
+                        {{ dataset.timeRange?.type ?? 'no type' }}
+                      </v-chip>
                     </div>
                     <div
-                      v-if="dataset.loading || !dataset.samples"
+                      v-if="(dataset.loading || !dataset.samples)  && !(dataset.timeRange?.type === 'folded' && dataset.plotlyDatasets)"
                       class="dataset-loading"
                     >
                       <v-progress-linear
@@ -204,7 +207,7 @@
                           </span>
                         </template>
                       </v-progress-linear>
-                      <div v-if="!(dataset.loading || dataset.samples)">
+                      <div v-if="!(dataset.loading || dataset.samples || dataset.plotlyDatasets)">
                         <v-tooltip
                           text="Failure info"
                           location="top"
@@ -239,7 +242,7 @@
                     <v-expand-transition>
                       <div
                         class="selection-icons"
-                        v-show="dataset.samples && (touchscreen ? openSelection == dataset.id : isHovering)"
+                        v-show="(dataset.samples || dataset.plotlyDatasets) && (touchscreen ? openSelection == dataset.id : isHovering)"
                       >
                         <v-tooltip
                           text="Get Center Point Sample"
@@ -280,9 +283,25 @@
                               v-bind="props"
                               size="x-small"
                               icon="mdi-chart-line"
-                              :disabled="!dataset.samples"
+                              :disabled="!(dataset.samples || dataset.plotlyDatasets)"
                               variant="plain"
                               @click="() => openGraphs[dataset.id] = true"
+                            ></v-btn>
+                          </template>
+                        </v-tooltip>
+                        <v-tooltip
+                          v-if="dataset.timeRange.type === 'pattern' || dataset.timeRange.type === 'daterange'"
+                          text="Aggregate Data"
+                          location="top"
+                        >
+                          <template #activator="{ props }">
+                            <v-btn
+                              v-bind="props"
+                              size="x-small"
+                              icon="mdi-chart-box"
+                              :disabled="!dataset.samples"
+                              variant="plain"
+                              @click="() => openAggregationDialog(dataset)"
                             ></v-btn>
                           </template>
                         </v-tooltip>
@@ -319,10 +338,20 @@
                         hide-details
                       >
                       </v-checkbox>
-                      <timeseries-graph
-                        :data="dataset ? [dataset] : []"
-                        :show-errors="showErrorBands"
-                      />
+                      <template v-if="dataset.timeRange.type === 'folded' && dataset.plotlyDatasets">
+                        <plotly-graph
+                          :datasets="dataset.plotlyDatasets"
+                          :show-errors="showErrorBands"
+                          :colors="[dataset.region.color, '#333']"
+                          :data-options="[{mode: 'markers'}, {mode: 'lines+markers'}]"
+                        />
+                      </template>
+                      <template v-else>
+                        <timeseries-graph
+                          :data="dataset ? [dataset] : []"
+                          :show-errors="showErrorBands"
+                        />
+                      </template>
                     </cds-dialog>
                     <v-dialog
                       :model-value="sampleErrorID !== null"
@@ -455,6 +484,13 @@
         ></c-text-field>
 
         </v-dialog>
+        
+    <!-- Data Aggregation Dialog -->
+    <advanced-operations
+      v-model="showAggregationDialog"
+      :selection="aggregationDataset"
+      @save="handleAggregationSaved"
+    />
 
   </div>
 
@@ -473,6 +509,9 @@ import { areEquivalentTimeRanges, formatTimeRange } from "../utils/timeRange";
 import { atleast1d } from "../utils/atleast1d";
 
 import DateTimeRangeSelection from "../date_time_range_selection/DateTimeRangeSelection.vue";
+import AdvancedOperations from "./AdvancedOperations.vue";
+import { TimeRangeSelectionType } from "@/types/datetime";
+import PlotlyGraph from "./PlotlyGraph.vue";
 import CTextField from "./CTextField.vue";
 
 type UnifiedRegionType = UnifiedRegion<typeof backend.value>;
@@ -512,6 +551,18 @@ const loadingPointSample = ref<string | false>(false);
 const showEditRegionNameDialog = ref(false);
 const regionBeingEdited = ref<UnifiedRegionType | null>(null);
 
+const aggregationDataset = ref<UserDataset | null>(null);
+const showAggregationDialog = ref(false);
+function openAggregationDialog(selection: UserDataset) {
+  aggregationDataset.value = selection;
+  showAggregationDialog.value = true;
+}
+function handleAggregationSaved(aggregatedSelection: UserDataset) {
+  store.addDataset(aggregatedSelection, false); // no need to fetch anything
+  showAggregationDialog.value = false;
+  aggregationDataset.value = null;
+}
+
 function handleDatasetCreated(dataset: UserDataset) {
   store.addDataset(dataset);
   createDatasetActive.value = false;
@@ -524,7 +575,7 @@ function removeDataset(dataset: UserDataset) {
   delete datasetRowRefs[dataset.id];
 }
 
-function handleDateTimeRangeSelectionChange(timeRanges: MillisecondRange[], selectionType?: string) {
+function handleDateTimeRangeSelectionChange(timeRanges: MillisecondRange[], selectionType: TimeRangeSelectionType) {
   if (!Array.isArray(timeRanges) || timeRanges.length === 0) {
     console.error('No time ranges received from DateTimeRangeSelection');
     return;
@@ -543,6 +594,9 @@ function handleDateTimeRangeSelectionChange(timeRanges: MillisecondRange[], sele
   case 'singledate':
     descriptionBase = 'Single Date';
     break;
+  case 'pattern':
+    descriptionBase = 'Pattern';
+    break;
   }
   const formatted = formatTimeRange(normalized);
   const description = `${descriptionBase} (${formatted})`;
@@ -550,7 +604,8 @@ function handleDateTimeRangeSelectionChange(timeRanges: MillisecondRange[], sele
     id: v4(),
     name: formatted,
     description,
-    range: normalized.length === 1 ? normalized[0] : normalized
+    range: normalized.length === 1 ? normalized[0] : normalized,
+    type: selectionType,
   };
   store.addTimeRange(tr);
 
