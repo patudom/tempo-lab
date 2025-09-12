@@ -225,9 +225,8 @@ import { colormap } from "@/colormaps/utils";
 import { useTempoStore } from "@/stores/app";
 import { useLocationMarker } from "@/composables/maplibre/useMarker";
 import { useRectangleSelection } from "@/composables/maplibre/useRectangleSelection";
-import { addRectangleLayer } from "@/composables/maplibre/utils";
+import { addRectangleLayer, addPointLayer, regionBounds, fitBounds } from "@/composables/maplibre/utils";
 import { usePointSelection } from "@/composables/maplibre/usePointSelection";
-import { addPointLayer } from "@/composables/maplibre/utils";
 import { COLORS } from "@/utils/color";
 import { EsriSampler } from "@/esri/services/sampling";
 import { useMultiMarker } from '@/composables/maplibre/useMultiMarker';
@@ -262,6 +261,7 @@ const {
   currentTempoDataService,
   maxSampleCount,
   colorMap,
+  lastFocusedRegion,
 } = storeToRefs(store);
 
 function createSelectionComputed(selection: SelectionType): WritableComputedRef<boolean> {
@@ -538,10 +538,13 @@ const samplingPreviewMarkers = useMultiMarker(map as MapTypeRef , {
   label: 'predicted-samples-locations'
 });
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
 const sampler = ref<EsriSampler>(null);
 currentTempoDataService.value.withMetadataCache().then(meta => {
   sampler.value = new EsriSampler(meta);
 });
+
 watch([showSamplingPreviewMarkers, regions, ()=> regions.value.length], (newVal) => {
   const tempoDataService = currentTempoDataService.value;
   const show = newVal[0];
@@ -560,6 +563,13 @@ watch([showSamplingPreviewMarkers, regions, ()=> regions.value.length], (newVal)
       }
     });
     samplingPreviewMarkers.addMarkers(locations);
+  }
+});
+
+watch(lastFocusedRegion, region => {
+  if (region !== null) {
+    const bounds = regionBounds(region);
+    fitBounds(map.value, bounds, true);
   }
 });
 

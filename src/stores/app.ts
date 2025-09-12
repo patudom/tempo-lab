@@ -36,6 +36,7 @@ const createTempoStore = <T extends MappingBackends>(backend: MappingBackends) =
   const opacitySliderUsedCount = ref(0);
 
   const selectionActive = ref<SelectionType>(null);
+  const lastFocusedRegion = ref<UnifiedRegionType | null>(null);
 
   const colorMap = computed(() => colorbarOptions[molecule.value].colormap.toLowerCase());
 
@@ -266,6 +267,7 @@ const createTempoStore = <T extends MappingBackends>(backend: MappingBackends) =
     timezoneOptions,
 
     selectionActive,
+    lastFocusedRegion,
 
     regions,
     regionsCreatedCount,

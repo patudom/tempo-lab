@@ -87,7 +87,7 @@
                   :key="index"
                   :title="region.name"
                   :style="{ 'background-color': region.color }"
-                  @click="() => emit('region-trigger', region.id)"
+                  @click="() => lastFocusedRegion = region"
                 >
                   <template #append>
                     <!-- New: Edit Geometry button (disabled if any selection using region has samples) -->
@@ -485,11 +485,8 @@ const {
   selectedTimezone,
   uniqueDays,
   selectionActive,
+  lastFocusedRegion,
 } = storeToRefs(store);
-
-const emit = defineEmits<{
-  (event: "region-trigger", value: string): void;
-}>();
 
 const touchscreen = supportsTouchscreen();
 
