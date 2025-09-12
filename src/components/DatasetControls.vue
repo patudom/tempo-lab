@@ -165,7 +165,7 @@
                 <v-list-item
                   v-bind="props"
                   :ref="(el) => datasetRowRefs[dataset.id] = el"
-                  class="selection-item"
+                  class="selection-item my-2"
                   :style="{ 'background-color': dataset.region.color }"
                   :ripple="touchscreen"
                   @click="() => {
@@ -385,7 +385,8 @@
       </v-expansion-panel>
     </v-expansion-panels>
     </div>
-  
+
+    <div class="d-flex flex-wrap flex-row ma-2 align-center justify-center ga-1">
     <v-btn v-if="no2GraphData.length > 0" @click="showNO2Graph = true">
       Show NO₂ Graph
     </v-btn>
@@ -460,6 +461,88 @@
         :show-errors="showErrorBands"
       />
     </cds-dialog>
+    
+    <v-btn v-if="no2foldedGraphData.length > 0" @click="showfoldedNO2Graph = true">
+      Show Folded NO₂ Data
+    </v-btn>
+    <cds-dialog
+      title="Nitrogen Dioxide Data"
+      v-model="showfoldedNO2Graph"
+      draggable
+      persistent
+      :modal="false"
+      :scrim="false"
+      :drag-predicate="plotlyDragPredicate"
+    >
+      <v-checkbox
+        v-model="showErrorBands"
+        label="Show Errors"
+        density="compact"
+        hide-details
+      >
+      </v-checkbox>
+      <plotly-graph
+        :datasets="no2foldedGraphData.length > 0 ? no2foldedGraphData : []"
+        :show-errors="showErrorBands"
+        :colors="['#FF5733', '#333']"
+        :data-options="[{mode: 'markers'}, {mode: 'lines+markers'}]"
+      />
+    </cds-dialog>
+
+    <v-btn v-if="o3foldedGraphData.length > 0" @click="showfoldedO3Graph = true">
+      Show Folded O₃ Data
+    </v-btn>
+    <cds-dialog
+      title="Ozone Data"
+      v-model="showfoldedO3Graph"
+      draggable
+      persistent
+      :modal="false"
+      :scrim="false"
+      :drag-predicate="plotlyDragPredicate"
+    >
+      <v-checkbox
+        v-model="showErrorBands"
+        label="Show Errors"
+        density="compact"
+        hide-details
+      >
+      </v-checkbox>
+      <plotly-graph
+        :datasets="o3foldedGraphData.length > 0 ? o3foldedGraphData : []"
+        :show-errors="showErrorBands"
+        :colors="['#FF5733', '#333']"
+        :data-options="[{mode: 'markers'}, {mode: 'lines+markers'}]"
+      />
+    </cds-dialog>
+
+    <v-btn v-if="hchofoldedGraphData.length > 0" @click="showfoldedHCHOGraph = true">
+      Show Folded HCHO Data
+    </v-btn>
+    <cds-dialog
+      title="Formaldehyde Data"
+      v-model="showfoldedHCHOGraph"
+      draggable
+      persistent
+      :modal="false"
+      :scrim="false"
+      :drag-predicate="plotlyDragPredicate"
+    >
+      <v-checkbox
+        v-model="showErrorBands"
+        label="Show Errors"
+        density="compact"
+        hide-details
+      >
+      </v-checkbox>
+      <plotly-graph
+        :datasets="hchofoldedGraphData.length > 0 ? hchofoldedGraphData : []"
+        :show-errors="showErrorBands"
+        :colors="['#FF5733', '#333']"
+        :data-options="[{mode: 'markers'}, {mode: 'lines+markers'}]"
+      />
+    </cds-dialog>
+    </div>
 
     <v-dialog
       v-model="showEditRegionNameDialog"
@@ -646,11 +729,49 @@ const o3GraphData = computed(() =>{
   return datasets.value.filter(s => s.molecule.includes('o3') && store.datasetHasSamples(s));
 });
 
+
 // formaldehyde version
 const showHCHOGraph = ref(false);
 const hchoGraphData = computed(() =>{
   return datasets.value.filter(s => s.molecule.includes('hcho') && store.datasetHasSamples(s));
 });
+
+
+const showfoldedNO2Graph = ref(false);
+const no2foldedGraphData = computed(() =>{
+  const validFoldedDatasets = datasets.value
+    .filter(
+      s => s.molecule.includes('no2') && 
+      s.timeRange?.type === 'folded' && 
+      s.plotlyDatasets && 
+      s.plotlyDatasets.length > 0
+    );
+  return validFoldedDatasets.map(s => s.plotlyDatasets![1]); // "!" tells TS that we know it's not undefined
+});
+
+const showfoldedO3Graph = ref(false);
+const o3foldedGraphData = computed(() =>{
+  const validFoldedDatasets = datasets.value
+    .filter(
+      s => s.molecule.includes('o3') && 
+      s.timeRange?.type === 'folded' && 
+      s.plotlyDatasets && 
+      s.plotlyDatasets.length > 0
+    );
+  return validFoldedDatasets.map(s => s.plotlyDatasets![1]); // "!" tells TS that we know it's not undefined
+}); 
+
+const showfoldedHCHOGraph = ref(false);
+const hchofoldedGraphData = computed(() =>{
+  const validFoldedDatasets = datasets.value
+    .filter(
+      s => s.molecule.includes('hcho') && 
+      s.timeRange?.type === 'folded' && 
+      s.plotlyDatasets && 
+      s.plotlyDatasets.length > 0
+    );
+  return validFoldedDatasets.map(s => s.plotlyDatasets![1]); // "!" tells TS that we know it's not undefined
+}); 
 
 const showErrorBands = ref(true);
 </script>
