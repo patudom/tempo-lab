@@ -183,6 +183,13 @@ const createTempoStore = <T extends MappingBackends>(backend: MappingBackends) =
     }
   });
 
+  watch(timestamps, () => {
+    if (uniqueDays.value.length === 0) {
+      return;
+    }
+    singleDateSelected.value = uniqueDays.value[uniqueDays.value.length - 1];
+  });
+
   function addRegion(region: UnifiedRegionType) {
     // TODO: Fix the typing here
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
