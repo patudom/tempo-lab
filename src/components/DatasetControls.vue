@@ -310,6 +310,7 @@
                       persistent
                       :scrim="false"
                       :modal="false"
+                      :drag-predicate="plotlyDragPredicate"
                     >
                       <v-checkbox
                         v-model="showErrorBands"
@@ -366,6 +367,7 @@
       persistent
       :modal="false"
       :scrim="false"
+      :drag-predicate="plotlyDragPredicate"
     >
       <v-checkbox
         v-model="showErrorBands"
@@ -390,6 +392,7 @@
       persistent
       :modal="false"
       :scrim="false"
+      :drag-predicate="plotlyDragPredicate"
     >
       <v-checkbox
         v-model="showErrorBands"
@@ -414,6 +417,7 @@
       persistent
       :modal="false"
       :scrim="false"
+      :drag-predicate="plotlyDragPredicate"
     >
       <v-checkbox
         v-model="showErrorBands"
@@ -429,28 +433,28 @@
     </cds-dialog>
 
     <v-dialog
-          v-model="showEditRegionNameDialog"
-          >
-          <!-- text field that requires a confirmation -->
-            <c-text-field
-              label="Region Name"
-              title="Enter a new name for this region"
-              hide-details
-              dense
-              :button-color="accentColor"
-              @confirm="(name: string) => {
-                if (regionBeingEdited) {
-                  store.setRegionName(regionBeingEdited as UnifiedRegionType, name);
-                  showEditRegionNameDialog = false;
-                }
-              }"
-              @cancel="() => {
-                showEditRegionNameDialog = false;
-                regionBeingEdited = null;
-              }"
-            ></c-text-field>
+      v-model="showEditRegionNameDialog"
+    >
+      <!-- text field that requires a confirmation -->
+        <c-text-field
+          label="Region Name"
+          title="Enter a new name for this region"
+          hide-details
+          dense
+          :button-color="accentColor"
+          @confirm="(name: string) => {
+            if (regionBeingEdited) {
+              store.setRegionName(regionBeingEdited as UnifiedRegionType, name);
+              showEditRegionNameDialog = false;
+            }
+          }"
+          @cancel="() => {
+            showEditRegionNameDialog = false;
+            regionBeingEdited = null;
+          }"
+        ></c-text-field>
 
-            </v-dialog>
+        </v-dialog>
 
   </div>
 
@@ -487,6 +491,10 @@ const {
   selectionActive,
   lastFocusedRegion,
 } = storeToRefs(store);
+
+function plotlyDragPredicate(element: HTMLElement): boolean {
+  return element.closest(".plotly") === null;
+}
 
 const touchscreen = supportsTouchscreen();
 
