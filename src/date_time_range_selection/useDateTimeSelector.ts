@@ -110,11 +110,10 @@ export function useDateTimeSelector(
     // Find the target day occurrence - use baseDate if it already matches, otherwise find the most recent occurrence
     const currentDate = new Date(baseDate);
     
-    // Only search backwards if the base date doesn't already match the target day
-    if (currentDate.getDay() !== targetDayOfWeek) {
-      while (currentDate.getDay() !== targetDayOfWeek) {
-        currentDate.setDate(currentDate.getDate() - 1);
-      }
+    const currentDay= currentDate.getDay();
+    const daysDifference = (currentDay - targetDayOfWeek + 7) % 7;
+    if (daysDifference !== 0) {
+      currentDate.setDate(currentDate.getDate() - daysDifference);
     }
     
     // Generate ranges for the specified number of instances back
@@ -127,10 +126,10 @@ export function useDateTimeSelector(
       
       // Convert to UTC timestamp for the API
       const startTime = fromTimezone(rangeDate);
-      const endTime = startTime + (timePlusMinus.value * 60 * 60 * 1000); // Add 1 hour
+      const endTime = startTime + (timePlusMinus.value * 60 * 60 * 1000); // Add offset
       
       return {
-        start: startTime,
+        start: startTime - (timePlusMinus.value * 60 * 60 * 1000), // Subtract offsetr
         end: endTime
       };
     });
