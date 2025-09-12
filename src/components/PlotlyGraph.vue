@@ -37,6 +37,7 @@ interface TimeseriesProps {
   colors?: string[];
   showErrors?: boolean;
   dataOptions?: Partial<Data>[];
+  errorBarStyles?: (Partial<Plotly.ErrorOptions> | null)[];
 }
 
 const props = defineProps<TimeseriesProps>();
@@ -151,14 +152,17 @@ function renderPlot() {
     console.log(index, data.errorType);
     // https://plotly.com/javascript/error-bars/
     if (data.errorType === 'bar') {
+      const style = (props.errorBarStyles && props.errorBarStyles[index]) || {};
       errorOptions['error_y'] = {
         type: 'data',
         symmetric: false,
         array: data.upper as Datum[],
         arrayminus: data.lower as Datum[] | undefined,
+        color: props.colors ? props.colors[index % props.colors.length] : 'red',
         visible: true,
         thickness: 1.5,
         width: 3,
+        ...style,
       };
       
     }

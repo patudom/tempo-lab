@@ -61,6 +61,28 @@
                 class="mb-3"
               />
               
+              <!-- Original Error Display -->
+              <v-select
+                v-model="originalErrorType"
+                :items="errorTypeItems"
+                label="Original Error Display"
+                density="compact"
+                variant="outlined"
+                hide-details
+                class="mb-3"
+              />
+              
+              <!-- Aggregated Error Display -->
+              <v-select
+                v-model="aggregatedErrorType"
+                :items="errorTypeItems"
+                label="Aggregated Error Display"
+                density="compact"
+                variant="outlined"
+                hide-details
+                class="mb-3"
+              />
+              
               <!-- Use Standard Errors Toggle -->
               <v-checkbox
                 v-model="useSEM"
@@ -92,8 +114,12 @@
                 <plotly-graph
                   :datasets="graphData"
                   :show-errors="showErrors"
-                  :colors="[selection?.region.color ?? '#1f77b4', '#444']"
+                  :colors="[selection?.region.color ?? 'blue', '#444']"
                   :data-options="dataOptions"
+                  :error-bar-styles="[
+                    originalErrorType === 'bar' ? { thickness: 1, width: 0} : null,
+                    aggregatedErrorType === 'bar' ? { thickness: 3, width: 5 } : null
+                  ]"
                 />
               </div>
             </v-card>
@@ -178,6 +204,12 @@ const selectedMethod = ref<AggregationMethod>('mean');
 const selectedTimezone = ref('US/Eastern');
 const showErrors = ref(true);
 const useSEM = ref(true);
+const originalErrorType = ref<'band' | 'bar'>('bar');
+const aggregatedErrorType = ref<'band' | 'bar'>('bar');
+const errorTypeItems = [
+  { title: 'Error Band', value: 'band' },
+  { title: 'Error Bars', value: 'bar' }
+];
 
 // Computed properties
 const originalDataPointCount = computed(() => {
@@ -207,9 +239,9 @@ const dataOptions = computed<Partial<Data>[]>(() => {
     opts.push({ mode: 'markers' }); // Original selection (markers only)
   }
   // keep lines for aggregated data
-  // if (graphData.value.length > 1) {
-  //   opts.push({ mode: 'markers' }); 
-  // }
+  if (graphData.value.length > 1) {
+    opts.push({ mode: 'lines+markers' }); 
+  }
   return opts;
 });
 
@@ -244,11 +276,10 @@ function updateGraphData() {
     graphData.value = [];
     return;
   }
-  
-  const data = [selectionSamplesToDataSet(props.selection, 'bar')];
+  const data = [selectionSamplesToDataSet(props.selection, originalErrorType.value)];
   
   if (aggregatedData.value) {
-    data.push(timeSeriesDataToDataSet(aggregatedData.value, 'bar')); // with error bars
+    data.push(timeSeriesDataToDataSet(aggregatedData.value, aggregatedErrorType.value));
   }
   
   graphData.value = data;
@@ -369,6 +400,9 @@ watch(() => props.selection, () => {
     updateAggregatedData();
   }
 }, { immediate: true });
+
+// Watch error type selects
+watch([originalErrorType, aggregatedErrorType], () => updateGraphData());
 </script>
 
 <style scoped>
