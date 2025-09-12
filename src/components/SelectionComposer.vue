@@ -160,7 +160,13 @@ async function composeSelection(): Promise<UserSelection | null> {
   
   const timeRanges = atleast1d(draft.timeRange);
   // Add to available list if new custom
-  const timeRange: TimeRange = { id: v4(), name: 'Selection Range', description: formatTimeRange(timeRanges), range: timeRanges.length === 1 ? timeRanges[0] : timeRanges };
+  const timeRange: TimeRange = { 
+    id: v4(), 
+    name: 'Selection Range', 
+    description: formatTimeRange(timeRanges), 
+    range: timeRanges.length === 1 ? timeRanges[0] : timeRanges,
+    type: selectedTimeRange.value?.type || 'custom'
+  };
   const sel: UserSelection = {
     id: v4(),
     region: draft.region, // as { id: string; name: string; rectangle: RectangleSelectionInfo; color: string; layer?: unknown },

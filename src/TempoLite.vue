@@ -551,7 +551,7 @@
                   <!-- time chips to select time specifically for esri times -->
                   <time-chips
                     v-if="whichMolecule.toLowerCase().includes('month')"
-                    :timestamps="esriTimesteps.slice(minIndex, maxIndex + 1)"
+                    :timestamps="maplibreMap?.esriTimesteps?.slice(minIndex, maxIndex + 1) || []"
                     @select="handleEsriTimeSelected($event.value, $event.index)"
                     :selected-index="timeIndex - minIndex"
                     :use-utc="whichMolecule.toLowerCase().includes('month')"
@@ -828,9 +828,12 @@
                               <v-chip v-if="sel.timeRange" size="small" class="text-caption">
                                 {{ sel.timeRange.description }}
                               </v-chip>
+                              <v-chip v-if="sel.timeRange" size="small" class="text-caption">
+                                {{ sel.timeRange?.type ?? 'no type' }}
+                              </v-chip>
                             </div>
                             <div
-                              v-if="sel.loading || !sel.samples"
+                              v-if="(sel.loading || !sel.samples) && !(sel.timeRange?.type === 'folded' && sel.plotlyDatasets)"
                               class="dataset-loading"
                             >
                               <v-progress-linear
@@ -850,7 +853,7 @@
                                   </span>
                                 </template>
                               </v-progress-linear>
-                              <div v-if="!(sel.loading || sel.samples)">
+                              <div v-if="!(sel.loading || sel.samples || sel.plotlyDatasets)" class="dataset-error-text">
                                 <v-tooltip
                                   text="Failure info"
                                   location="top"
@@ -885,7 +888,7 @@
                             <v-expand-transition>
                               <div
                                 class="selection-icons"
-                                v-show="sel.samples && (touchscreen ? openSelection == sel.id : isHovering)"
+                                v-show="(sel.samples || sel.plotlyDatasets) && (touchscreen ? openSelection == sel.id : isHovering)"
                               >
                                 <v-tooltip
                                   text="Change Selection Name"
@@ -940,9 +943,25 @@
                                       v-bind="props"
                                       size="x-small"
                                       icon="mdi-chart-line"
-                                      :disabled="!sel.samples"
+                                      :disabled="!(sel.samples || sel.plotlyDatasets)"
                                       variant="plain"
                                       @click="() => openGraphs[sel.id] = true"
+                                    ></v-btn>
+                                  </template>
+                                </v-tooltip>
+                                <v-tooltip
+                                  v-if="sel.timeRange.type === 'pattern' || sel.timeRange.type === 'daterange'"
+                                  text="Aggregate Data"
+                                  location="top"
+                                >
+                                  <template #activator="{ props }">
+                                    <v-btn
+                                      v-bind="props"
+                                      size="x-small"
+                                      icon="mdi-chart-box"
+                                      :disabled="!sel.samples"
+                                      variant="plain"
+                                      @click="() => openAggregationDialog(sel)"
                                     ></v-btn>
                                   </template>
                                 </v-tooltip>
@@ -978,10 +997,20 @@
                                 hide-details
                               >
                               </v-checkbox>
-                              <timeseries-graph
-                                :data="sel ? [sel] : []"
-                                :show-errors="showErrorBands"
-                              />
+                              <template v-if="sel.timeRange.type === 'folded' && sel.plotlyDatasets">
+                                <plotly-graph
+                                  :datasets="sel.plotlyDatasets"
+                                  :show-errors="showErrorBands"
+                                  :colors="[sel.region.color, '#333']"
+                                  :data-options="[{mode: 'markers'}, {mode: 'lines+markers'}]"
+                                />
+                              </template>
+                              <template v-else>
+                                <timeseries-graph
+                                  :data="sel ? [sel] : []"
+                                  :show-errors="showErrorBands"
+                                />
+                              </template>
                             </cds-dialog>
                             <v-dialog
                               :model-value="sampleErrorID !== null"
@@ -1112,6 +1141,13 @@
             ></c-text-field>
 
             </v-dialog>
+
+          <!-- Data Aggregation Dialog -->
+          <advanced-operations
+            v-model="showAggregationDialog"
+            :selection="aggregationSelection"
+            @save="handleAggregationSaved"
+          />
 
           <div id="bottom-options">
             <br>
@@ -1244,6 +1280,8 @@ import TimeChips from "./components/TimeChips.vue";
 import CTextField from "./components/CTextField.vue";
 import EsriMap from "./components/EsriMap.vue";
 import MapColorbarWrap from "./components/MapColorbarWrap.vue";
+import AdvancedOperations from "./components/AdvancedOperations.vue";
+import PlotlyGraph from './components/PlotlyGraph.vue';
 // Import Maplibre Composables
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { useImageOverlay } from "./composables/maplibre/useImageOverlay";
@@ -1858,8 +1896,10 @@ function regionHasSamples(region: UnifiedRegionType): boolean {
 // const customTimeRange = ref<MillisecondRange | MillisecondRange[] | null>(null);
 const customTimeRange = ref<TimeRange | null>(null);
 
+import { TimeRangeSelectionType } from "./types/datetime";
 // Add TimeRange object support for custom time ranges, update handler to accept (ranges, selectionType), name and describe new custom ranges, and adjust dependent logic.
-function handleDateTimeRangeSelectionChange(timeRanges: MillisecondRange[], selectionType?: string) {
+// Handle time range selection changes from DateTimeRangeSelection component
+function handleDateTimeRangeSelectionChange(timeRanges: MillisecondRange[], selectionType: TimeRangeSelectionType) {
   if (!Array.isArray(timeRanges) || timeRanges.length === 0) {
     console.error('No time ranges received from DateTimeRangeSelection');
     return;
@@ -1878,6 +1918,9 @@ function handleDateTimeRangeSelectionChange(timeRanges: MillisecondRange[], sele
   case 'singledate':
     descriptionBase = 'Single Date';
     break;
+  case 'pattern':
+    descriptionBase = 'Pattern';
+    break;
   }
   const formatted = formatTimeRange(normalized);
   const description = `${descriptionBase} (${formatted})`;
@@ -1886,7 +1929,8 @@ function handleDateTimeRangeSelectionChange(timeRanges: MillisecondRange[], sele
     id: v4(),
     name: formatted,
     description,
-    range: normalized.length === 1 ? normalized[0] : normalized
+    range: normalized.length === 1 ? normalized[0] : normalized,
+    type: selectionType,
   };
   customTimeRange.value = tr;
   useCustomTimeRange.value = true;
@@ -2066,6 +2110,7 @@ const displayedDayTimeRange = computed<TimeRange>(() => {
     name: 'Displayed Day',
     description: `Displayed Day (${new Date(range.start).toLocaleDateString()})`,
     range,
+    type: 'displayed-day'
   };
 });
 
@@ -2095,6 +2140,7 @@ watch(singleDateSelected, (_newDate, oldDate) => {
       name: formatted,
       description: formatted,
       range: oldRange,
+      type: 'singledate'
     };
     availableTimeRanges.value.push(oldTimeRange);
   }
@@ -2125,6 +2171,10 @@ watch(selections, (newSelections, oldSelections) => {
 
 const showEditRegionNameDialog = ref(false);
 const regionBeingEdited = ref<UnifiedRegionType | null>(null);
+
+// Aggregation dialog state
+const showAggregationDialog = ref(false);
+const aggregationSelection = ref<UserSelectionType | null>(null);
 function editRegionName(region: UnifiedRegionType) {
   console.log(`Editing ${region.geometryType}: ${region.name}`);
   // Set the region to edit
@@ -2157,6 +2207,19 @@ function setRegionName(region: UnifiedRegionType, newName: string) {
   console.log(`Renamed ${region.geometryType} region to: ${newName}`);
   regionBeingEdited.value = null;
 }
+
+// Aggregation dialog functions
+function openAggregationDialog(selection: UserSelectionType) {
+  aggregationSelection.value = selection;
+  showAggregationDialog.value = true;
+}
+
+function handleAggregationSaved(aggregatedSelection: UserSelectionType) {
+  addUserSelection(aggregatedSelection);
+  showAggregationDialog.value = false;
+  aggregationSelection.value = null;
+}
+
 
 import { StyleLayer } from "maplibre-gl";
 function deleteTimeRange(range: TimeRange) {
@@ -2832,7 +2895,8 @@ watch(useCustomTimeRange, (useCustom) => {
       id: v4(),
       name: `Time Range ${timeRangeCount}`,
       description: `Current Day (${new Date(start).toLocaleDateString()})`,
-      range: [{ start, end }]
+      range: [{ start, end }],
+      type: 'custom'
     };
   }
 });
