@@ -1,4 +1,4 @@
-import { VariableNames } from "./ImageLayerConfig";
+import { extractTimeSteps, fetchEsriTimeSteps, VariableNames } from "./ImageLayerConfig";
 
 export const ESRI_URLS = {
   'no2': {
@@ -42,3 +42,11 @@ export const MOLECULE_OPTIONS = [
 ] as const;
 
 export type MoleculeType = keyof typeof ESRI_URLS;
+
+export function moleculeName(molecule: MoleculeType): string {
+  return MOLECULE_OPTIONS.find(m => m.value == molecule)?.title ?? "";
+}
+
+export async function getEsriTimesteps(url: string, variable: VariableNames): Promise<number[]> {
+  return fetchEsriTimeSteps(url, variable).then(extractTimeSteps);
+}

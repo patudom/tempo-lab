@@ -72,9 +72,3 @@ defineProps<{
   mode: 'weekday' | 'daterange';
 }>();
 </script>
-
-<style scoped>
-.timeline-section {
-  /* Timeline-specific styles */
-}
-</style>

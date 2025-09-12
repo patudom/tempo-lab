@@ -142,11 +142,12 @@ export const useUniqueTimeSelection = (timestamps: Ref<number[]>) => {
       return;
     }
     // Reset to first date if current date is out of range
-    if (timeIndex.value ==null || timeIndex.value >= newTimestamps.length) {
+    if (timeIndex.value == null || timeIndex.value >= newTimestamps.length) {
       timeIndex.value = 0;
       singleDateSelected.value = new Date(newTimestamps[0]);
     } else {
       setNearestDate(singleDateSelected.value.getTime());
+      console.log(minIndex.value, maxIndex.value);
     }
   }, { immediate: true });
 
