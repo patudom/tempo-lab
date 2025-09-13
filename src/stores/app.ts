@@ -249,6 +249,8 @@ const createTempoStore = <T extends MappingBackends>(backend: MappingBackends) =
     if (index < 0) {
       return;
     }
+    regions.value.splice(index, 1);
+
     // if (map.value && region.layer) {
     //   if (isRectangleSelection(region)) {
     //     removeRectangleLayer(map.value as Map, region.layer as unknown as StyleLayer);
