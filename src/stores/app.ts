@@ -1,4 +1,4 @@
-import { defineStore } from "pinia";
+import { defineStore, type StateTree } from "pinia";
 import { computed, ref, watch, toRaw } from "vue";
 import { v4 } from "uuid";
 import { isComputedRef } from "@/utils/vue";
@@ -378,18 +378,25 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
 
 export const useTempoStore = createTempoStore("maplibre");
 
-export function deserializeTempoStore(value: string) {
-  const parsed = parse(value);
-  parsed.singleDateSelected = new Date(parsed.singleDateSelected);
-  for (const dataset of parsed.datasets) {
-    const samples = dataset.samples as Record<number, AggValue>;
-    if (samples) {
-      for (const entry of Object.values(samples)) {
-        entry.date = new Date(entry.date);
+export function deserializeTempoStore(value: string): StateTree {
+  if (!value) {
+    return {};
+  }
+  try {
+    const parsed = parse(value);
+    parsed.singleDateSelected = new Date(parsed.singleDateSelected);
+    for (const dataset of parsed.datasets) {
+      const samples = dataset.samples as Record<number, AggValue>;
+      if (samples) {
+        for (const entry of Object.values(samples)) {
+          entry.date = new Date(entry.date);
+        }
       }
     }
+    return parsed;
+  } catch (error) {
+    return {};
   }
-  return parsed;
 }
 
 const OMIT = new Set(["selectionActive"]);
@@ -408,6 +415,5 @@ export function serializeTempoStore(store: ReturnType<typeof useTempoStore>): st
     return s;
   });
   const stringified = stringify(state);
-  console.log(stringified);
   return stringified;
 }
