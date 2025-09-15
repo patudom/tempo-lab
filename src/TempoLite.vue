@@ -74,11 +74,24 @@ function mapConfig(): ComponentItemConfig {
 
 // We'll probably be using this eventually
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-function addMapPanel(){
+function addMapPanel() {
   if (layout) {
     const config = mapConfig();
     const row = layout.rootItem as RowOrColumn;
     row.addItem(config, Object.keys(mapTargets).length);
+  }
+}
+
+// And maybe this too
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function removeMapPanel(index: number) {
+  if (layout) {
+    const idx = Math.round(index);
+    if (idx >= Object.keys(mapTargets).length) {
+      throw new Error(`Index ${idx} is out of range for map panels`);
+    }
+    const row = layout.rootItem as RowOrColumn;
+    row.contentItems[idx]?.remove();
   }
 }
 
