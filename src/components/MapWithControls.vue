@@ -54,7 +54,7 @@
           </v-tooltip>
         </v-toolbar>
         <EsriMap
-          mapID="map"
+          :mapID="mapID"
           :initial="initState"
           :home="homeState"
           :show-roads="showRoads"
@@ -241,6 +241,8 @@ const map = ref<MapType>(null);
 
 type Timeout = ReturnType<typeof setTimeout>;
 
+const mapID = `map-${v4().replace("-", "")}`;
+
 const store = useTempoStore();
 const {
   accentColor2,
@@ -293,7 +295,7 @@ const display = useDisplay();
 
 const onMapReady = (m: Map) => {
   map.value = m; // ESRI source already added by EsriMap
-  updateRegionLayers(regions.value, []);
+  updateRegionLayers(regions.value);
 };
 
 const showLocationMarker = ref(true);

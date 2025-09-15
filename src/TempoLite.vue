@@ -27,7 +27,7 @@
 <script setup lang="ts">
 import { computed, onBeforeMount, onMounted, reactive, ref, useTemplateRef, type Ref } from "vue";
 import { storeToRefs } from "pinia";
-import { ComponentItemConfig, GoldenLayout, LayoutConfig } from "golden-layout";
+import { ComponentItemConfig, GoldenLayout, LayoutConfig, type RowOrColumn } from "golden-layout";
 import { v4 } from "uuid";
 
 import { useTempoStore, deserializeTempoStore, serializeTempoStore } from "@/stores/app";
@@ -72,15 +72,15 @@ function mapConfig(): ComponentItemConfig {
   };
 }
 
+// We'll probably be using this eventually
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function addMapPanel(){
   if (layout) {
     const config = mapConfig();
-    console.log(config);
-    console.log(layout);
+    const row = layout.rootItem as RowOrColumn;
+    row.addItem(config, Object.keys(mapTargets).length);
   }
 }
-
-console.log(addMapPanel);
 
 let layout: GoldenLayout | null = null;
 onMounted(() => {
