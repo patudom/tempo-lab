@@ -293,6 +293,7 @@ const display = useDisplay();
 
 const onMapReady = (m: Map) => {
   map.value = m; // ESRI source already added by EsriMap
+  updateRegionLayers(regions.value, []);
 };
 
 const showLocationMarker = ref(true);
@@ -409,8 +410,6 @@ function updateURL() {
 
 // ESRI timesteps arrive from EsriMap component; store directly in timestamps
 function onEsriTimestepsLoaded(steps: number[]) {
-  console.log("Loading steps");
-  console.log(steps);
   if (!Array.isArray(steps) || steps.length === 0) return;
   const sorted = steps.slice().sort();
   timestamps.value = sorted;
@@ -500,22 +499,27 @@ function getRegionsDifference(arr1: UnifiedRegionType[], arr2: UnifiedRegionType
   return arr1.filter(element => !ids2.includes(element.id));
 }
 
-watch(regions, (newRegions: UnifiedRegionType[], oldRegions: UnifiedRegionType[]) => {
-  const added = getRegionsDifference(newRegions, oldRegions);
-  const removed = getRegionsDifference(oldRegions, newRegions);
-  console.log(added);
-  console.log(removed);
-  console.log("======");
+let existingRegions: UnifiedRegionType[] = [];
+function updateRegionLayers(newRegions: UnifiedRegionType[]) {
+  const added = getRegionsDifference(newRegions, existingRegions);
+  const removed = getRegionsDifference(existingRegions, newRegions);
   added.forEach(region => {
-    const { layer } = addLayer(region.geometryInfo, region.geometryType, region.color);
-    regionLayers[region.id] = layer;
+    if (map.value && !regionLayers[region.id]) {
+      const { layer } = addLayer(region.geometryInfo, region.geometryType, region.color);
+      regionLayers[region.id] = layer;
+    }
   });
 
   removed.forEach(region => {
-    removeLayer(regionLayers[region.id] as unknown as StyleLayer, region.geometryType);
-    delete regionLayers[region.id];
+    if (map.value && regionLayers[region.id]) {
+      removeLayer(regionLayers[region.id] as unknown as StyleLayer, region.geometryType);
+      delete regionLayers[region.id];
+    }
   });
-});
+  existingRegions = [...newRegions];
+}
+
+watch(regions, updateRegionLayers, { deep: true });
 
 watch(rectangleInfo, (info: RectangleSelectionInfo | null) => {
   if (info === null || map.value === null) {
@@ -597,7 +601,6 @@ watch([showSamplingPreviewMarkers, regions, ()=> regions.value.length], (newVal)
 // TODO: This may need to be revisited when there are two maps
 watch(focusRegion, region => {
   if (region !== null) {
-    console.log(region);
     const bounds = regionBounds(region);
     fitBounds(map.value, bounds, true);
     focusRegion.value = null;
