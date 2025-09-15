@@ -6,12 +6,15 @@
     <header-bar />
     <div ref="root" class="layout-root"></div>
 
-    <teleport
-      v-if="mapTarget"
-      :to="mapTarget"
-    >
-      <map-with-controls />
-    </teleport>
+    <template v-if="mapTargets">
+      <teleport
+        v-for="[key, target] in Object.entries(mapTargets)"
+        :key="key"
+        :to="target"
+      >
+        <map-with-controls />
+      </teleport>
+    </template>
 
     <teleport
       v-if="sidePanelTarget"
@@ -22,16 +25,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeMount, onMounted, ref, useTemplateRef, type Ref } from "vue";
+import { computed, onBeforeMount, onMounted, reactive, ref, useTemplateRef, type Ref } from "vue";
 import { storeToRefs } from "pinia";
-import { GoldenLayout, LayoutConfig } from "golden-layout";
-// import { stringify } from "zipson";
+import { ComponentItemConfig, GoldenLayout, LayoutConfig } from "golden-layout";
+import { v4 } from "uuid";
 
 import { useTempoStore, deserializeTempoStore, serializeTempoStore } from "@/stores/app";
 
+type MaybeHTMLElement = HTMLElement | null;
 const root = useTemplateRef("root");
-const mapTarget = ref<HTMLElement | null>(null);
-const sidePanelTarget = ref<HTMLElement | null>(null);
+const mapTargets = reactive<Record<string, Ref<MaybeHTMLElement>>>({});
+const sidePanelTarget = ref<MaybeHTMLElement>(null);
 
 const store = useTempoStore();
 const {
@@ -58,20 +62,42 @@ onBeforeMount(() => {
   }
 });
 
+function mapConfig(): ComponentItemConfig {
+  return {
+    type: 'component',
+    componentType: 'map-panel',
+    title: 'Map',
+    draggable: false,
+    width: 70,
+  };
+}
+
+function addMapPanel(){
+  if (layout) {
+    const id = v4();
+    const config = mapConfig();
+    layout.rootItem?.contentItems[0].addChild(config, mapTargets.length);
+  }
+}
+
+let layout: GoldenLayout | null = null;
 onMounted(() => {
   const rootEl = root.value as HTMLElement;
   if (!rootEl) {
     return;
   }
-  const layout = new GoldenLayout(rootEl);
-  const components: [string, Ref<HTMLElement | null>][] = [
+  layout = new GoldenLayout(rootEl);
+  const mapTarget = ref<MaybeHTMLElement>(null);
+  mapTargets[v4()] = mapTarget;
+  const components: [string, Ref<MaybeHTMLElement>][] = [
     ["map-panel", mapTarget],
     ["side-panel", sidePanelTarget]
   ];
 
+
   components.forEach(([tag, elementRef]) => {
-    layout.registerComponentFactoryFunction(tag, container => {
-      container.element.id = tag;
+    layout?.registerComponentFactoryFunction(tag, container => {
+      container.element.classList.add(tag);
       elementRef.value = container.element;
     });
   });
@@ -84,13 +110,7 @@ onMounted(() => {
     root: {
       type: 'row',
       content: [
-        {
-          type: 'component',
-          componentType: 'map-panel',
-          title: 'Map',
-          draggable: false,
-          width: 70,
-        },
+        mapConfig(), 
         {
           type: 'component',
           componentType: 'side-panel',
@@ -148,7 +168,7 @@ body {
   font-family: "Lexend", sans-serif;
 }
 
-#side-panel {
+.side-panel {
   overflow-y: scroll;
 }
 
