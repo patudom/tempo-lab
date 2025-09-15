@@ -14,7 +14,6 @@ import { formatSingleRange, rangeForSingleDay } from "@/utils/timeRange";
 import { colorbarOptions } from "@/esri/ImageLayerConfig";
 
 const createTempoStore = (backend: MappingBackends) => defineStore("tempods", () => {
-
   const timeRanges = ref<TimeRange[]>([]);
   const regions = ref<UnifiedRegion[]>([]);
   const datasets = ref<UserDataset[]>([]);
