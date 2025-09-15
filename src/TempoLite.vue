@@ -74,11 +74,13 @@ function mapConfig(): ComponentItemConfig {
 
 function addMapPanel(){
   if (layout) {
-    const id = v4();
     const config = mapConfig();
-    layout.rootItem?.contentItems[0].addChild(config, mapTargets.length);
+    console.log(config);
+    console.log(layout);
   }
 }
+
+console.log(addMapPanel);
 
 let layout: GoldenLayout | null = null;
 onMounted(() => {
@@ -87,19 +89,18 @@ onMounted(() => {
     return;
   }
   layout = new GoldenLayout(rootEl);
-  const mapTarget = ref<MaybeHTMLElement>(null);
-  mapTargets[v4()] = mapTarget;
-  const components: [string, Ref<MaybeHTMLElement>][] = [
-    ["map-panel", mapTarget],
-    ["side-panel", sidePanelTarget]
-  ];
 
+  layout.registerComponentFactoryFunction("side-panel", container => {
+    container.element.id = "side-panel";
+    sidePanelTarget.value = container.element;
+  });
 
-  components.forEach(([tag, elementRef]) => {
-    layout?.registerComponentFactoryFunction(tag, container => {
-      container.element.classList.add(tag);
-      elementRef.value = container.element;
-    });
+  layout.registerComponentFactoryFunction("map-panel", container => {
+    container.element.classList.add("map-panel");
+    const id = v4();
+    const target = ref<MaybeHTMLElement>(null);
+    target.value = container.element;
+    mapTargets[id] = target;
   });
 
   const config: LayoutConfig = {
