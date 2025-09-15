@@ -2,7 +2,7 @@ import { defineStore } from "pinia";
 import { computed, ref, watch, toRaw } from "vue";
 import { v4 } from "uuid";
 import { isComputedRef } from "@/utils/vue";
-// import { parse } from "zipson";
+import { parse, stringify } from "zipson";
 
 import type { AggValue, InitMapOptions, LatLngPair, MappingBackends, SelectionType, TimeRange, UnifiedRegion, UserDataset } from "@/types";
 import { ESRI_URLS, MoleculeType } from "@/esri/utils";
@@ -379,7 +379,7 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
 export const useTempoStore = createTempoStore("maplibre");
 
 export function deserializeTempoStore(value: string) {
-  const parsed = JSON.parse(value);
+  const parsed = parse(value);
   parsed.singleDateSelected = new Date(parsed.singleDateSelected);
   for (const dataset of parsed.datasets) {
     const samples = dataset.samples as Record<number, AggValue>;
@@ -407,7 +407,7 @@ export function serializeTempoStore(store: ReturnType<typeof useTempoStore>): st
     delete s.layer;
     return s;
   });
-  const stringified = JSON.stringify(state);
+  const stringified = stringify(state);
   console.log(stringified);
   return stringified;
 }

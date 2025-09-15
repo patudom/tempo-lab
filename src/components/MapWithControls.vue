@@ -460,16 +460,17 @@ function addLayer(
   color: string,
 ): { layer: GeoJSONSource } {
   const isRect = geometryType === 'rectangle';
-  return isRect ? 
+  const layerInfo = isRect ?
     addRectangleLayer((map.value as MapType)!, info as RectangleSelectionInfo, color) :
     addPointLayer((map.value as MapType)!, info as PointSelectionInfo, color);
+  map.value?.moveLayer(layerInfo.layer.id);
+  return layerInfo;
 }
 
 function removeLayer(
   layer: StyleLayer,
   geometryType: "rectangle" | "point",
 ) {
-  console.log(layer);
   const isRect = geometryType === 'rectangle';
   if (isRect) {
     removeRectangleLayer((map.value as MapType)!, layer);
