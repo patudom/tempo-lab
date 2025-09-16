@@ -293,14 +293,6 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
       return;
     }
     regions.value.splice(index, 1);
-
-    // if (map.value && region.layer) {
-    //   if (isRectangleSelection(region)) {
-    //     removeRectangleLayer(map.value as Map, region.layer as unknown as StyleLayer);
-    //   } else if (isPointSelection(region)) {
-    //     removePointLayer(map.value as Map, region.layer as unknown as StyleLayer);
-    //   }
-    // }
   }
 
   return {
