@@ -250,7 +250,6 @@ const {
   regions,
   timestamp,
   timeIndex,
-  molecule,
   minIndex,
   maxIndex,
   date,
@@ -261,13 +260,15 @@ const {
   timestampsLoaded,
   selectionActive,
   regionsCreatedCount,
-  currentTempoDataService,
   maxSampleCount,
-  colorMap,
   focusRegion,
   initState,
   homeState,
 } = storeToRefs(store);
+
+const molecule = ref<MoleculeType>("no2");
+const colorMap = computed(() => colorbarOptions[molecule.value].colormap.toLowerCase());
+const currentTempoDataService = computed(() => store.getTempoDataService(molecule.value));
 
 function createSelectionComputed(selection: SelectionType): WritableComputedRef<boolean> {
   return computed({
