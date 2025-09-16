@@ -177,6 +177,16 @@
       </v-card>
     </map-colorbar-wrap>
     <div class="slider-row">
+      <!-- toggle powerplants  -->
+      <v-row class="my-4">
+        <v-btn
+          @click="pp.togglePowerPlants()"
+          size="small"
+        >
+          <v-icon size="24" color="black">mdi-factory</v-icon>
+          <span class="ms-1">{{ pp.powerPlantsVisible ? 'Hide' : 'Show' }} Power Plants</span>
+        </v-btn>
+      </v-row>
       <v-slider
         class="time-slider"
         v-model="timeIndex"
@@ -296,7 +306,7 @@ const pp = addPowerPlants(map as Ref<Map | null> | null);
 const onMapReady = (m: Map) => {
   console.log('Map ready event received');
   map.value = m; // ESRI source already added by EsriMap
-  pp.addheatmapLayer(); // if esri-source is not added yet, this will end up below the esri layer. fingers-crossed.
+  pp.addLayer(); // if esri-source is not added yet, this will end up below the esri layer. fingers-crossed.
   const ignoredSources = [
     'carto',  // the basemap
     'stamen-toner-labels',  // road labels
@@ -304,6 +314,7 @@ const onMapReady = (m: Map) => {
     'states-custom' // state boundaries
   ];
   map.value.addControl(new MaplibreLayersControl(['background'],ignoredSources), 'bottom-right');
+  pp.togglePowerPlants();
 };
 
 const showLocationMarker = ref(true);

@@ -73,7 +73,7 @@ export function addPowerPlants(map: Ref<Map | null> | null) {
     ensureDataLoaded();
   }
 
-  function addLayer() {
+  function addLayer(op = {minzoom: 0}) {
     if (!isValidMap(map)) return;
     
     addSource();
@@ -97,7 +97,7 @@ export function addPowerPlants(map: Ref<Map | null> | null) {
       id: powerPlantsLayerId,
       type: "circle",
       source: powerPlantsSourceId,
-      minzoom: 5,
+      minzoom: op.minzoom || 0,
       paint: {
         "circle-radius": 6,
         "circle-color": [
@@ -233,20 +233,23 @@ export function addPowerPlants(map: Ref<Map | null> | null) {
 
     });
     
-    addLayer(); // add the point layer on top of the heatmap
+    addLayer({minzoom: 5}); // add the point layer on top of the heatmap
     
   }
   
   function removeLayer() {
     if (!map || !map.value) return;
+    [powerPlantsLayerId, powerPlantsLayerId+'heatmap'].forEach(id => {
+      if (!map || !map.value) return;
+      
+      if (map.value.getLayer(id)) {
+        map.value.removeLayer(id);
+      }
 
-    if (map.value.getLayer(powerPlantsLayerId)) {
-      map.value.removeLayer(powerPlantsLayerId);
-    }
-
-    if (map.value.getSource(powerPlantsSourceId)) {
-      map.value.removeSource(powerPlantsSourceId);
-    }
+      if (map.value.getSource(id)) {
+        map.value.removeSource(id);
+      }
+    });
   }
 
   return {
