@@ -302,11 +302,20 @@ import { addPowerPlants } from "@/composables/addPowerPlants";
 import { MaplibreLayersControl } from "@/MaplibreLayerControl";
 
 const pp = addPowerPlants(map as Ref<Map | null> | null);
+import { useKML } from '@/composables/useKML';
+
+
+const kmlLayer = useKML('KMLPointMaps_PM2.5-24hr.kml', { propertyToShow: 'aqi', labelMinZoom: 5, layerName: 'aqi' });
 
 const onMapReady = (m: Map) => {
   console.log('Map ready event received');
   map.value = m; // ESRI source already added by EsriMap
   pp.addLayer(); // if esri-source is not added yet, this will end up below the esri layer. fingers-crossed.
+  pp.addheatmapLayer();
+  pp.togglePowerPlants(false);
+  kmlLayer.addToMap(m);
+  kmlLayer.toggleKmlVisibility(false);
+  m.moveLayer( 'states-custom','kml-layer-aqi'); // move above the esri layer
   const ignoredSources = [
     'carto',  // the basemap
     'stamen-toner-labels',  // road labels
@@ -314,7 +323,7 @@ const onMapReady = (m: Map) => {
     'states-custom' // state boundaries
   ];
   map.value.addControl(new MaplibreLayersControl(['background'],ignoredSources), 'bottom-right');
-  pp.togglePowerPlants();
+  // pp.togglePowerPlants();
 };
 
 const showLocationMarker = ref(true);

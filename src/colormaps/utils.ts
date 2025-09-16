@@ -76,7 +76,7 @@ export function previewColormapInConsole(colormapName: AllAvailableColorMaps = '
   let str = '';
   const style: string[] = [];
   for (let i = 0; i < colors.length; i += 2) {
-    const t = colors[i];
+    // const t = colors[i];
     const c = colors[i + 1];
     str += '%c█';
     style.push(`color: ${c}`);

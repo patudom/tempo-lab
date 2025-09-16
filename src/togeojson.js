@@ -8,7 +8,6 @@
 export default (function () {
   'use strict';
   
-  let exampleCount = 0;
   let extraTagsOption = ['aqi'];
   const excludeDirectChildren = new Set([
     'name','address','description','timespan','timestamp','extendeddata','visibility',

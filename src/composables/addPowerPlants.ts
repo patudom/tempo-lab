@@ -17,11 +17,17 @@ export function addPowerPlants(map: Ref<Map | null> | null) {
   const loading = ref(false);
   let loadPromise: Promise<GeoJSON.FeatureCollection> | null = null;
 
-  function togglePowerPlants() {
+  function togglePowerPlants(vis: boolean | undefined) {
     if (!map || !map.value) return;
     const layerIDs = [powerPlantsLayerId, powerPlantsLayerId+'heatmap'];
     layerIDs.forEach(id => {
       if (!map.value || !map.value!.getLayer(id)) return;
+      
+      if (vis !== undefined) {
+        powerPlantsVisible.value = vis;
+        map.value.setLayoutProperty(id, "visibility", vis ? "visible" : "none");
+        return;
+      }
       
       const visibility = map.value.getLayoutProperty(
         id,
@@ -124,13 +130,17 @@ export function addPowerPlants(map: Ref<Map | null> | null) {
       if (!e.features || e.features.length === 0) {
         return;
       }
+      // eslint-disable-next-line
+      // @ts-ignore
       const featureCoordinates = e.features[0].geometry.coordinates.toString();
       if (currentFeatureCoordinates !== featureCoordinates) {
         currentFeatureCoordinates = featureCoordinates;
 
         // Change the cursor style as a UI indicator.
         map.value.getCanvas().style.cursor = 'pointer';
-
+        
+        // eslint-disable-next-line
+        // @ts-ignore
         const coordinates = e.features[0].geometry.coordinates.slice();
         // Plant_Name, PrimSource, Total_MW
         const description = e.features[0].properties.Plant_Name + '<br/>' +
