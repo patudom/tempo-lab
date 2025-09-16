@@ -36,7 +36,7 @@ const createTempoStore = <T extends MappingBackends>(backend: MappingBackends) =
   const opacitySliderUsedCount = ref(0);
 
   const selectionActive = ref<SelectionType>(null);
-  const lastFocusedRegion = ref<UnifiedRegionType | null>(null);
+  const focusRegion = ref<UnifiedRegionType | null>(null);
 
   const colorMap = computed(() => colorbarOptions[molecule.value].colormap.toLowerCase());
 
@@ -301,6 +301,8 @@ const createTempoStore = <T extends MappingBackends>(backend: MappingBackends) =
     if (index < 0) {
       return;
     }
+    regions.value.splice(index, 1);
+
     // if (map.value && region.layer) {
     //   if (isRectangleSelection(region)) {
     //     removeRectangleLayer(map.value as Map, region.layer as unknown as StyleLayer);
@@ -319,7 +321,7 @@ const createTempoStore = <T extends MappingBackends>(backend: MappingBackends) =
     timezoneOptions,
 
     selectionActive,
-    lastFocusedRegion,
+    focusRegion,
 
     homeState,
     initState,
