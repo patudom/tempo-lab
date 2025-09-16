@@ -41,3 +41,46 @@ export function colormap(cmap: AllAvailableColorMaps, cmin: number, cmax: number
   return [Math.round(r*255),Math.round(g*255),Math.round(b*255)];
 }
 
+
+
+// should return an array of values that is compatible with the "heatmap-color" property of a heatmap layer
+// So it will be an array like: [0, 'color1', 0.2, 'color2', 0.4, 'color3', ..., 1, 'colorN']
+export function createHeatmapColorMap(colormapName: AllAvailableColorMaps = 'viridis', steps: number[] = [0.1, 0.2, 0.4, 0.6, 0.8, 1], transparentTo = 0): Array<number | string> {
+  const colors: Array<string | number> = [];
+  
+  // start with fully transparent
+  colors.push(0);
+  colors.push('rgba(0,0,0,0)'); 
+  
+  let transparentAdded = false;
+  // then add colors from transparentTo to 1
+  for (const t of steps) {
+    const [r, g, b] = colormap(colormapName, 0, 1, t);
+    const c = `rgb(${r},${g},${b})`;
+    if (transparentTo < t && !transparentAdded) {
+      console.log('Adding transparent to color at', transparentTo, c);
+      colors.push(transparentTo);
+      colors.push(c);
+      transparentAdded = true;
+    }
+    colors.push(t);
+    colors.push(c);
+  }
+  return colors;
+  
+}
+
+export function previewColormapInConsole(colormapName: AllAvailableColorMaps = 'viridis', steps: number[] = [0.1, 0.2, 0.4, 0.6, 0.8, 1], transparentTo = 0) {
+  // using console log stying appling hte color to a character
+  const colors = createHeatmapColorMap(colormapName, steps, transparentTo);
+  let str = '';
+  const style: string[] = [];
+  for (let i = 0; i < colors.length; i += 2) {
+    const t = colors[i];
+    const c = colors[i + 1];
+    str += '%c█';
+    style.push(`color: ${c}`);
+  }
+  console.log('%cColormap: ' + colormapName, 'font-weight: bold;');
+  console.log(str, ...style);
+}
