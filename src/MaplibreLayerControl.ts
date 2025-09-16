@@ -58,7 +58,7 @@ export class MaplibreLayersControl implements IControl {
   }
 
   private _createLayerItem(layer: LayerSpecification): HTMLElement {
-    console.log('Creating layer item for', layer);
+    console.log('Creating layer item for', layer.id);
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
     // corrected: checked when layer is visible
@@ -86,6 +86,8 @@ export class MaplibreLayersControl implements IControl {
     return this._layers.filter(layer => {
       if (!layer.id) return false;
       if (this._ignoredLayers.includes(layer.id)) return false;
+      // eslint-disable-next-line 
+      // @ts-ignore
       if (layer.source && this._ignoredSources.includes(layer.source as string)) return false;
       return true;
     });
@@ -153,6 +155,7 @@ export class MaplibreLayersControl implements IControl {
     
     map.on('styledata', () => {
       // check if layers changed
+      console.log('Style data event received');
       const newLayerIds = new Set((map.getStyle().layers || []).map(l => l.id));
       const oldLayerIds = new Set((this._layers ?? []).map(l => l.id));
       const hasNewLayers = newLayerIds.size !== oldLayerIds.size || [...newLayerIds].some(id => !oldLayerIds.has(id));
@@ -160,7 +163,18 @@ export class MaplibreLayersControl implements IControl {
         console.log('Style data changed, updating layer list');
         this.onLayersChanged(map.getStyle().layers || []);
       }
+      // check layer visibility changes
+      const visibilityChanged = (this._layers ?? []).some(oldLayer => {
+        const newLayer = map.getStyle().layers?.find(l => l.id === oldLayer.id);
+        return newLayer && oldLayer.layout?.visibility !== newLayer.layout?.visibility;
+      });
+      if (visibilityChanged) {
+        console.log('Layer visibility changed, updating layer list');
+        this.onLayersChanged(map.getStyle().layers || []);
+      }
     });
+    
+    // watch for 
 
     // ensure initial selection is applied
     this._applyPrimSourceFilter();

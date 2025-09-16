@@ -19,17 +19,22 @@ export function addPowerPlants(map: Ref<Map | null> | null) {
 
   function togglePowerPlants() {
     if (!map || !map.value) return;
-    const visibility = map.value.getLayoutProperty(
-      powerPlantsLayerId,
-      "visibility"
-    );
-    if (visibility === "visible") {
-      map.value.setLayoutProperty(powerPlantsLayerId, "visibility", "none");
-      powerPlantsVisible.value = false;
-    } else {
-      map.value.setLayoutProperty(powerPlantsLayerId, "visibility", "visible");
-      powerPlantsVisible.value = true;
-    }
+    const layerIDs = [powerPlantsLayerId, powerPlantsLayerId+'heatmap'];
+    layerIDs.forEach(id => {
+      if (!map.value || !map.value!.getLayer(id)) return;
+      
+      const visibility = map.value.getLayoutProperty(
+        id,
+        "visibility"
+      );
+      if (visibility === "visible") {
+        map.value.setLayoutProperty(id, "visibility", "none");
+        powerPlantsVisible.value = false;
+      } else {
+        map.value.setLayoutProperty(id, "visibility", "visible");
+        powerPlantsVisible.value = true;
+      }
+    });
   }
   
   function isValidMap(map: Ref<Map | null> | null): map is Ref<Map> {
