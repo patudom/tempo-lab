@@ -287,9 +287,22 @@ type UnifiedRegionType = typeof regions.value[number];
 
 const display = useDisplay();
 
+import { addPowerPlants } from "@/composables/addPowerPlants";
+import { MaplibreLayersControl } from "@/MaplibreLayerControl";
+
+const pp = addPowerPlants(map as Ref<Map | null> | null);
 
 const onMapReady = (m: Map) => {
+  console.log('Map ready event received');
   map.value = m; // ESRI source already added by EsriMap
+  pp.addheatmapLayer(); // if esri-source is not added yet, this will end up below the esri layer. fingers-crossed.
+  const ignoredSources = [
+    'carto',  // the basemap
+    'stamen-toner-labels',  // road labels
+    'coastline-custom',  // coastlines
+    'states-custom' // state boundaries
+  ];
+  map.value.addControl(new MaplibreLayersControl(['background'],ignoredSources), 'bottom-right');
 };
 
 const zoomScale = 0.5; // for matplibre-gl
@@ -737,4 +750,6 @@ watch(lastFocusedRegion, region => {
     width: fit-content;
   }
 }
+
+@import "@/styles/maplibre-layer-control.css";
 </style>
