@@ -230,7 +230,7 @@ export function addQUI(url: string, options: UseKMLOptions = {}): AQILayer {
     
     // Load KML if not already loaded
     if (!geoJsonData.value) {
-      console.log('AQI: No GeoJSON data, loading KML from URL:', kmlUrl.value);
+      // console.log('AQI: No GeoJSON data, loading KML from URL:', kmlUrl.value);
       await loadKML();
     }
     if (!geoJsonData.value) {
@@ -329,9 +329,9 @@ export function addQUI(url: string, options: UseKMLOptions = {}): AQILayer {
   
   
   // Optional: debug logging
-  watch(layerVisible, (newVis) => {
-    console.log('AQI layer visibility changed to:', newVis);
-  });
+  // watch(layerVisible, (newVis) => {
+  //   console.log('AQI layer visibility changed to:', newVis);
+  // });
 
   // Toggle visibility for main and label layers using the computed setter
   const toggleAQIVisibility = (val?: boolean | undefined): void => {

@@ -58,7 +58,7 @@ export class MaplibreLayersControl implements IControl {
   }
 
   private _createLayerItem(layer: LayerSpecification): HTMLElement {
-    console.log('Creating layer item for', layer.id);
+    // console.log('Creating layer item for', layer.id);
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
     // corrected: checked when layer is visible
