@@ -350,9 +350,11 @@ const onMapReady = (m: Map) => {
     'carto',  // the basemap
     'stamen-toner-labels',  // road labels
     'coastline-custom',  // coastlines
-    'states-custom' // state boundaries
+    'states-custom', // state boundaries
   ];
-  map.value.addControl(new MaplibreLayersControl(['background'],ignoredSources), 'bottom-right');
+  // idk what the background layer actually is
+  const ignoredLayers = ['background','aqi-layer-aqi-label'];
+  map.value.addControl(new MaplibreLayersControl(ignoredLayers,ignoredSources), 'bottom-right');
   // pp.togglePowerPlants();
 };
 

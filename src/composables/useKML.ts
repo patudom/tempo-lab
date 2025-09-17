@@ -1,6 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { ref, watch, type Ref, onBeforeUnmount, type MaybeRef, toRef } from 'vue';
+import { ref, type Ref, onBeforeUnmount } from 'vue';
 import toGeoJSON from '../togeojson.js';
 import { useAbortableFetch } from './useAbortableFetch';
 

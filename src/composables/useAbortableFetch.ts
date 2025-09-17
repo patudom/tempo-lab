@@ -1,7 +1,21 @@
 import { ref } from 'vue';
 
 
-// adapted from https://stackoverflow.com/a/62992971/11594175
+/** composeable
+ * @description 
+ * A composable providing an abortable fetch function using the AbortController API.
+ * 
+ * Usage:
+ * ```
+ * const { loading, error, abortController, abortableFetch, abort } = useAbortableFetch();
+ * ```
+ * - `loading`: provides access to current loading state
+ * - `error`: provides access to non-abort errors encountered during fetch (all errors are thrown, include abort)
+ * - `abortController`: provides access to the current AbortController, if any
+ * - `abort(msg)`: aborts the current fetch request and clears the controller (set to null)
+ * 
+ * adapted from https://stackoverflow.com/a/62992971/11594175
+ */
 export function useAbortableFetch() {
   const loading = ref(false);
   const error = ref<Error | null>(null);
