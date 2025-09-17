@@ -1,6 +1,7 @@
 import { ref, watch, Ref, MaybeRef, toRef, nextTick, computed } from 'vue';
 import { renderingRule, stretches, colorramps, RenderingRuleOptions, ColorRamps } from '../ImageLayerConfig';
 import { Map, type MapSourceDataEvent } from 'maplibre-gl';
+import { validate as uuidValidate } from "uuid";
 
 import { ImageService } from 'mapbox-gl-esri-sources';
 import { useEsriTimesteps } from '../../composables/useEsriTimesteps';
@@ -67,6 +68,15 @@ export function useEsriLayer(initialMolecule: MaybeRef<MoleculeType>,
           'raster-opacity': opacityRef.value ?? 0.8,
         },
       });
+      let index = -1;
+      for (const [idx, layer] of Object.entries(map.getStyle().layers)) {
+        if (uuidValidate(layer.id)) {
+          index = Number(idx) - 1;
+        }
+      }
+      if (index >= 0) {
+        map.moveLayer(esriLayerId, map.getStyle().layers[index].id);
+      }
     }
   }
   
@@ -104,15 +114,15 @@ export function useEsriLayer(initialMolecule: MaybeRef<MoleculeType>,
     
   }
 
-  function addEsriSource(_map: Map) {
-    if (!_map) return;
-    map.value = _map;
+  function addEsriSource(mMap: Map) {
+    if (!mMap) return;
+    map.value = mMap;
     
-    dynamicMapService.value = createImageService(_map, url.value, options.value);
+    dynamicMapService.value = createImageService(mMap, url.value, options.value);
 
-    addLayer(_map);
+    addLayer(mMap);
     // this event will run until the source is loaded
-    _map.on('sourcedata', onSourceLoad);
+    mMap.on('sourcedata', onSourceLoad);
   }
   
   function hasEsriSource() {

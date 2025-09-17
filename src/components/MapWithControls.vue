@@ -229,11 +229,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, useTemplateRef, watch, type Ref, type WritableComputedRef } from "vue";
+import { computed, ref, toRaw, useTemplateRef, watch, type Ref, type WritableComputedRef } from "vue";
 import { useDisplay } from 'vuetify';
 import { storeToRefs } from "pinia";
 import { MapBoxFeature, MapBoxFeatureCollection, MapBoxFeatureType, MapBoxForwardGeocodingOptions, geocodingInfoForSearch } from "@cosmicds/vue-toolkit";
-import { Map } from "maplibre-gl";
+import { Map, GeoJSONSource, type StyleLayer } from "maplibre-gl";
 import { getTimezoneOffset } from "date-fns-tz";
 import { v4 } from "uuid";
 
@@ -244,7 +244,7 @@ import { colormap } from "@/colormaps/utils";
 import { useTempoStore } from "@/stores/app";
 import { useLocationMarker } from "@/composables/maplibre/useMarker";
 import { useRectangleSelection } from "@/composables/maplibre/useRectangleSelection";
-import { addRectangleLayer, addPointLayer, regionBounds, fitBounds } from "@/composables/maplibre/utils";
+import { addRectangleLayer, addPointLayer, regionBounds, fitBounds, removeRectangleLayer, removePointLayer } from "@/composables/maplibre/utils";
 import { usePointSelection } from "@/composables/maplibre/usePointSelection";
 import { COLORS } from "@/utils/color";
 import { EsriSampler } from "@/esri/services/sampling";
@@ -282,6 +282,8 @@ const {
   maxSampleCount,
   colorMap,
   focusRegion,
+  initState,
+  homeState,
 } = storeToRefs(store);
 
 function createSelectionComputed(selection: SelectionType): WritableComputedRef<boolean> {
@@ -369,6 +371,7 @@ const onMapReady = (m: Map) => {
   ];
   map.value.addControl(new MaplibreLayersControl(ignoredLayers,ignoredSources, shownLayers), 'bottom-right');
   // pp.togglePowerPlants();
+  updateRegionLayers(regions.value, []);
 };
 
 const showLocationMarker = ref(true);
@@ -376,8 +379,6 @@ const {
   setMarker,
   removeMarker,
   locationMarker,
-  initState,
-  homeState,
 } = useLocationMarker(map as Ref<Map | null>, showLocationMarker.value);
 
 const showFieldOfRegard = ref(false);
@@ -398,6 +399,8 @@ function activateRectangleSelectionMode() {
 function activatePointSelectionMode() {
   pointSelectionActive.value = !pointSelectionActive.value;
 }
+
+const regionLayers: Record<string, GeoJSONSource> = {};
 
 const currentColormap = computed(() => {
   return (x: number): string => {
@@ -485,8 +488,6 @@ function updateURL() {
 
 // ESRI timesteps arrive from EsriMap component; store directly in timestamps
 function onEsriTimestepsLoaded(steps: number[]) {
-  console.log("Loading steps");
-  console.log(steps);
   if (!Array.isArray(steps) || steps.length === 0) return;
   const sorted = steps.slice().sort();
   timestamps.value = sorted;
@@ -531,24 +532,73 @@ function rectangleIsDegenerate(info: RectangleSelectionInfo): boolean {
   return info.xmax === info.xmin || info.ymax === info.ymin;
 }
 
+function addLayer(
+  info: RectangleSelectionInfo | PointSelectionInfo,
+  geometryType: "rectangle" | "point",
+  color: string,
+): { layer: GeoJSONSource } {
+  const isRect = geometryType === 'rectangle';
+  const layerInfo = isRect ?
+    addRectangleLayer((map.value as MapType)!, info as RectangleSelectionInfo, color) :
+    addPointLayer((map.value as MapType)!, info as PointSelectionInfo, color);
+  map.value?.moveLayer(layerInfo.layer.id);
+  return layerInfo;
+}
+
+function removeLayer(
+  layer: StyleLayer,
+  geometryType: "rectangle" | "point",
+) {
+  const isRect = geometryType === 'rectangle';
+  if (isRect) {
+    removeRectangleLayer((map.value as MapType)!, layer);
+  } else {
+    removePointLayer((map.value as MapType)!, layer);
+  }
+}
+
 function createRegion(info: RectangleSelectionInfo | PointSelectionInfo, geometryType: "rectangle" | "point"): UnifiedRegionType {
   const color = COLORS[regionsCreatedCount.value % COLORS.length];
   regionsCreatedCount.value += 1;
 
-  const isRect = geometryType === 'rectangle';
-  const { layer } = isRect ? 
-    addRectangleLayer((map.value as MapType)!, info as RectangleSelectionInfo, color)
-    : addPointLayer((map.value as MapType)!, info as PointSelectionInfo, color);
+  const id = v4();
+  const { layer } = addLayer(info, geometryType, color);
+  regionLayers[id] = layer;
   return {
-    id: v4(),
-    name: `${isRect ? 'Region' : 'Point'} ${regionsCreatedCount.value}`,
-    geometryInfo: info,
+    id,
+    name: `${geometryType === "rectangle" ? 'Region' : 'Point'} ${regionsCreatedCount.value}`,
+    geometryInfo: toRaw(info),
     geometryType: geometryType,
     color,
-    layer,
   };
-
 }
+
+function getRegionsDifference(arr1: UnifiedRegionType[], arr2: UnifiedRegionType[]): UnifiedRegionType[] {
+  const ids2 = arr2.map(r => r.id);
+  return arr1.filter(element => !ids2.includes(element.id));
+}
+
+let existingRegions: UnifiedRegionType[] = [];
+function updateRegionLayers(newRegions: UnifiedRegionType[]) {
+  const added = getRegionsDifference(newRegions, existingRegions);
+  const removed = getRegionsDifference(existingRegions, newRegions);
+  added.forEach(region => {
+    if (map.value && !regionLayers[region.id]) {
+      const { layer } = addLayer(region.geometryInfo, region.geometryType, region.color);
+      regionLayers[region.id] = layer;
+    }
+  });
+
+  removed.forEach(region => {
+    if (map.value && regionLayers[region.id]) {
+      removeLayer(regionLayers[region.id] as unknown as StyleLayer, region.geometryType);
+      delete regionLayers[region.id];
+    }
+  });
+  existingRegions = [...newRegions];
+}
+
+watch(regions, updateRegionLayers, { deep: true });
 
 watch(rectangleInfo, (info: RectangleSelectionInfo | null) => {
   if (info === null || map.value === null) {
@@ -630,7 +680,6 @@ watch([showSamplingPreviewMarkers, regions, ()=> regions.value.length], (newVal)
 // TODO: This may need to be revisited when there are two maps
 watch(focusRegion, region => {
   if (region !== null) {
-    console.log(region);
     const bounds = regionBounds(region);
     fitBounds(map.value, bounds, true);
     focusRegion.value = null;

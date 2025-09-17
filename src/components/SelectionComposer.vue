@@ -16,7 +16,7 @@
         return-object
       >
         <template #item="{ index, props }">
-          <v-list-item v-bind="props">
+          <v-list-item v-bind="{ ...props, title: props.value.name }">
             <template #title></template>
             <template #default>
               <v-list-item-title>{{ timeRanges[index].name }}</v-list-item-title>
@@ -28,8 +28,8 @@
             </template>
           </v-list-item>
         </template>
-        <template #selection="{ index }">
-          {{ timeRanges[index].name }}
+        <template #selection>
+          {{ selectedTimeRange.name }}
         </template>
       </v-select>
 

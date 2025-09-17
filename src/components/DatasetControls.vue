@@ -38,7 +38,7 @@
                 <v-list-item
                   v-for="(timeRange, index) in timeRanges"
                   :key="index"
-                  :title="timeRange.name === 'Displayed Day' ? `Displayed Day: ${ formatTimeRange(timeRange.range) }`  : formatTimeRange(timeRange.range)"
+                  :title="timeRange.name === 'Displayed Day' ? `Displayed Day: ${ formatTimeRange(timeRange.range) }` : formatTimeRange(timeRange.range)"
                   style="background-color: #444444"
                 >
 

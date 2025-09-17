@@ -1,8 +1,10 @@
-import { defineStore } from "pinia";
-import { computed, ref, watch } from "vue";
+import { defineStore, type StateTree } from "pinia";
+import { computed, ref, watch, toRaw } from "vue";
 import { v4 } from "uuid";
+import { isComputedRef } from "@/utils/vue";
+import { parse, stringify } from "zipson";
 
-import type { InitMapOptions, LatLngPair, MappingBackends, SelectionType, TimeRange, UnifiedRegion, UserDataset } from "@/types";
+import type { AggValue, InitMapOptions, LatLngPair, MappingBackends, SelectionType, TimeRange, UnifiedRegion, UserDataset } from "@/types";
 import { ESRI_URLS, MoleculeType } from "@/esri/utils";
 import { TempoDataService } from "@/esri/services/TempoDataService";
 import { useUniqueTimeSelection } from "@/composables/useUniqueTimeSelection";
@@ -11,12 +13,9 @@ import { atleast1d } from "@/utils/atleast1d";
 import { formatSingleRange, rangeForSingleDay } from "@/utils/timeRange";
 import { colorbarOptions } from "@/esri/ImageLayerConfig";
 
-
-const createTempoStore = <T extends MappingBackends>(backend: MappingBackends) => defineStore("tempods", () => {
-  type UnifiedRegionType = UnifiedRegion<T>;
-
+const createTempoStore = (backend: MappingBackends) => defineStore("tempods", () => {
   const timeRanges = ref<TimeRange[]>([]);
-  const regions = ref<UnifiedRegionType[]>([]);
+  const regions = ref<UnifiedRegion[]>([]);
   const datasets = ref<UserDataset[]>([]);
   const timestamps = ref<number[]>([]);
   const timestampsLoaded = ref(false);
@@ -36,7 +35,7 @@ const createTempoStore = <T extends MappingBackends>(backend: MappingBackends) =
   const opacitySliderUsedCount = ref(0);
 
   const selectionActive = ref<SelectionType>(null);
-  const focusRegion = ref<UnifiedRegionType | null>(null);
+  const focusRegion = ref<UnifiedRegion | null>(null);
 
   const colorMap = computed(() => colorbarOptions[molecule.value].colormap.toLowerCase());
 
@@ -192,7 +191,7 @@ const createTempoStore = <T extends MappingBackends>(backend: MappingBackends) =
     singleDateSelected.value = uniqueDays.value[uniqueDays.value.length - 1];
   });
 
-  function addRegion(region: UnifiedRegionType) {
+  function addRegion(region: UnifiedRegion) {
     // TODO: Fix the typing here
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
@@ -222,14 +221,14 @@ const createTempoStore = <T extends MappingBackends>(backend: MappingBackends) =
     }
   }
 
-  function setRegionName(region: UnifiedRegionType, newName: string) {
+  function setRegionName(region: UnifiedRegion, newName: string) {
     if (newName.trim() === '') {
       console.error("Region name cannot be empty.");
       return;
     }
     // eslint-disable-next-line
     // @ts-ignore it is not actually deep
-    const existing = (regions.value as UnifiedRegionType[]).find(r => r.name === newName && r.id !== region.id);
+    const existing = (regions.value as UnifiedRegion[]).find(r => r.name === newName && r.id !== region.id);
     if (existing) {
       console.error(`A region with the name "${newName}" already exists.`);
       return;
@@ -291,12 +290,12 @@ const createTempoStore = <T extends MappingBackends>(backend: MappingBackends) =
     return (dataset.samples !== undefined) && Object.keys(dataset.samples).length > 0;
   }
 
-  function regionHasDatasets(region: UnifiedRegionType): boolean {
+  function regionHasDatasets(region: UnifiedRegion): boolean {
     const sel = datasets.value.find(ds => ds.region.id === region.id);
     return sel !== undefined;
   }
 
-  function deleteRegion(region: UnifiedRegionType) {
+  function deleteRegion(region: UnifiedRegion) {
     const index = regions.value.findIndex(r => r.id === region.id);
     if (index < 0) {
       return;
@@ -380,3 +379,43 @@ const createTempoStore = <T extends MappingBackends>(backend: MappingBackends) =
 });
 
 export const useTempoStore = createTempoStore("maplibre");
+
+export function deserializeTempoStore(value: string): StateTree {
+  if (!value) {
+    return {};
+  }
+  try {
+    const parsed = parse(value);
+    parsed.singleDateSelected = new Date(parsed.singleDateSelected);
+    for (const dataset of parsed.datasets) {
+      const samples = dataset.samples as Record<number, AggValue>;
+      if (samples) {
+        for (const entry of Object.values(samples)) {
+          entry.date = new Date(entry.date);
+        }
+      }
+    }
+    return parsed;
+  } catch (error) {
+    return {};
+  }
+}
+
+const OMIT = new Set(["selectionActive"]);
+export function serializeTempoStore(store: ReturnType<typeof useTempoStore>): string {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const state: Record<string, any> = {};
+  for (const [key, value] of Object.entries(store.$state)) {
+    if (OMIT.has(key) || isComputedRef(value)) {
+      continue;
+    }
+    state[key] = toRaw(value);
+  }
+  state.regions = state.regions.map(r => {
+    const s = { ...r };
+    delete s.layer;
+    return s;
+  });
+  const stringified = stringify(state);
+  return stringified;
+}
