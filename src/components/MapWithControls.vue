@@ -304,8 +304,24 @@ import { MaplibreLayersControl } from "@/MaplibreLayerControl";
 const pp = addPowerPlants(map as Ref<Map | null> | null);
 import { useKML } from '@/composables/useKML';
 
+// base it of singleDateSelected
+const airQualityUrl = computed(() => {
+  const date = store.singleDateSelected;
+  if (!date) {
+    return 'https://s3-us-west-1.amazonaws.com/files.airnowtech.org/airnow/2025/20250914/KMLPointMaps_PM2.5-24hr.kml';
+  }
 
-const kmlLayer = useKML('KMLPointMaps_PM2.5-24hr.kml', { propertyToShow: 'aqi', labelMinZoom: 5, layerName: 'aqi' });
+  const year = date.getUTCFullYear();
+  const month = (date.getUTCMonth() + 1).toString().padStart(2, '0');
+  const day = date.getUTCDate().toString().padStart(2, '0');
+  return `https://s3-us-west-1.amazonaws.com/files.airnowtech.org/airnow/${year}/${year}${month}${day}/KMLPointMaps_PM2.5-24hr.kml`;
+});
+const kmlLayer = useKML(airQualityUrl.value, { propertyToShow: 'aqi', labelMinZoom: 5, layerName: 'aqi' });
+
+// Ensure date/url changes trigger a reload, even if initial load failed
+watch(airQualityUrl, (newUrl) => {
+  kmlLayer.setUrl(newUrl).catch(() => {/* ignore */});
+});
 
 const onMapReady = (m: Map) => {
   console.log('Map ready event received');
@@ -315,7 +331,15 @@ const onMapReady = (m: Map) => {
   pp.togglePowerPlants(false);
   kmlLayer.addToMap(m);
   kmlLayer.toggleKmlVisibility(false);
-  m.moveLayer( 'states-custom','kml-layer-aqi'); // move above the esri layer
+  // Only move if target layer exists (avoid errors if initial KML load failed)
+  try {
+    if (m.getLayer('kml-layer-aqi')) {
+      m.moveLayer('states-custom','kml-layer-aqi');
+    }
+  } catch {
+    // ignore
+  }
+
   const ignoredSources = [
     'carto',  // the basemap
     'stamen-toner-labels',  // road labels

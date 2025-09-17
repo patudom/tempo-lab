@@ -17,7 +17,7 @@ export function addPowerPlants(map: Ref<Map | null> | null) {
   const loading = ref(false);
   let loadPromise: Promise<GeoJSON.FeatureCollection> | null = null;
 
-  function togglePowerPlants(vis: boolean | undefined) {
+  function togglePowerPlants(vis?: boolean | undefined) {
     if (!map || !map.value) return;
     const layerIDs = [powerPlantsLayerId, powerPlantsLayerId+'heatmap'];
     layerIDs.forEach(id => {
