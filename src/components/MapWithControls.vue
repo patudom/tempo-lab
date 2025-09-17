@@ -361,7 +361,13 @@ const onMapReady = (m: Map) => {
   ];
   // idk what the background layer actually is
   const ignoredLayers = ['background','aqi-layer-aqi-label'];
-  map.value.addControl(new MaplibreLayersControl(ignoredLayers,ignoredSources), 'bottom-right');
+  const shownLayers = [
+    'esri-source',
+    'power-plants-layerheatmap',
+    'power-plants-layer',
+    'aqi-layer-aqi',
+  ];
+  map.value.addControl(new MaplibreLayersControl(ignoredLayers,ignoredSources, shownLayers), 'bottom-right');
   // pp.togglePowerPlants();
 };
 

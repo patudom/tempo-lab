@@ -35,11 +35,13 @@ export class MaplibreLayersControl implements IControl {
   private _layers: LayerSpecification[] | undefined;
   private _ignoredLayers: string[] = [];
   private _ignoredSources: string[] = [];
+  private _shownLayers: string[] = [];
   private _selectedPrimSource: PrimSource | 'All' = 'All';
   
-  constructor(ignoreLayers?: string[], ignoreSources?: string[]) {
+  constructor(ignoreLayers?: string[], ignoreSources?: string[], shownLayers?: string[]) {
     this._ignoredLayers = ignoreLayers || [];
     this._ignoredSources = ignoreSources || [];
+    this._shownLayers = shownLayers || [];
   }
   
   // apply current PrimSource filter to both layers if present
@@ -89,6 +91,7 @@ export class MaplibreLayersControl implements IControl {
       // eslint-disable-next-line 
       // @ts-ignore
       if (layer.source && this._ignoredSources.includes(layer.source as string)) return false;
+      if (this._shownLayers.length > 0 && !this._shownLayers.includes(layer.id)) return false;
       return true;
     });
   }
