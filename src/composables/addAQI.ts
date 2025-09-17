@@ -259,6 +259,9 @@ export function addQUI(url: string, options: UseKMLOptions = {}): AQILayer {
       id: layerId,
       type: 'circle',
       source: sourceId,
+      layout: {
+        visibility: lastKnownVisible.value ? 'visible' : 'none'
+      },
       paint: {
         'circle-radius': [
           'interpolate', ['linear'], ['zoom'],
@@ -289,7 +292,8 @@ export function addQUI(url: string, options: UseKMLOptions = {}): AQILayer {
         layout: {
           'text-field': ['coalesce', ['to-string', ['get', propertyToShow]], ''],
           'text-size': 10,
-          'text-offset': [0, 0]
+          'text-offset': [0, 0],
+          'visibility': lastKnownVisible.value ? 'visible' : 'none'
         },
         paint: {
           'text-color': '#1a1a1a',
@@ -312,11 +316,11 @@ export function addQUI(url: string, options: UseKMLOptions = {}): AQILayer {
     }
 
     // Apply last known visibility after layers are added
-    const vis = lastKnownVisible.value ? 'visible' : 'none';
-    map.setLayoutProperty(layerId, 'visibility', vis);
-    if (map.getLayer(labelLayerId)) {
-      map.setLayoutProperty(labelLayerId, 'visibility', vis);
-    }
+    // const vis = lastKnownVisible.value ? 'visible' : 'none';
+    // map.setLayoutProperty(layerId, 'visibility', vis);
+    // if (map.getLayer(labelLayerId)) {
+    //   map.setLayoutProperty(labelLayerId, 'visibility', vis);
+    // }
 
     console.log('AQI: Successfully added KML layer to map');
       

@@ -329,7 +329,7 @@ const aqiLayer = addQUI(airQualityUrl.value, {
   propertyToShow: 'aqi', 
   labelMinZoom: 5, 
   layerName: 'aqi', 
-  visible: true,
+  visible: false,
   showLabel: true, 
   showPopup: true });
 
@@ -341,11 +341,9 @@ watch(airQualityUrl, (newUrl) => {
 const onMapReady = (m: Map) => {
   console.log('Map ready event received');
   map.value = m; // ESRI source already added by EsriMap
-  pp.addLayer(); // if esri-source is not added yet, this will end up below the esri layer. fingers-crossed.
   pp.addheatmapLayer();
   pp.togglePowerPlants(false);
   aqiLayer.addToMap(m);
-  aqiLayer.toggleAQIVisibility(false);
   // Only move if target layer exists (avoid errors if initial KML load failed)
   try {
     if (m.getLayer('kml-layer-aqi')) {

@@ -126,7 +126,12 @@ export function addPowerPlants(map: Ref<Map | null> | null) {
     ////
     
     let currentFeatureCoordinates = undefined;
-    map.value.on('mousemove', powerPlantsLayerId, (e) => {
+    
+    map.value.on('mouseenter', powerPlantsLayerId, () => {
+      map.value.getCanvas().style.cursor = 'pointer';
+    });
+    
+    map.value.on('click', powerPlantsLayerId, (e) => {
       if (!e.features || e.features.length === 0) {
         return;
       }
