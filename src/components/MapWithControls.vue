@@ -302,7 +302,7 @@ import { addPowerPlants } from "@/composables/addPowerPlants";
 import { MaplibreLayersControl } from "@/MaplibreLayerControl";
 
 const pp = addPowerPlants(map as Ref<Map | null> | null);
-import { useKML } from '@/composables/useKML';
+import { addQUI } from '@/composables/addAQI';
 
 // base it of singleDateSelected
 const airQualityUrl = computed(() => {
@@ -316,7 +316,13 @@ const airQualityUrl = computed(() => {
   const day = date.getUTCDate().toString().padStart(2, '0');
   return `https://s3-us-west-1.amazonaws.com/files.airnowtech.org/airnow/${year}/${year}${month}${day}/KMLPointMaps_PM2.5-24hr.kml`;
 });
-const kmlLayer = useKML(airQualityUrl.value, { propertyToShow: 'aqi', labelMinZoom: 5, layerName: 'aqi' });
+const kmlLayer = addQUI(airQualityUrl.value, { 
+  propertyToShow: 'aqi', 
+  labelMinZoom: 5, 
+  layerName: 'aqi', 
+  visible: true,
+  showLabel: true, 
+  showPopup: true });
 
 // Ensure date/url changes trigger a reload, even if initial load failed
 watch(airQualityUrl, (newUrl) => {
