@@ -179,6 +179,7 @@
     <div class="slider-row">
       <!-- toggle powerplants  -->
       <v-row class="my-4">
+        <v-col>
         <v-btn
           @click="pp.togglePowerPlants()"
           size="small"
@@ -186,6 +187,14 @@
           <v-icon size="24" color="black">mdi-factory</v-icon>
           <span class="ms-1">{{ pp.powerPlantsVisible ? 'Hide' : 'Show' }} Power Plants</span>
         </v-btn>
+        <v-btn
+          @click="aqiLayer.toggleAQIVisibility()"
+          size="small"
+        >
+          <v-icon size="24" color="black">mdi-factory</v-icon>
+          <span class="ms-1">{{ aqiLayer.layerVisible ? 'Hide' : 'Show' }} AQI</span>
+        </v-btn>
+      </v-col>
       </v-row>
       <v-slider
         class="time-slider"
@@ -316,7 +325,7 @@ const airQualityUrl = computed(() => {
   const day = date.getUTCDate().toString().padStart(2, '0');
   return `https://s3-us-west-1.amazonaws.com/files.airnowtech.org/airnow/${year}/${year}${month}${day}/KMLPointMaps_PM2.5-24hr.kml`;
 });
-const kmlLayer = addQUI(airQualityUrl.value, { 
+const aqiLayer = addQUI(airQualityUrl.value, { 
   propertyToShow: 'aqi', 
   labelMinZoom: 5, 
   layerName: 'aqi', 
@@ -326,7 +335,7 @@ const kmlLayer = addQUI(airQualityUrl.value, {
 
 // Ensure date/url changes trigger a reload, even if initial load failed
 watch(airQualityUrl, (newUrl) => {
-  kmlLayer.setUrl(newUrl).catch(() => {/* ignore */});
+  aqiLayer.setUrl(newUrl).catch(() => {/* ignore */});
 });
 
 const onMapReady = (m: Map) => {
@@ -335,8 +344,8 @@ const onMapReady = (m: Map) => {
   pp.addLayer(); // if esri-source is not added yet, this will end up below the esri layer. fingers-crossed.
   pp.addheatmapLayer();
   pp.togglePowerPlants(false);
-  kmlLayer.addToMap(m);
-  kmlLayer.toggleKmlVisibility(false);
+  aqiLayer.addToMap(m);
+  aqiLayer.toggleAQIVisibility(false);
   // Only move if target layer exists (avoid errors if initial KML load failed)
   try {
     if (m.getLayer('kml-layer-aqi')) {

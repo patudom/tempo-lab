@@ -55,7 +55,7 @@ export interface AQILayer {
   loading: Ref<boolean>
   error: Ref<Error | null>
   layerVisible: WritableComputedRef<boolean>
-  toggleKmlVisibility: (vis: boolean | undefined) => void
+  toggleAQIVisibility: (vis?: boolean | undefined) => void
   setUrl: (newUrl: string) => Promise<void>
 }
 
@@ -109,6 +109,7 @@ export function addQUI(url: string, options: UseKMLOptions = {}): AQILayer {
       }
       
       const vis = map.getLayoutProperty(layerId, 'visibility');
+      console.log(`AQI: Layer ${layerId} visibility is`, vis);
       return vis === 'visible';
     },
     set(val: boolean) {
@@ -329,7 +330,7 @@ export function addQUI(url: string, options: UseKMLOptions = {}): AQILayer {
   });
 
   // Toggle visibility for main and label layers using the computed setter
-  const toggleKmlVisibility = (val: boolean | undefined): void => {
+  const toggleAQIVisibility = (val?: boolean | undefined): void => {
     const next = val ?? !layerVisible.value;
     layerVisible.value = next;
   };
@@ -401,7 +402,7 @@ export function addQUI(url: string, options: UseKMLOptions = {}): AQILayer {
     loading,
     error,
     layerVisible,
-    toggleKmlVisibility,
+    toggleAQIVisibility,
     setUrl
   };
 }
