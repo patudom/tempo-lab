@@ -41,7 +41,6 @@ function getAqiColorFromStyleUrl(styleUrlRaw: string | null | undefined): string
   const key = (styleUrlRaw || '').trim();
   if (!key) return '#D9D9D9';
   // ensure hash prefix and lowercase for lookup
-  console.log('AQI: styleUrl key:', key);
   const normalized = (key.startsWith('#') ? key : `#${key}`).toLowerCase();
   return AQI_STYLE_COLORS[normalized] || '#D9D9D9';
 }
@@ -94,7 +93,7 @@ export function addQUI(url: string, options: UseKMLOptions = {}): AQILayer {
   const onStyleDataRef = ref<InternalMapLayerEventTypeHandler | null>(null);
 
   // Track the last known layer visibility across URL changes (persisted)
-  const lastKnownVisible = ref<boolean>(options.visible || true);
+  const lastKnownVisible = ref<boolean>(options.visible ?? true); 
 
   // layerVisible reflects actual map state; falls back to lastKnownVisible if layer missing
   const layerVisible = computed<boolean>({
@@ -199,18 +198,26 @@ export function addQUI(url: string, options: UseKMLOptions = {}): AQILayer {
   }
 
   function setupVisibilitySync(map: M.Map) {
-    // Keep label visibility equal to main layer
+    // Keep label visibility equal to main layer & sync external visibility changes
     const syncLabelVisibility = () => {
-      if (!map.getLayer(layerId) || !map.getLayer(labelLayerId!)) return;
-      const mainVis = (map.getLayoutProperty(layerId, 'visibility') as string);
-      const labelVis = (map.getLayoutProperty(labelLayerId!, 'visibility') as string);
-      if (labelVis !== mainVis) {
-        map.setLayoutProperty(labelLayerId!, 'visibility', mainVis);
+      if (!map.getLayer(layerId)) return;
+      const mainVis = (map.getLayoutProperty(layerId, 'visibility') as string) || 'visible';
+      const isVisible = mainVis === 'visible';
+      if (lastKnownVisible.value !== isVisible) {
+        lastKnownVisible.value = isVisible;
+      }
+      if (map.getLayer(labelLayerId)) {
+        const labelVis = (map.getLayoutProperty(labelLayerId, 'visibility') as string) || 'visible';
+        if (labelVis !== mainVis) {
+          map.setLayoutProperty(labelLayerId, 'visibility', mainVis);
+        }
       }
     };
     
     syncLabelVisibility();
-    map.on('styledata', syncLabelVisibility);
+    // idle takes a bit longer than styledata, and the user can tell
+    // but idle would be less frequent i think
+    map.on('styledata', syncLabelVisibility); 
     onStyleDataRef.value = syncLabelVisibility;
   }
 
@@ -291,24 +298,28 @@ export function addQUI(url: string, options: UseKMLOptions = {}): AQILayer {
         filter: ['==', '$type', 'Point']
       });
 
-      if (onStyleDataRef.value === null) {
-        setupVisibilitySync(map);
-      }
+      
       // Add popup/handlers if it hasn't been added yet
       if (showPopup && popupRef.value === null) {
         setupLayerPopup(propertyToShow, map, layerId);
       }
-
-      // Apply last known visibility after layers are added
-      const vis = lastKnownVisible.value ? 'visible' : 'none';
-      map.setLayoutProperty(layerId, 'visibility', vis);
-      if (map.getLayer(labelLayerId)) {
-        map.setLayoutProperty(labelLayerId, 'visibility', vis);
-      }
-
-      console.log('AQI: Successfully added KML layer to map');
-      
     }
+    // Even without labels still sync visibility (for external toggles)
+    if (onStyleDataRef.value === null) {
+      setupVisibilitySync(map);
+
+    }
+
+    // Apply last known visibility after layers are added
+    const vis = lastKnownVisible.value ? 'visible' : 'none';
+    map.setLayoutProperty(layerId, 'visibility', vis);
+    if (map.getLayer(labelLayerId)) {
+      map.setLayoutProperty(labelLayerId, 'visibility', vis);
+    }
+
+    console.log('AQI: Successfully added KML layer to map');
+      
+    
   };
   
   
@@ -355,6 +366,7 @@ export function addQUI(url: string, options: UseKMLOptions = {}): AQILayer {
     if (onLeaveRef.value) map.off('mouseleave', layerId, onLeaveRef.value);
     if (popupRef.value) popupRef.value.remove();
     if (onStyleDataRef.value) map.off('styledata', onStyleDataRef.value);
+    // if (onStyleDataRef.value) map.off('idle', onStyleDataRef.value); 
 
     // Remove layers and source
     if (map.getLayer(labelLayerId)) {
