@@ -160,6 +160,9 @@ export interface UserDataset {
   folded?: unknown;
   // Direct plotly datasets (preferred for folded or synthetic selections)
   plotlyDatasets?: DataSet[];
+  // add two user editable properties
+  name?: string; // user editable
+  customColor?: string; // user editable
 }
 
 export interface SelectionHandler<EventType, SelectionInfo> {
