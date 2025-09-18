@@ -16,7 +16,7 @@ export interface DateRangeSelection {
   endDate: Date;
 }
 
-export type TimeRangeSelectionType = 'weekday' | 'singledate' | 'daterange' | 'pattern';
+export type TimeRangeSelectionType = 'singledate' | 'daterange' | 'pattern';
 
 export interface DateTimeSelection {
   type: TimeRangeSelectionType;

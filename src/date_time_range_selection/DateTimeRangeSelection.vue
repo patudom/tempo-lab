@@ -18,11 +18,7 @@
           value="daterange"
           density="compact"
         />
-        <!-- <v-radio 
-          label="Weekday Pattern" 
-          value="weekday"
-          density="compact"
-        /> -->
+
         <v-radio 
           label="Pattern (Days × Times)" 
           value="pattern"
@@ -30,82 +26,7 @@
         />
       </v-radio-group>
 
-      <!-- Weekday Pattern Section -->
-      <v-expand-transition>
-        <div v-if="selectionType === 'weekday'" class="weekday-pattern-section">
-          <!-- Reference Date -->
-          <div class="mb-4">
-            <label class="text-subtitle-2 mb-2 d-block">Reference Date</label>
-            <date-picker
-              ref="weekdayCalendar"
-              :model-value="weekdayStartDateObj"
-              @internal-model-change="handleWeekdayDateChange"
-              :allowed-dates="allowedDates"
-              :format="formatDateDisplay"
-              :preview-format="formatDateDisplay"
-              :clearable="false"
-              text-input
-              :teleport="true"
-              dark
-              :year-range="[allowedDates ? allowedDates[0].getFullYear() : 2023, allowedDates ? allowedDates[allowedDates.length - 1].getFullYear() : new Date().getFullYear()]"
-            />
-          </div>
 
-          <!-- Day of Week Selection -->
-          <div class="mb-4">
-            <v-select
-              v-model="selectedDayOfWeek"
-              :items="dayOptions"
-              label="Day of Week"
-              prepend-inner-icon="mdi-calendar-week"
-              density="compact"
-              variant="outlined"
-              hide-details
-            />
-          </div>
-
-          <!-- Time Selection -->
-          <div class="mb-4">
-            <label class="text-subtitle-2 mb-2 d-block">Time</label>
-            <div class="d-flex align-center ga-2">
-              <input
-                v-model="selectedTime"
-                type="time"
-                class="time-input"
-              />
-              <v-chip size="small" color="primary" variant="tonal">
-                {{ selectedTimezone }}
-              </v-chip>
-              <!-- add time plus minus number input. use +- icon and should step in .5 hour increments -->
-              
-              <input 
-                v-model="timePlusMinus"
-                type="number"
-                min="-12"
-                max="12"
-                step="0.5"
-                class="time-input"
-                style="width: 80px;"
-                placeholder="± hours"
-              />
-            </div>
-          </div>
-
-          <!-- Number of Instances -->
-          <div class="mb-4">
-            <v-number-input
-              v-model="instancesBack"
-              label="Number of Instances"
-              :rules="instanceRules"
-              :min="1"
-              :max="104"
-              density="compact"
-              variant="outlined"
-              control-variant="split"
-            />
-          </div>
-        </div>
-      </v-expand-transition>
 
       <!-- Date Range Section -->
       <v-expand-transition>
@@ -330,8 +251,6 @@ const { setToMidnight, setToEndOfDay, formatDateDisplay } = useTimezone(timezone
 // Initialize the datetime selector composable with optional parameters
 const {
   selectionType,
-  selectedDayOfWeek,
-  selectedTime,
   instancesBack,
   timePlusMinus,
   weekdayStartDate,

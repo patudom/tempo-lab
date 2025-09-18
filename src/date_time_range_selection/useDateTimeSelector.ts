@@ -79,9 +79,10 @@ export function useDateTimeSelector(
   
   // Generate millisecond ranges
   function generateMillisecondRanges(): MillisecondRange[] {
-    if (selectionType.value === 'weekday') {
-      return generateWeekdayRanges();
-    } else if (selectionType.value === 'pattern') {
+    // if (selectionType.value === 'weekday') {
+    //   return generateWeekdayRanges();
+    // } else 
+    if (selectionType.value === 'pattern') {
       return generatePatternRanges();
     } else if (selectionType.value === 'singledate') {
       return generateSingleDateRange();
