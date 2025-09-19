@@ -297,12 +297,12 @@ export class MaplibreLayersControl implements IControl {
     
     map.on('styledata', () => {
       // check if layers changed
-      console.log('Style data event received');
+      // console.log('Style data event received');
       const newLayerIds = new Set((map.getStyle().layers || []).map(l => l.id));
       const oldLayerIds = new Set((this._layers ?? []).map(l => l.id));
       const hasNewLayers = newLayerIds.size !== oldLayerIds.size || [...newLayerIds].some(id => !oldLayerIds.has(id));
       if (hasNewLayers) {
-        console.log('Style data changed, updating layer list');
+        // console.log('Style data changed, updating layer list');
         this.onLayersChanged(map.getStyle().layers || []);
       }
       // check layer visibility changes
