@@ -30,6 +30,27 @@ import './styles/maplibre-layer-control.css'; // added
 //     }
 // }
 
+function setLayerOpacity(map: Map, layerId: string, opacity: number) {
+  const layer = map.getLayer(layerId)!;
+  const paintProp = `${layer.type}-opacity`;
+  if (layer.type !== 'symbol') {
+    map.setPaintProperty(layerId, paintProp, opacity);
+  }
+  if (layer.type === 'circle') {
+    map.setPaintProperty(layerId, 'circle-stroke-opacity', opacity);
+  }  
+  if (layer.type === 'symbol') {
+    // icon-opacity
+    if (map.getPaintProperty(layerId, 'icon-opacity') !== undefined) {
+      map.setPaintProperty(layerId, 'icon-opacity', opacity);
+    }
+    // text-opacity
+    if (map.getPaintProperty(layerId, 'text-opacity') !== undefined) {
+      map.setPaintProperty(layerId, 'text-opacity', opacity);
+    }
+  }
+}
+
 // A super simple layer control to toggle visibility of layers
 export class MaplibreLayersControl implements IControl {
   private _map: Map | undefined;
@@ -38,12 +59,14 @@ export class MaplibreLayersControl implements IControl {
   private _ignoredLayers: string[] = [];
   private _ignoredSources: string[] = [];
   private _shownLayers: string[] = [];
+  private _linkedOpacitiesIds: Record<string, string[]>; // layers that should be shown/hidden together
   private _selectedPrimSource: PrimSource | 'Renewables' | 'Fossil Fuels' | 'All' = 'All';
   
-  constructor(ignoreLayers?: string[], ignoreSources?: string[], shownLayers?: string[]) {
+  constructor(ignoreLayers?: string[], ignoreSources?: string[], shownLayers?: string[], linkOpacities?: Record<string, string[]>) {
     this._ignoredLayers = ignoreLayers || [];
     this._ignoredSources = ignoreSources || [];
     this._shownLayers = shownLayers || [];
+    this._linkedOpacitiesIds = linkOpacities || {};
   }
   
   // apply current PrimSource filter to both layers if present
@@ -113,13 +136,28 @@ export class MaplibreLayersControl implements IControl {
     opacitySlider.min = '0';
     opacitySlider.max = '1';
     opacitySlider.step = '0.01';
-    opacitySlider.value = '1';
+    // console.log('Initial opacity for', layer.id, 'is', this._map ? this._map.getPaintProperty(layer.id, `${layer.type}-opacity`) : 'N/A');
+    const initialOpacity = this._map!.getPaintProperty(layer.id, `${layer.type}-opacity`) as unknown as string;
+    console.log('Initial opacity for', layer.id, 'is', initialOpacity);
+    opacitySlider.value = String(isNaN(parseFloat(initialOpacity)) ? 1 : parseFloat(initialOpacity));
     opacitySlider.classList.add('mlc-layer-opacity-slider');
     opacitySlider.title = 'Adjust layer opacity';
     opacitySlider.id = `${layer.id}-opacity-slider`;
     opacitySlider.addEventListener('input', () => {
       if (this._map) {
-        this._map.setPaintProperty(layer.id, `${layer.type}-opacity`, parseFloat(opacitySlider.value));
+        // this._map.setPaintProperty(layer.id, `${layer.type}-opacity`, parseFloat(opacitySlider.value));
+        setLayerOpacity(this._map, layer.id, parseFloat(opacitySlider.value));
+        // if this layer has linked opacities, set them too
+        const linked = this._linkedOpacitiesIds[layer.id];
+        if (linked) {
+          linked.forEach(linkedId => {
+            const linkedSlider = document.getElementById(`${linkedId}-opacity-slider`) as HTMLInputElement | null;
+            if (linkedSlider) {
+              linkedSlider.value = opacitySlider.value;
+            }
+            setLayerOpacity(this._map!, linkedId, parseFloat(opacitySlider.value));
+          });
+        }
       }
     });
     

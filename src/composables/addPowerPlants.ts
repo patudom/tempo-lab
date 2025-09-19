@@ -120,7 +120,7 @@ export function addPowerPlants(map: Ref<Map | null> | null) {
           /* other */ '#808080'
           
         ],
-        "circle-opacity": 0.8,
+        "circle-opacity": 1,
         "circle-stroke-width": 1,
         "circle-stroke-color": "#ffffff"
       },
@@ -192,7 +192,7 @@ export function addPowerPlants(map: Ref<Map | null> | null) {
       id: powerPlantsHeatmapLayerId,
       type: 'heatmap',
       source: powerPlantsSourceId,
-      maxzoom: 7,
+      maxzoom: 5,
       paint: {
         "heatmap-radius": [
           'interpolate',
@@ -239,14 +239,15 @@ export function addPowerPlants(map: Ref<Map | null> | null) {
           // ]
           ...createHeatmapColorMap('viridis', [0.1, 0.2, 0.4, 0.6, 0.8, 1], 0.05) // aweful by default
         ],
+        // only fade at the zoom limit
         "heatmap-opacity": [
           'interpolate',
           ['linear'],
           ['zoom'],
-          4.9, // zoom = 7
-          1, // opacity = 1 @ zoom = 7
-          5, // zoom = 9
-          0 // opacity = 0 @ zoom = 9
+          4.9, // zoom = 4.9
+          1, // opacity = 1 @ zoom = 4.9
+          5, // zoom = 5
+          0 // opacity = 0 @ zoom = 5
         ],
       }
 

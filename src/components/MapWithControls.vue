@@ -371,7 +371,11 @@ const onMapReady = (m: Map) => {
     'power-plants-heatmap',
     'aqi-layer-aqi',
   ];
-  map.value.addControl(new MaplibreLayersControl(ignoredLayers,ignoredSources, shownLayers), 'bottom-right');
+  const linkedLayers = {
+    'power-plants-heatmap': ['power-plants-layer'],
+    'aqi-layer-aqi': ['aqi-layer-aqi-label']
+  };
+  map.value.addControl(new MaplibreLayersControl(ignoredLayers,ignoredSources, shownLayers, linkedLayers), 'bottom-right');
   // pp.togglePowerPlants();
   updateRegionLayers(regions.value);
 };
