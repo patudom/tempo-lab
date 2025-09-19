@@ -368,8 +368,7 @@ const onMapReady = (m: Map) => {
   const ignoredLayers = ['background','aqi-layer-aqi-label'];
   const shownLayers = [
     'esri-source',
-    'power-plants-layerheatmap',
-    'power-plants-layer',
+    'power-plants-heatmap',
     'aqi-layer-aqi',
   ];
   map.value.addControl(new MaplibreLayersControl(ignoredLayers,ignoredSources, shownLayers), 'bottom-right');

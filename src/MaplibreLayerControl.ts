@@ -48,7 +48,7 @@ export class MaplibreLayersControl implements IControl {
   private _applyPrimSourceFilter() {
     if (!this._map) return;
     const selected = this._selectedPrimSource;
-    const layerIds = ['power-plants-layer', 'power-plants-layerheatmap'];
+    const layerIds = ['power-plants-layer', 'power-plants-heatmap'];
     layerIds.forEach(id => {
       if (!this._map!.getLayer(id)) return;
       if (selected === 'All') {
