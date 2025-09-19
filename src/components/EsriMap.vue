@@ -188,11 +188,14 @@ watch(() => props.showFieldOfRegard, (val) => {
 function onInnerMapReady(m: Map) {
   // Resolve base map readiness immediately
   mapReady.value = true;
-  emit('ready', m);
   promiseResolve(m);
+  console.log('onReady promise on ref exposed API resolved');
   map.value = m;
   // Attach ESRI source right after base readiness (microtask keeps UI snappy)
   addEsriSource(m);
+  console.log('ESRI source added to map');
+  emit('ready', m);
+  console.log('map ready event emitted');
 }
 
 onMounted(() => {

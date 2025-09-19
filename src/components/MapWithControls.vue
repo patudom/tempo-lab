@@ -177,6 +177,25 @@
       </v-card>
     </map-colorbar-wrap>
     <div class="slider-row">
+      <!-- toggle powerplants  -->
+      <v-row class="my-4">
+        <v-col>
+        <v-btn
+          @click="pp.togglePowerPlants()"
+          size="small"
+        >
+          <v-icon size="24" color="black">mdi-factory</v-icon>
+          <span class="ms-1">{{ pp.powerPlantsVisible ? 'Hide' : 'Show' }} Power Plants</span>
+        </v-btn>
+        <v-btn
+          @click="aqiLayer.toggleAQIVisibility()"
+          size="small"
+        >
+          <v-icon size="24" color="black">mdi-factory</v-icon>
+          <span class="ms-1">{{ aqiLayer.layerVisible ? 'Hide' : 'Show' }} AQI</span>
+        </v-btn>
+      </v-col>
+      </v-row>
       <v-slider
         class="time-slider"
         v-model="timeIndex"
@@ -293,9 +312,68 @@ type UnifiedRegionType = typeof regions.value[number];
 
 const display = useDisplay();
 
+import { addPowerPlants } from "@/composables/addPowerPlants";
+import { MaplibreLayersControl } from "@/MaplibreLayerControl";
+
+const pp = addPowerPlants(map as Ref<Map | null> | null);
+import { addQUI } from '@/composables/addAQI';
+
+// base it of singleDateSelected
+const airQualityUrl = computed(() => {
+  const date = store.singleDateSelected;
+  if (!date) {
+    return 'https://s3-us-west-1.amazonaws.com/files.airnowtech.org/airnow/2025/20250914/KMLPointMaps_PM2.5-24hr.kml';
+  }
+
+  const year = date.getUTCFullYear();
+  const month = (date.getUTCMonth() + 1).toString().padStart(2, '0');
+  const day = date.getUTCDate().toString().padStart(2, '0');
+  return `https://s3-us-west-1.amazonaws.com/files.airnowtech.org/airnow/${year}/${year}${month}${day}/KMLPointMaps_PM2.5-24hr.kml`;
+});
+const aqiLayer = addQUI(airQualityUrl.value, { 
+  propertyToShow: 'aqi', 
+  labelMinZoom: 5, 
+  layerName: 'aqi', 
+  visible: false,
+  showLabel: true, 
+  showPopup: true });
+
+// Ensure date/url changes trigger a reload, even if initial load failed
+watch(airQualityUrl, (newUrl) => {
+  aqiLayer.setUrl(newUrl).catch(() => {/* ignore */});
+});
 
 const onMapReady = (m: Map) => {
+  console.log('Map ready event received');
   map.value = m; // ESRI source already added by EsriMap
+  pp.addheatmapLayer();
+  pp.togglePowerPlants(false);
+  aqiLayer.addToMap(m);
+  // Only move if target layer exists (avoid errors if initial KML load failed)
+  try {
+    if (m.getLayer('kml-layer-aqi')) {
+      m.moveLayer('states-custom','kml-layer-aqi');
+    }
+  } catch {
+    // ignore
+  }
+
+  const ignoredSources = [
+    'carto',  // the basemap
+    'stamen-toner-labels',  // road labels
+    'coastline-custom',  // coastlines
+    'states-custom', // state boundaries
+  ];
+  // idk what the background layer actually is
+  const ignoredLayers = ['background','aqi-layer-aqi-label'];
+  const shownLayers = [
+    'esri-source',
+    'power-plants-layerheatmap',
+    'power-plants-layer',
+    'aqi-layer-aqi',
+  ];
+  map.value.addControl(new MaplibreLayersControl(ignoredLayers,ignoredSources, shownLayers), 'bottom-right');
+  // pp.togglePowerPlants();
   updateRegionLayers(regions.value);
 };
 
@@ -775,4 +853,6 @@ watch(focusRegion, region => {
     width: fit-content;
   }
 }
+
+@import "@/styles/maplibre-layer-control.css";
 </style>
