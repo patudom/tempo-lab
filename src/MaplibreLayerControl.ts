@@ -6,6 +6,8 @@ import {
 
 import { 
   PrimSource,
+  RenewableSource,
+  TraditionalSource,
 } from "@/assets/power_plants";
 import './styles/maplibre-layer-control.css'; // added
 
@@ -36,7 +38,7 @@ export class MaplibreLayersControl implements IControl {
   private _ignoredLayers: string[] = [];
   private _ignoredSources: string[] = [];
   private _shownLayers: string[] = [];
-  private _selectedPrimSource: PrimSource | 'All' = 'All';
+  private _selectedPrimSource: PrimSource | 'Renewables' | 'Fossil Fuels' | 'All' = 'All';
   
   constructor(ignoreLayers?: string[], ignoreSources?: string[], shownLayers?: string[]) {
     this._ignoredLayers = ignoreLayers || [];
@@ -53,7 +55,12 @@ export class MaplibreLayersControl implements IControl {
       if (!this._map!.getLayer(id)) return;
       if (selected === 'All') {
         this._map!.setFilter(id, null);
-      } else {
+      } else if (selected === "Renewables") {
+        this._map!.setFilter(id, ['in', ['get', 'PrimSource'], ['literal', Object.values(RenewableSource)]]);
+      } else if (selected === "Fossil Fuels") {
+        this._map!.setFilter(id, ['in', ['get', 'PrimSource'], ['literal', Object.values(TraditionalSource)]]);
+      }
+      else {
         this._map!.setFilter(id, ['==', ['get', 'PrimSource'], selected]);
       }
     });
@@ -155,6 +162,16 @@ export class MaplibreLayersControl implements IControl {
     allOption.value = 'All';
     allOption.textContent = 'All';
     select.appendChild(allOption);
+    
+    const renewableOption = document.createElement('option');
+    renewableOption.value = 'Renewables';
+    renewableOption.textContent = 'Renewables';
+    select.appendChild(renewableOption);
+    
+    const fossilFuelsOption = document.createElement('option');
+    fossilFuelsOption.value = 'Fossil Fuels';
+    fossilFuelsOption.textContent = 'Fossil Fuels';
+    select.appendChild(fossilFuelsOption);
     
     Object.values(PrimSource).forEach(source => {
       const option = document.createElement('option');
