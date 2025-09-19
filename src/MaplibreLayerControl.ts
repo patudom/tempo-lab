@@ -32,12 +32,19 @@ import './styles/maplibre-layer-control.css'; // added
 
 function setLayerOpacity(map: Map, layerId: string, opacity: number) {
   const layer = map.getLayer(layerId)!;
+  if (!layer) {
+    console.warn('Layer not found:', layerId);
+    return;
+  }
+  
   const paintProp = `${layer.type}-opacity`;
   if (layer.type !== 'symbol') {
     map.setPaintProperty(layerId, paintProp, opacity);
   }
   if (layer.type === 'circle') {
-    map.setPaintProperty(layerId, 'circle-stroke-opacity', opacity);
+    if (map.getPaintProperty(layerId, 'circle-opacity') !== undefined) {
+      map.setPaintProperty(layerId, 'circle-stroke-opacity', opacity);
+    }
   }  
   if (layer.type === 'symbol') {
     // icon-opacity
@@ -50,6 +57,36 @@ function setLayerOpacity(map: Map, layerId: string, opacity: number) {
     }
   }
 }
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function isNumeric(value: any): boolean {
+  return !isNaN(value - parseFloat(value));
+}
+
+function getLayerOpacity(map: Map, layerId: string): number {
+  const layer = map.getLayer(layerId);
+  if (!layer) return 1;
+  
+  const paintProp = `${layer.type}-opacity`;
+  let op: unknown = 1;
+  
+  if (layer.type === 'symbol') {
+    op = map.getPaintProperty(layerId, 'icon-opacity');
+    if (isNaN(op as unknown as number)) {
+      op = map.getPaintProperty(layerId, 'text-opacity');
+    }
+  } else if (layer.type === 'circle') {
+    op = map.getPaintProperty(layerId, 'circle-opacity');
+    if (isNaN(op as unknown as number)) {
+      op = map.getPaintProperty(layerId, 'circle-stroke-opacity');
+    }
+  } else {
+    op = map.getPaintProperty(layerId, paintProp);
+  }
+  
+  
+  return isNumeric(op) ? (op as unknown as number) : 1;
+} 
 
 // A super simple layer control to toggle visibility of layers
 export class MaplibreLayersControl implements IControl {
@@ -91,6 +128,7 @@ export class MaplibreLayersControl implements IControl {
 
   private _createLayerItem(layer: LayerSpecification): HTMLElement {
     // console.log('Creating layer item for', layer.id);
+    if (!this._map || !this._map.getLayer(layer.id)) return document.createElement('div');
     
     // container
     const container = document.createElement('div');
@@ -136,16 +174,13 @@ export class MaplibreLayersControl implements IControl {
     opacitySlider.min = '0';
     opacitySlider.max = '1';
     opacitySlider.step = '0.01';
-    // console.log('Initial opacity for', layer.id, 'is', this._map ? this._map.getPaintProperty(layer.id, `${layer.type}-opacity`) : 'N/A');
-    const initialOpacity = this._map!.getPaintProperty(layer.id, `${layer.type}-opacity`) as unknown as string;
-    console.log('Initial opacity for', layer.id, 'is', initialOpacity);
-    opacitySlider.value = String(isNaN(parseFloat(initialOpacity)) ? 1 : parseFloat(initialOpacity));
+    const initialOpacity = getLayerOpacity(this._map, layer.id);
+    opacitySlider.value = String(initialOpacity);
     opacitySlider.classList.add('mlc-layer-opacity-slider');
     opacitySlider.title = 'Adjust layer opacity';
     opacitySlider.id = `${layer.id}-opacity-slider`;
     opacitySlider.addEventListener('input', () => {
       if (this._map) {
-        // this._map.setPaintProperty(layer.id, `${layer.type}-opacity`, parseFloat(opacitySlider.value));
         setLayerOpacity(this._map, layer.id, parseFloat(opacitySlider.value));
         // if this layer has linked opacities, set them too
         const linked = this._linkedOpacitiesIds[layer.id];

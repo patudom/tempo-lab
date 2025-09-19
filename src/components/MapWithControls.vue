@@ -365,11 +365,11 @@ const onMapReady = (m: Map) => {
     'states-custom', // state boundaries
   ];
   // idk what the background layer actually is
-  const ignoredLayers = ['background','aqi-layer-aqi-label'];
+  const ignoredLayers = ['background'];
   const shownLayers = [
     'esri-source',
     'power-plants-heatmap',
-    'aqi-layer-aqi',
+    'aqi-layer-aqi'
   ];
   const linkedLayers = {
     'power-plants-heatmap': ['power-plants-layer'],
