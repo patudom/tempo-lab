@@ -11,7 +11,6 @@ import { useUniqueTimeSelection } from "@/composables/useUniqueTimeSelection";
 import { useTimezone, type Timezone } from "@/composables/useTimezone";
 import { atleast1d } from "@/utils/atleast1d";
 import { formatSingleRange, rangeForSingleDay } from "@/utils/timeRange";
-import { colorbarOptions } from "@/esri/ImageLayerConfig";
 
 const createTempoStore = (backend: MappingBackends) => defineStore("tempods", () => {
   const timeRanges = ref<TimeRange[]>([]);
@@ -23,7 +22,6 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
   const backendRef = ref<MappingBackends>(backend);
   const maxSampleCount = ref(50);
   const sampleErrors = ref<Record<string, string | null>>({});
-  const molecule = ref<MoleculeType>('no2');
   const regionsCreatedCount = ref(0);
   const userSelectedCalendarDates: number[] = [];
   const userSelectedTimezones: string[] = [];
@@ -36,8 +34,6 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
 
   const selectionActive = ref<SelectionType>(null);
   const focusRegion = ref<UnifiedRegion | null>(null);
-
-  const colorMap = computed(() => colorbarOptions[molecule.value].colormap.toLowerCase());
 
   const selectedTimezone = ref<Timezone>("US/Eastern");
   const { isDST, timezoneOptions: tzOptions } = useTimezone(selectedTimezone);
@@ -87,8 +83,6 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
     tempoDataServices[molecule] = service;
     return service;
   }
-
-  const currentTempoDataService = computed(() => getTempoDataService(molecule.value));
 
   function addTimeRange(range: TimeRange) {
     timeRanges.value.push(range);
@@ -301,14 +295,6 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
       return;
     }
     regions.value.splice(index, 1);
-
-    // if (map.value && region.layer) {
-    //   if (isRectangleSelection(region)) {
-    //     removeRectangleLayer(map.value as Map, region.layer as unknown as StyleLayer);
-    //   } else if (isPointSelection(region)) {
-    //     removePointLayer(map.value as Map, region.layer as unknown as StyleLayer);
-    //   }
-    // }
   }
 
   return {
@@ -335,10 +321,7 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
     datasets,
     timestamps,
     timestampsLoaded,
-    molecule,
     displayedDayTimeRange,
-    currentTempoDataService,
-    colorMap,
 
     addTimeRange,
     addRegion,

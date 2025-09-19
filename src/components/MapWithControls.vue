@@ -54,7 +54,7 @@
           </v-tooltip>
         </v-toolbar>
         <EsriMap
-          mapID="map"
+          :mapID="mapID"
           :initial="initState"
           :home="homeState"
           :show-roads="showRoads"
@@ -241,6 +241,8 @@ const map = ref<MapType>(null);
 
 type Timeout = ReturnType<typeof setTimeout>;
 
+const mapID = `map-${v4().replace("-", "")}`;
+
 const store = useTempoStore();
 const {
   accentColor2,
@@ -248,7 +250,6 @@ const {
   regions,
   timestamp,
   timeIndex,
-  molecule,
   minIndex,
   maxIndex,
   date,
@@ -259,13 +260,15 @@ const {
   timestampsLoaded,
   selectionActive,
   regionsCreatedCount,
-  currentTempoDataService,
   maxSampleCount,
-  colorMap,
   focusRegion,
   initState,
   homeState,
 } = storeToRefs(store);
+
+const molecule = ref<MoleculeType>("no2");
+const colorMap = computed(() => colorbarOptions[molecule.value].colormap.toLowerCase());
+const currentTempoDataService = computed(() => store.getTempoDataService(molecule.value));
 
 function createSelectionComputed(selection: SelectionType): WritableComputedRef<boolean> {
   return computed({
@@ -293,7 +296,7 @@ const display = useDisplay();
 
 const onMapReady = (m: Map) => {
   map.value = m; // ESRI source already added by EsriMap
-  updateRegionLayers(regions.value, []);
+  updateRegionLayers(regions.value);
 };
 
 const showLocationMarker = ref(true);
