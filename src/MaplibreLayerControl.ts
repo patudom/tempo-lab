@@ -61,8 +61,21 @@ export class MaplibreLayersControl implements IControl {
 
   private _createLayerItem(layer: LayerSpecification): HTMLElement {
     // console.log('Creating layer item for', layer.id);
+    
+    // container
+    const container = document.createElement('div');
+    container.classList.add('mlc-layer-item');
+    container.classList.add('mlc-layer-item-' + (layer.layout?.visibility === 'none' ? 'hidden' : 'visible'));
+    container.id = `mlc-layer-item-${layer.id}`;
+    
+    // checkbox and label
+    const checkboxLabelContainer = document.createElement('div');
+    checkboxLabelContainer.classList.add('mlc-layer-item-checkbox-label-container');
+    // container.appendChild(checkboxLabelContainer);
     const checkbox = document.createElement('input');
+    checkbox.classList.add('mlc-layer-item-checkbox');
     checkbox.type = 'checkbox';
+    checkbox.id=`${layer.id}-visibility-checkbox`;
     // corrected: checked when layer is visible
     checkbox.checked = layer.layout?.visibility !== 'none';
     checkbox.addEventListener('change', () => {
@@ -76,10 +89,45 @@ export class MaplibreLayersControl implements IControl {
     });
 
     const label = document.createElement('label');
-    label.classList.add('mlc-layer-item');
+    label.classList.add('mlc-layer-item-label');
+    label.htmlFor = checkbox.id;
     label.textContent = layer.id;
-    label.appendChild(checkbox);
-    return label;
+    
+    
+    checkboxLabelContainer.appendChild(checkbox);
+    checkboxLabelContainer.appendChild(label);
+    container.appendChild(checkboxLabelContainer);
+    
+    // Opacity slider and label
+    const opacityLabelContainer = document.createElement('div');
+    opacityLabelContainer.classList.add('mlc-layer-item-opacity-label-container');
+    const opacitySlider = document.createElement('input');
+    opacitySlider.type = 'range';
+    opacitySlider.min = '0';
+    opacitySlider.max = '1';
+    opacitySlider.step = '0.01';
+    opacitySlider.value = '1';
+    opacitySlider.classList.add('mlc-layer-opacity-slider');
+    opacitySlider.title = 'Adjust layer opacity';
+    opacitySlider.id = `${layer.id}-opacity-slider`;
+    opacitySlider.addEventListener('input', () => {
+      if (this._map) {
+        this._map.setPaintProperty(layer.id, `${layer.type}-opacity`, parseFloat(opacitySlider.value));
+      }
+    });
+    
+    const opacityLabel = document.createElement('label');
+    opacityLabel.htmlFor = opacitySlider.id;
+    opacityLabel.textContent = `Transparency: `;
+    // opacityLabel.classList.add('visually-hidden'); // CSS class to hide the label
+    opacityLabelContainer.appendChild(opacityLabel);
+    opacityLabelContainer.appendChild(opacitySlider);
+    
+    container.appendChild(opacityLabelContainer);
+    
+    
+    
+    return container;
   }
   
   
@@ -153,6 +201,7 @@ export class MaplibreLayersControl implements IControl {
     const elements = this.filteredLayers.map(layer => this._createLayerItem(layer));
     this._container =  document.createElement('div');
     this._container.className = 'maplibregl-ctrl maplibre-layer-control';
+    this._container.id = 'maplibre-layer-control';
     elements.forEach(el => this._container?.appendChild(el));
     this._container.appendChild(this._createPrimsSourceFilterElement());
     
