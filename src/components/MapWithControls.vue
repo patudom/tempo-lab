@@ -176,26 +176,7 @@
       </div>
       </v-card>
     </map-colorbar-wrap>
-    <div class="slider-row">
-      <!-- toggle powerplants  -->
-      <v-row class="my-4">
-        <v-col>
-        <v-btn
-          @click="pp.togglePowerPlants()"
-          size="small"
-        >
-          <v-icon size="24" color="black">mdi-factory</v-icon>
-          <span class="ms-1">{{ pp.powerPlantsVisible ? 'Hide' : 'Show' }} Power Plants</span>
-        </v-btn>
-        <v-btn
-          @click="aqiLayer.toggleAQIVisibility()"
-          size="small"
-        >
-          <v-icon size="24" color="black">mdi-factory</v-icon>
-          <span class="ms-1">{{ aqiLayer.layerVisible ? 'Hide' : 'Show' }} AQI</span>
-        </v-btn>
-      </v-col>
-      </v-row>
+    <div class="slider-row mx-16 mt-12">
       <v-slider
         class="time-slider"
         v-model="timeIndex"
@@ -221,7 +202,7 @@
         fa-size="sm"
         @activate="playing = !playing"
       ></icon-button>
-        </div>
+    </div>
     <map-controls
       @molecule="(mol: MoleculeType) => { molecule = mol }"
     />
