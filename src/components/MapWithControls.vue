@@ -203,9 +203,18 @@
         @activate="playing = !playing"
       ></icon-button>
     </div>
-    <map-controls
-      @molecule="(mol: MoleculeType) => { molecule = mol }"
-    />
+    <div class="d-flex flex-row">
+      <map-controls
+        class="flex-grow-1"
+        @molecule="(mol: MoleculeType) => { molecule = mol }"
+      />
+      <LayerOrderControl 
+        class="flex-grow-0"
+        v-if="map"
+        :mapRef="map as Map | null" 
+        :order="['power-plants-heatmap', 'aqi-layer-aqi', 'esri-source']"
+        />
+    </div>
   </div>
 </template>
 
@@ -315,7 +324,7 @@ const aqiLayer = addQUI(airQualityUrl.value, {
   propertyToShow: 'aqi', 
   labelMinZoom: 5, 
   layerName: 'aqi', 
-  visible: false,
+  visible: true,
   showLabel: true, 
   showPopup: true });
 
@@ -324,11 +333,15 @@ watch(airQualityUrl, (newUrl) => {
   aqiLayer.setUrl(newUrl).catch(() => {/* ignore */});
 });
 
+
+import LayerOrderControl from "./LayerOrderControl.vue";
+
+
 const onMapReady = (m: Map) => {
   console.log('Map ready event received');
   map.value = m; // ESRI source already added by EsriMap
   pp.addheatmapLayer();
-  pp.togglePowerPlants(false);
+  // pp.togglePowerPlants(false);
   aqiLayer.addToMap(m);
   // Only move if target layer exists (avoid errors if initial KML load failed)
   try {
@@ -338,7 +351,7 @@ const onMapReady = (m: Map) => {
   } catch {
     // ignore
   }
-
+  
   const ignoredSources = [
     'carto',  // the basemap
     'stamen-toner-labels',  // road labels
