@@ -283,8 +283,6 @@ export class MaplibreLayersControl implements IControl {
     }
   }
   
-  
-
   onAdd(map: Map): HTMLElement {
     this._map = map;
     this._layers = map.getStyle().layers;
