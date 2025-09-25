@@ -219,7 +219,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, toRaw, useTemplateRef, watch, type Ref, type WritableComputedRef } from "vue";
+import { computed, ref, toRef, toRaw, useTemplateRef, watch, type Ref, type WritableComputedRef } from "vue";
 import { useDisplay } from 'vuetify';
 import { storeToRefs } from "pinia";
 import { MapBoxFeature, MapBoxFeatureCollection, MapBoxFeatureType, MapBoxForwardGeocodingOptions, geocodingInfoForSearch } from "@cosmicds/vue-toolkit";
@@ -324,14 +324,25 @@ const aqiLayer = addQUI(airQualityUrl.value, {
   propertyToShow: 'aqi', 
   labelMinZoom: 5, 
   layerName: 'aqi', 
-  visible: true,
+  visible: false,
   showLabel: true, 
   showPopup: true });
+  
+
 
 // Ensure date/url changes trigger a reload, even if initial load failed
 watch(airQualityUrl, (newUrl) => {
   aqiLayer.setUrl(newUrl).catch(() => {/* ignore */});
 });
+
+import { addHMSFire } from '@/composables/addHMSFire';
+// https://satepsanone.nesdis.noaa.gov/pub/FIRE/web/HMS/Fire_Points/KML/2025/09/hms_fire20250925.kml
+
+const hmsLayer = addHMSFire(toRef(() => store.singleDateSelected), {
+  layerName: 'hms-layer',
+  showPopup: true,
+});
+
 
 
 import LayerOrderControl from "./LayerOrderControl.vue";
@@ -341,8 +352,9 @@ const onMapReady = (m: Map) => {
   console.log('Map ready event received');
   map.value = m; // ESRI source already added by EsriMap
   pp.addheatmapLayer();
-  // pp.togglePowerPlants(false);
+  pp.togglePowerPlants(false);
   aqiLayer.addToMap(m);
+  hmsLayer.addToMap(m);
   // Only move if target layer exists (avoid errors if initial KML load failed)
   try {
     if (m.getLayer('kml-layer-aqi')) {
@@ -363,11 +375,13 @@ const onMapReady = (m: Map) => {
   const shownLayers = [
     'esri-source',
     'power-plants-heatmap',
-    'aqi-layer-aqi'
+    'aqi-layer-aqi',
+    'hms-layer',
   ];
   const linkedLayers = {
     'power-plants-heatmap': ['power-plants-layer'],
-    'aqi-layer-aqi': ['aqi-layer-aqi-label']
+    'aqi-layer-aqi': ['aqi-layer-aqi-label'],
+    'hms-layer': ['hms-layer-circle', 'hms-layer-symbol'],
   };
   map.value.addControl(new MaplibreLayersControl(ignoredLayers,ignoredSources, shownLayers, linkedLayers), 'bottom-right');
   // pp.togglePowerPlants();
@@ -849,6 +863,11 @@ watch(focusRegion, region => {
     opacity: 0.7;
     width: fit-content;
   }
+}
+
+.hms-popup {
+  background-color: white;
+  color: black;
 }
 
 @import "@/styles/maplibre-layer-control.css";
