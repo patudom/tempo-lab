@@ -22,6 +22,7 @@
       class="mlc-layer-item-opacity-label-container"
     >
       <input
+        v-model="opacity"
         :id="`mlc-${layer.id}-opacity-slider`"
         class="mlc-layer-opacity-slider"
         type="range"
@@ -40,17 +41,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
-import { LayerSpecification } from "maplibre-gl";
+import type { LayerSpecification, Map } from "maplibre-gl";
+import { useMaplibreLayerOpacity } from "@/composables/useMaplibreLayerOpacity";
 
 interface Props {
   layer: LayerSpecification;
   initialOpacity?: number;
+  map: Map;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   initialOpacity: 1,
 });
 
-const opacity = ref(props.initialOpacity);
+const { opacity } = useMaplibreLayerOpacity(props.map, props.layer.id, props.initialOpacity);
+
 </script>
