@@ -176,26 +176,7 @@
       </div>
       </v-card>
     </map-colorbar-wrap>
-    <div class="slider-row">
-      <!-- toggle powerplants  -->
-      <v-row class="my-4">
-        <v-col>
-        <v-btn
-          @click="pp.togglePowerPlants()"
-          size="small"
-        >
-          <v-icon size="24" color="black">mdi-factory</v-icon>
-          <span class="ms-1">{{ pp.powerPlantsVisible ? 'Hide' : 'Show' }} Power Plants</span>
-        </v-btn>
-        <v-btn
-          @click="aqiLayer.toggleAQIVisibility()"
-          size="small"
-        >
-          <v-icon size="24" color="black">mdi-factory</v-icon>
-          <span class="ms-1">{{ aqiLayer.layerVisible ? 'Hide' : 'Show' }} AQI</span>
-        </v-btn>
-      </v-col>
-      </v-row>
+    <div class="slider-row mx-16 mt-12">
       <v-slider
         class="time-slider"
         v-model="timeIndex"
@@ -221,10 +202,19 @@
         fa-size="sm"
         @activate="playing = !playing"
       ></icon-button>
-        </div>
-    <map-controls
-      @molecule="(mol: MoleculeType) => { molecule = mol }"
-    />
+    </div>
+    <div class="d-flex flex-row">
+      <map-controls
+        class="flex-grow-1"
+        @molecule="(mol: MoleculeType) => { molecule = mol }"
+      />
+      <LayerOrderControl 
+        class="flex-grow-0"
+        v-if="map"
+        :mapRef="map as Map | null" 
+        :order="['power-plants-heatmap', 'aqi-layer-aqi', 'esri-source']"
+        />
+    </div>
   </div>
 </template>
 
@@ -334,7 +324,7 @@ const aqiLayer = addQUI(airQualityUrl.value, {
   propertyToShow: 'aqi', 
   labelMinZoom: 5, 
   layerName: 'aqi', 
-  visible: false,
+  visible: true,
   showLabel: true, 
   showPopup: true });
 
@@ -343,11 +333,15 @@ watch(airQualityUrl, (newUrl) => {
   aqiLayer.setUrl(newUrl).catch(() => {/* ignore */});
 });
 
+
+import LayerOrderControl from "./LayerOrderControl.vue";
+
+
 const onMapReady = (m: Map) => {
   console.log('Map ready event received');
   map.value = m; // ESRI source already added by EsriMap
   pp.addheatmapLayer();
-  pp.togglePowerPlants(false);
+  // pp.togglePowerPlants(false);
   aqiLayer.addToMap(m);
   // Only move if target layer exists (avoid errors if initial KML load failed)
   try {
@@ -357,7 +351,7 @@ const onMapReady = (m: Map) => {
   } catch {
     // ignore
   }
-
+  
   const ignoredSources = [
     'carto',  // the basemap
     'stamen-toner-labels',  // road labels
@@ -365,14 +359,17 @@ const onMapReady = (m: Map) => {
     'states-custom', // state boundaries
   ];
   // idk what the background layer actually is
-  const ignoredLayers = ['background','aqi-layer-aqi-label'];
+  const ignoredLayers = ['background'];
   const shownLayers = [
     'esri-source',
-    'power-plants-layerheatmap',
-    'power-plants-layer',
-    'aqi-layer-aqi',
+    'power-plants-heatmap',
+    'aqi-layer-aqi'
   ];
-  map.value.addControl(new MaplibreLayersControl(ignoredLayers,ignoredSources, shownLayers), 'bottom-right');
+  const linkedLayers = {
+    'power-plants-heatmap': ['power-plants-layer'],
+    'aqi-layer-aqi': ['aqi-layer-aqi-label']
+  };
+  map.value.addControl(new MaplibreLayersControl(ignoredLayers,ignoredSources, shownLayers, linkedLayers), 'bottom-right');
   // pp.togglePowerPlants();
   updateRegionLayers(regions.value);
 };

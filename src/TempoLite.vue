@@ -95,6 +95,12 @@ function removeMapPanel(index: number) {
   }
 }
 
+// bind add and remove to the window for easy access from the console
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(window as any).addMapPanel = addMapPanel;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(window as any).removeMapPanel = removeMapPanel;
+
 let layout: GoldenLayout | null = null;
 onMounted(() => {
   const rootEl = root.value as HTMLElement;
