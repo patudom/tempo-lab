@@ -114,11 +114,11 @@ function stringifyEsriGetSamplesParameters(params: {
 
 export class TempoDataService {
   private baseUrl: string;
-  private variable: Variables;
+  private variable: Variables | string;
   private metadataCache: EsriImageServiceSpec | null = null;
   private _loadingMetadata: boolean = false;
   
-  constructor(baseUrl: string, variable: Variables = "NO2_Troposphere") {
+  constructor(baseUrl: string, variable: Variables | string = "NO2_Troposphere") {
     this.baseUrl = baseUrl;
     this.variable = variable;
     this.updateMetadataCache();
@@ -128,11 +128,11 @@ export class TempoDataService {
   // CONFIGURATION
   // ============================================================================
 
-  setVariable(variable: Variables): void {
+  setVariable(variable: Variables | string): void {
     this.variable = variable;
   }
 
-  getVariable(): Variables {
+  getVariable(): Variables | string {
     return this.variable;
   }
 
