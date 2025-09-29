@@ -212,7 +212,7 @@
         class="flex-grow-0"
         v-if="map"
         :mapRef="map as Map | null" 
-        :order="['power-plants-heatmap', 'aqi-layer-aqi', 'esri-source']"
+        :order="['power-plants-heatmap', 'aqi-layer-aqi', 'hms-layer', 'Population Density', 'esri-source']"
         />
     </div>
   </div>
