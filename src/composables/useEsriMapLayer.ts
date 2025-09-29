@@ -21,13 +21,18 @@ interface UseEsriLayer {
   renderOptions: Ref<RenderingRuleOptions>;
 }
 
+interface ImageSerivceLayerOptions {
+  renderingRule?: RenderingRuleOptions;
+  visible?: boolean;
+  clickValue?: boolean;
+}
+
 export function useEsriImageServiceLayer(
   serviceUrl: string,
   layerId: string,
   opacity: MaybeRef<number>,
   _timestamp: MaybeRef<number>,
-  renderingRule: unknown,
-  clickValue = false,
+  options: ImageSerivceLayerOptions = {},
 ): UseEsriLayer {
 
   const timestamp = toRef(_timestamp);
@@ -47,7 +52,7 @@ export function useEsriImageServiceLayer(
   
 
   
-  const options = computed(() => {
+  const esriOptions = computed(() => {
     return  {
       'format': 'png',
       'pixelType': 'U8',
@@ -57,7 +62,7 @@ export function useEsriImageServiceLayer(
       'imageSR': 3857,
       'bbox': '{bbox-epsg-3857}',
       'interpolation': 'RSP_NearestNeighbor',
-      'renderingRule': renderingRule,
+      'renderingRule': options.renderingRule || {},
     };
   });
 
@@ -101,11 +106,15 @@ export function useEsriImageServiceLayer(
       esriImageSource.value = map.value?.getSource(esriLayerId) as maplibregl.RasterTileSource;
       updateEsriOpacity();
       dynamicMapService.value.setDate(new Date(timestamp.value-1), new Date(timestamp.value+1));
+      if (options.visible !== undefined && !options.visible) {
+        map.value?.setLayoutProperty(esriLayerId, 'visibility', 'none');
+      }
       map.value?.off('sourcedata', onSourceLoad);
     }
   }
   
   function createImageService(map: Map, url: string, options) {
+    console.log('Creating image service with options:', options);
     return new ImageService(
       esriLayerId,
       map,
@@ -125,14 +134,14 @@ export function useEsriImageServiceLayer(
     if (!mMap) return;
     map.value = mMap;
     
-    dynamicMapService.value = createImageService(mMap, url.value, options.value);
+    dynamicMapService.value = createImageService(mMap, url.value, esriOptions.value);
 
     addLayer(mMap);
     // this event will run until the source is loaded
     mMap.on('sourcedata', onSourceLoad);
     
     // on click on the layer
-    if (clickValue) {
+    if (options.clickValue) {
       mMap.on('click', (e) => {
         if (_hasEsriSource() && map.value) {
           const point = { x: e.lngLat.lng, y: e.lngLat.lat } as PointBounds;

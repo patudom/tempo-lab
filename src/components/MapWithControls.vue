@@ -341,55 +341,56 @@ import { addHMSFire } from '@/composables/addHMSFire';
 const hmsLayer = addHMSFire(toRef(() => store.singleDateSelected), {
   layerName: 'hms-layer',
   showPopup: true,
+  visible: false,
 });
 
 import { useEsriImageServiceLayer } from "@/composables/useEsriMapLayer";
 const gpw4url = 'https://gis.earthdata.nasa.gov/image/rest/services/gpw-v4/gpw_v4_population_density_adjusted_to_2015_unwpp_country_totals_rev11/ImageServer';
 import { sampleColormap } from "@/colormaps/utils";
+const populationLayerOptions = {};
+populationLayerOptions['visible'] = false;
+populationLayerOptions['clickValue'] = true;
+populationLayerOptions['renderingRule'] = { 
+  "rasterFunctionArguments": { 
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    "Colormap": [
+      ...sampleColormap('haline_r', 7).map((rgb, i) => [i + 1, ...rgb]),
+    ], 
+    // https://developers.arcgis.com/rest/services-reference/enterprise/raster-function-objects/#remap
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    "Raster": { 
+      "rasterFunctionArguments": { 
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        "InputRanges": [
+          0.0001, 0.9901,           // 1
+          0.9901, 5.0001,          // 2
+          5.0001, 25.0001,         // 3
+          25.0001, 250.0001,       // 4
+          250.0001, 1000.0001,     // 5
+          1000.0001, 5000.0001,    // 6
+          5000.0001, 50000.0001,    // 7
+        ], 
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        "OutputValues": [1, 2, 3, 4, 5, 6, 7], 
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        "NoDataRanges": [0, 0],
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        "replacementValue": 0,
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        "AllowUnmatched": false,
+      }, 
+      "rasterFunction": "Remap", "variableName": "Raster" 
+    } 
+  }, 
+  "rasterFunction": "Colormap" 
+};
+
 const popLayer = useEsriImageServiceLayer(
   gpw4url,
   'Population Density',
   1,
   1593576000000,
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  { 
-    "rasterFunctionArguments": { 
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      "Colormap": [
-        // [1, 171, 239, 65],  // 1 -> rgb(171, 239, 65)
-        // [2, 56, 224, 9],    // 2 -> rgb(56, 224, 9)
-        // .....
-        ...sampleColormap('haline_r', 7).map((rgb, i) => [i + 1, ...rgb]),
-      ], 
-      // https://developers.arcgis.com/rest/services-reference/enterprise/raster-function-objects/#remap
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      "Raster": { 
-        "rasterFunctionArguments": { 
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          "InputRanges": [
-            0.0001, 0.9901,           // 1
-            0.9901, 5.0001,          // 2
-            5.0001, 25.0001,         // 3
-            25.0001, 250.0001,       // 4
-            250.0001, 1000.0001,     // 5
-            1000.0001, 5000.0001,    // 6
-            5000.0001, 50000.0001,    // 7
-          ], 
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          "OutputValues": [1, 2, 3, 4, 5, 6, 7], 
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          "NoDataRanges": [0, 0],
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          "replacementValue": 0,
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          "AllowUnmatched": false,
-        }, 
-        "rasterFunction": "Remap", "variableName": "Raster" 
-      } 
-    }, 
-    "rasterFunction": "Colormap" 
-  },
-  true,
+  populationLayerOptions,
 );
 
 
@@ -399,10 +400,10 @@ import LayerOrderControl from "./LayerOrderControl.vue";
 const onMapReady = (m: Map) => {
   console.log('Map ready event received');
   map.value = m; // ESRI source already added by EsriMap
-  // pp.addheatmapLayer();
-  // pp.togglePowerPlants(false);
-  // aqiLayer.addToMap(m);
-  // hmsLayer.addToMap(m);
+  pp.addheatmapLayer();
+  pp.togglePowerPlants(false);
+  aqiLayer.addToMap(m);
+  hmsLayer.addToMap(m);
   popLayer.addEsriSource(m);
   // Only move if target layer exists (avoid errors if initial KML load failed)
   try {

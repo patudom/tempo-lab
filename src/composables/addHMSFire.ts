@@ -315,6 +315,7 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
               ]]
             ],
             'icon-allow-overlap': true,
+            'visibility': lastKnownVisible.value ? 'visible' : 'none'
           },
           filter: ['>', ['get', 'FRP'], 1]
         });
@@ -345,6 +346,9 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
           source: sourceId,
           minzoom: 9,
           // paint with a pale yellow to dark red scale based on FRP
+          layout: {
+            'visibility': lastKnownVisible.value ? 'visible' : 'none'
+          },
           paint: {
             // 375 meter radius using zoom, 'Lat', and 'Lon'
             'circle-radius': circleRadiusExpression(375/2),
@@ -382,16 +386,8 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
         // Even without labels still sync visibility (for external toggles)
         if (onStyleDataRef.value === null) {
           setupVisibilitySync(map);
-
         }
-
-        // Apply last known visibility after layers are added
-        // const vis = lastKnownVisible.value ? 'visible' : 'none';
-        // map.setLayoutProperty(layerId, 'visibility', vis);
-        // if (map.getLayer(labelLayerId)) {
-        //   map.setLayoutProperty(labelLayerId, 'visibility', vis);
-        // }
-
+        
         console.log('HMS: Successfully added KML layer to map');
       })
       .catch((err) => {
