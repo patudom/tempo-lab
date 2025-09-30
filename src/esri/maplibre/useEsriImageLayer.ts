@@ -89,9 +89,9 @@ export function useEsriLayer(initialMolecule: MaybeRef<MoleculeType>,
   const dynamicMapService = ref<ImageService | null>(null);
   
   function onSourceLoad(e: MapSourceDataEvent) {
-    console.log('Source data event: ', e.sourceId, e.isSourceLoaded);
+    // console.log('Source data event: ', e.sourceId, e.isSourceLoaded);
     if (e.sourceId === esriLayerId && e.isSourceLoaded && map.value?.getSource(esriLayerId)) {
-      console.log('ESRI source loaded');
+      console.log('ESRI source loaded with time', new Date(timestamp.value ?? 0 ));
       esriImageSource.value = map.value?.getSource(esriLayerId) as maplibregl.RasterTileSource;
       updateEsriOpacity();
       updateEsriTimeRange();
@@ -158,6 +158,7 @@ export function useEsriLayer(initialMolecule: MaybeRef<MoleculeType>,
 
 
   watch(timestamp, (_value) => {
+    console.log('esri imageset timestamp set to ', _value ? new Date(_value) : null);
     if ( hasEsriSource() ) {
       updateEsriTimeRange();
     } else {

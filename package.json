@@ -21,6 +21,7 @@
     "stream": "^0.0.3",
     "uuid": "^11.1.0",
     "vue": "^3.4.15",
+    "vuedraggable": "^4.1.0",
     "vuetify": "^3.4.11",
     "webpack-plugin-vuetify": "^2.0.0",
     "zipson": "^0.2.12"

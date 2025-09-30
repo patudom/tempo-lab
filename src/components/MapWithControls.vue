@@ -54,7 +54,7 @@
           </v-tooltip>
         </v-toolbar>
         <EsriMap
-          mapID="map"
+          :mapID="mapID"
           :initial="initState"
           :home="homeState"
           :show-roads="showRoads"
@@ -176,7 +176,7 @@
       </div>
       </v-card>
     </map-colorbar-wrap>
-    <div class="slider-row">
+    <div class="slider-row mx-16 mt-12">
       <v-slider
         class="time-slider"
         v-model="timeIndex"
@@ -202,10 +202,19 @@
         fa-size="sm"
         @activate="playing = !playing"
       ></icon-button>
-        </div>
-    <map-controls
-      @molecule="(mol: MoleculeType) => { molecule = mol }"
-    />
+    </div>
+    <div class="d-flex flex-row">
+      <map-controls
+        class="flex-grow-1"
+        @molecule="(mol: MoleculeType) => { molecule = mol }"
+      />
+      <LayerOrderControl 
+        class="flex-grow-0"
+        v-if="map"
+        :mapRef="map as Map | null" 
+        :order="['power-plants-heatmap', 'aqi-layer-aqi', 'esri-source']"
+        />
+    </div>
   </div>
 </template>
 
@@ -241,6 +250,8 @@ const map = ref<MapType>(null);
 
 type Timeout = ReturnType<typeof setTimeout>;
 
+const mapID = `map-${v4().replace("-", "")}`;
+
 const store = useTempoStore();
 const {
   accentColor2,
@@ -248,7 +259,6 @@ const {
   regions,
   timestamp,
   timeIndex,
-  molecule,
   minIndex,
   maxIndex,
   date,
@@ -259,13 +269,15 @@ const {
   timestampsLoaded,
   selectionActive,
   regionsCreatedCount,
-  currentTempoDataService,
   maxSampleCount,
-  colorMap,
   focusRegion,
   initState,
   homeState,
 } = storeToRefs(store);
+
+const molecule = ref<MoleculeType>("no2");
+const colorMap = computed(() => colorbarOptions[molecule.value].colormap.toLowerCase());
+const currentTempoDataService = computed(() => store.getTempoDataService(molecule.value));
 
 function createSelectionComputed(selection: SelectionType): WritableComputedRef<boolean> {
   return computed({
@@ -290,10 +302,76 @@ type UnifiedRegionType = typeof regions.value[number];
 
 const display = useDisplay();
 
+import { addPowerPlants } from "@/composables/addPowerPlants";
+import { MaplibreLayersControl } from "@/MaplibreLayerControl";
+
+const pp = addPowerPlants(map as Ref<Map | null> | null);
+import { addQUI } from '@/composables/addAQI';
+
+// base it of singleDateSelected
+const airQualityUrl = computed(() => {
+  const date = store.singleDateSelected;
+  if (!date) {
+    return 'https://s3-us-west-1.amazonaws.com/files.airnowtech.org/airnow/2025/20250914/KMLPointMaps_PM2.5-24hr.kml';
+  }
+
+  const year = date.getUTCFullYear();
+  const month = (date.getUTCMonth() + 1).toString().padStart(2, '0');
+  const day = date.getUTCDate().toString().padStart(2, '0');
+  return `https://s3-us-west-1.amazonaws.com/files.airnowtech.org/airnow/${year}/${year}${month}${day}/KMLPointMaps_PM2.5-24hr.kml`;
+});
+const aqiLayer = addQUI(airQualityUrl.value, { 
+  propertyToShow: 'aqi', 
+  labelMinZoom: 5, 
+  layerName: 'aqi', 
+  visible: true,
+  showLabel: true, 
+  showPopup: true });
+
+// Ensure date/url changes trigger a reload, even if initial load failed
+watch(airQualityUrl, (newUrl) => {
+  aqiLayer.setUrl(newUrl).catch(() => {/* ignore */});
+});
+
+
+import LayerOrderControl from "./LayerOrderControl.vue";
+
 
 const onMapReady = (m: Map) => {
+  console.log('Map ready event received');
   map.value = m; // ESRI source already added by EsriMap
-  updateRegionLayers(regions.value, []);
+  pp.addheatmapLayer();
+  // pp.togglePowerPlants(false);
+  aqiLayer.addToMap(m);
+  // Only move if target layer exists (avoid errors if initial KML load failed)
+  try {
+    if (m.getLayer('kml-layer-aqi')) {
+      m.moveLayer('states-custom','kml-layer-aqi');
+    }
+  } catch {
+    // ignore
+  }
+  
+  const ignoredSources = [
+    'carto',  // the basemap
+    'stamen-toner-labels',  // road labels
+    'coastline-custom',  // coastlines
+    'states-custom', // state boundaries
+  ];
+  // idk what the background layer actually is
+  const ignoredLayers = ['background'];
+  const shownLayers = [
+    'esri-source',
+    'power-plants-heatmap',
+    'aqi-layer-aqi'
+  ];
+  const linkedLayers = {
+    'power-plants-heatmap': ['power-plants-layer'],
+    'aqi-layer-aqi': ['aqi-layer-aqi-label']
+  };
+  map.value.addControl(new MaplibreLayersControl(ignoredLayers,ignoredSources, shownLayers, linkedLayers), 'bottom-right');
+  // pp.togglePowerPlants();
+  updateRegionLayers(regions.value);
 };
 
 const showLocationMarker = ref(true);
@@ -772,4 +850,6 @@ watch(focusRegion, region => {
     width: fit-content;
   }
 }
+
+@import "@/styles/maplibre-layer-control.css";
 </style>
