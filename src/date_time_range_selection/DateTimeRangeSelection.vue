@@ -296,6 +296,8 @@ import '@vuepic/vue-datepicker/dist/main.css';
 import { useTimezone } from '../composables/useTimezone';
 import { useDateTimeSelector } from './useDateTimeSelector';
 import type { MillisecondRange, TimeRangeSelectionType } from '../types/datetime';
+import { formatTimeRange } from "@/utils/timeRange";
+
 
 // === INTERFACES === 
 // === PROPS ===
@@ -411,20 +413,31 @@ const instanceRules = computed(() => [
 ]);
 
 const customTimeRangeName = computed((): string => {
+  
   if (selectionType.value === 'singledate') {
+    
     return `${singleDateObj.value ? formatDateDisplay(singleDateObj.value) : 'No date selected'}`;
+    
   } else if (selectionType.value === 'pattern') {
+    
     // string to describe the pattern
     const dayNamesSelected = selectedDays.value.map(d => dayNames[d].slice(0,3)).join(',');
     const timesSelected = selectedTimes.value.join(', ');
-    return `Pattern: [${dayNamesSelected}] × [${timesSelected}] ± ${Math.abs(timePlusMinus.value)}h`;
+    return `Pattern: [${dayNamesSelected}] × [${timesSelected}] ± ${Math.abs(timePlusMinus.value)}h  (${formatTimeRange(generatePatternRanges())})`;
+    
   } else if (selectionType.value === 'monthrange') {
+    
     const monthNamesSelected = selectedMonths.value.map(m => monthNames[m].slice(0,3)).join(', ');
     const yearsSelected = selectedYears.value.join(', ');
-    return `Months: [${monthNamesSelected}] in [${yearsSelected}]`;
+    
+    return `Months: [${monthNamesSelected}] in [${yearsSelected}] (${formatTimeRange(generatePatternRanges())})`;
+    
   } else if (selectionType.value === 'daterange') {
+    
     return `${startDateObj.value ? formatDateDisplay(startDateObj.value) : 'No start date'} - ${endDateObj.value ? formatDateDisplay(endDateObj.value) : 'No end date'}`;
+    
   } else {
+    
     return 'Unrecognized selection type';
   }
     
