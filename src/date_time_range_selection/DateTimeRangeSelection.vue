@@ -18,11 +18,7 @@
           value="daterange"
           density="compact"
         />
-        <v-radio 
-          label="Weekday Pattern" 
-          value="weekday"
-          density="compact"
-        />
+
         <v-radio 
           label="Pattern (Days × Times)" 
           value="pattern"
@@ -30,13 +26,134 @@
         />
       </v-radio-group>
 
-      <!-- Weekday Pattern Section -->
+
+
+      <!-- Date Range Section -->
       <v-expand-transition>
-        <div v-if="selectionType === 'weekday'" class="weekday-pattern-section">
-          <!-- Reference Date -->
+        <div v-if="selectionType === 'daterange'" class="date-range-section">
+          <!-- Date Range Picker -->
+            <div class="mb-4">
+              <label class="text-subtitle-2 mb-2 d-block">Pick Date Range</label>
+              <date-picker
+                range
+                :multi-calendars="{solo: true}"
+                ref="dateRangeCalendar"
+                :model-value="dateRangeArray"
+                @internal-model-change="handleDateRangeChange"
+                :allowed-dates="allowedDates"
+                :format="(d) => d.map(formatDateDisplay).join(' - ')"
+                :teleport="true"
+                :enable-time-picker="false"
+                dark
+                :year-range="[allowedDates ? allowedDates[0].getFullYear() : 2023, allowedDates ? allowedDates[allowedDates.length - 1].getFullYear() : new Date().getFullYear()]"
+              />
+          </div>
+        </div>
+      </v-expand-transition>
+
+      <!-- Pattern Section (Multi-day, Multi-time) -->
+      <v-expand-transition>
+        <div v-if="selectionType === 'pattern'" class="pattern-section">
+          <!-- Days of Week Multi-toggle -->
           <div class="mb-4">
-            <label class="text-subtitle-2 mb-2 d-block">Reference Date</label>
+            <label class="text-subtitle-2 mb-2 d-block">Days of Week</label>
+            <!-- just do labeled checkboxes -->
+            <label v-for="(day, idx) in dayOptions" :key="idx" class="mr-3" style="text-wrap: nowrap;">
+              <input 
+                type="checkbox" 
+                :value="day.value" 
+                v-model="selectedDays" 
+              />
+              <span class="ml-1">{{ day.title.slice(0,3) }}</span>
+            </label>
+          </div>
+          <div class="mb-4 simple-patterns">
+            <!-- weekdays -->
+            <v-btn 
+              size="x-small" 
+              variant="outlined" 
+              class="mr-2 mb-2"
+              @click="selectedDays = [1,2,3,4,5]"
+            >Weekdays</v-btn>
+            <!-- weekends -->
+            <v-btn 
+              size="x-small" 
+              variant="outlined" 
+              class="mr-2 mb-2"
+              @click="selectedDays = [0,6]"
+            >Weekends</v-btn>
+            <!-- full weeek -->
+            <v-btn 
+              size="x-small" 
+              variant="outlined" 
+              class="mr-2 mb-2"
+              @click="selectedDays = [0,1,2,3,4,5,6]"
+            >Full Week</v-btn>
+            <!-- clear -->
+            <v-btn 
+              size="x-small" 
+              variant="outlined" 
+              class="mr-2 mb-2"
+              @click="selectedDays = []"
+            >Clear</v-btn>
+          </div>
+
+          <!-- Times Multi-select -->
+          <div class="mb-4">
+            <div class="mt-2 dtrs-flex-time-box">
+              <v-combobox
+                v-model="selectedTimes"
+                :items="timeOptions"
+                label="Add/select times"
+                multiple
+                chips
+                closable-chips
+                density="compact"
+                variant="outlined"
+                hide-details
+                hint="24h format HH:MM (e.g., 09:00, 14:30)"
+                persistent-hint
+                @update:model-value="normalizeTimes"
+              />
+              
+              <div class="pm-wrapper">
+                <span>±</span>
+                <input 
+                  v-model="timePlusMinus"
+                  type="number"
+                  min="-12"
+                  max="12"
+                  step="0.5"
+                  class="time-input"
+                  style="width: 5ch;"
+                  placeholder="± hours"
+                />
+                <span>h</span>
+              </div>
+            </div>
+            <v-chip size="small" color="primary" variant="tonal">
+                {{ timezoneRef }}
+              </v-chip>
+          </div>
+
+          <!-- Instances -->
+          <div>
+            <v-number-input
+              v-model="instancesBack"
+              label="Number of Weeks"
+              :rules="instanceRules"
+              :min="1"
+              :max="104"
+              density="compact"
+              variant="outlined"
+              control-variant="split"
+            />
+          </div>
+          <!-- Reference Date -->
+          <div class="mb-2">
+            <label>going back from</label>
             <date-picker
+              class="reference-date-picker"
               ref="weekdayCalendar"
               :model-value="weekdayStartDateObj"
               @internal-model-change="handleWeekdayDateChange"
@@ -48,183 +165,6 @@
               :teleport="true"
               dark
               :year-range="[allowedDates ? allowedDates[0].getFullYear() : 2023, allowedDates ? allowedDates[allowedDates.length - 1].getFullYear() : new Date().getFullYear()]"
-            />
-          </div>
-
-          <!-- Day of Week Selection -->
-          <div class="mb-4">
-            <v-select
-              v-model="selectedDayOfWeek"
-              :items="dayOptions"
-              label="Day of Week"
-              prepend-inner-icon="mdi-calendar-week"
-              density="compact"
-              variant="outlined"
-              hide-details
-            />
-          </div>
-
-          <!-- Time Selection -->
-          <div class="mb-4">
-            <label class="text-subtitle-2 mb-2 d-block">Time</label>
-            <div class="d-flex align-center ga-2">
-              <input
-                v-model="selectedTime"
-                type="time"
-                class="time-input"
-              />
-              <v-chip size="small" color="primary" variant="tonal">
-                {{ selectedTimezone }}
-              </v-chip>
-              <!-- add time plus minus number input. use +- icon and should step in .5 hour increments -->
-              
-              <input 
-                v-model="timePlusMinus"
-                type="number"
-                min="-12"
-                max="12"
-                step="0.5"
-                class="time-input"
-                style="width: 80px;"
-                placeholder="± hours"
-              />
-            </div>
-          </div>
-
-          <!-- Number of Instances -->
-          <div class="mb-4">
-            <v-number-input
-              v-model="instancesBack"
-              label="Number of Instances"
-              :rules="instanceRules"
-              :min="1"
-              :max="104"
-              density="compact"
-              variant="outlined"
-              control-variant="split"
-            />
-          </div>
-        </div>
-      </v-expand-transition>
-
-      <!-- Date Range Section -->
-      <v-expand-transition>
-        <div v-if="selectionType === 'daterange'" class="date-range-section">
-          <!-- Start Date -->
-          <div class="mb-4">
-            <label class="text-subtitle-2 mb-2 d-block">Start Date</label>
-            <date-picker
-              ref="startDateCalendar"
-              :model-value="startDateObj"
-              @internal-model-change="handleStartDateChange"
-              :allowed-dates="allowedDates"
-              :max-date="endDateObj ?? new Date()"
-              :format="formatDateDisplay"
-              :preview-format="formatDateDisplay"
-              text-input
-              :teleport="true"
-              dark
-              :year-range="[allowedDates ? allowedDates[0].getFullYear() : 2023, allowedDates ? allowedDates[allowedDates.length - 1].getFullYear() : new Date().getFullYear()]"
-            />
-          </div>
-
-          <!-- End Date -->
-          <div class="mb-4">
-            <label class="text-subtitle-2 mb-2 d-block">End Date</label>
-            <date-picker
-              ref="endDateCalendar"
-              :model-value="endDateObj"
-              @internal-model-change="handleEndDateChange"
-              :allowed-dates="allowedDates"
-              :min-date="startDateObj ?? new Date(0)"
-              :format="formatDateDisplay"
-              :preview-format="formatDateDisplay"
-              text-input
-              :teleport="true"
-              dark
-              :year-range="[allowedDates ? allowedDates[0].getFullYear() : 2023, allowedDates ? allowedDates[allowedDates.length - 1].getFullYear() : new Date().getFullYear()]"
-            />
-          </div>
-        </div>
-      </v-expand-transition>
-
-      <!-- Pattern Section (Multi-day, Multi-time) -->
-      <v-expand-transition>
-        <div v-if="selectionType === 'pattern'" class="pattern-section">
-          <!-- Days of Week Multi-toggle -->
-          <div class="mb-4">
-            <label class="text-subtitle-2 mb-2 d-block">Days of Week</label>
-            <!-- <v-btn-toggle
-              v-model="selectedDays"
-              multiple
-              density="compact"
-              class=""
-            >
-              <v-btn
-                v-for="(day, idx) in dayOptions"
-                :key="idx"
-                :value="day.value"
-                variant="tonal"
-                size="small"
-              >{{ day.title.slice(0,1) }}</v-btn>
-            </v-btn-toggle> -->
-            <!-- just do labeled checkboxes -->
-            <label v-for="(day, idx) in dayOptions" :key="idx" class="mr-3" style="text-wrap: nowrap;">
-              <input 
-                type="checkbox" 
-                :value="day.value" 
-                v-model="selectedDays" 
-              />
-              <span class="ml-1">{{ day.title.slice(0,3) }}</span>
-            </label>
-          </div>
-
-          <!-- Times Multi-select -->
-          <div class="mb-4">
-            <label class="text-subtitle-2 mb-2 d-block">Times</label>
-            <v-combobox
-              v-model="selectedTimes"
-              :items="timeOptions"
-              label="Add/select times"
-              multiple
-              chips
-              closable-chips
-              density="compact"
-              variant="outlined"
-              hide-details
-              hint="24h format HH:MM (e.g., 09:00, 14:30)"
-              persistent-hint
-              @update:model-value="normalizeTimes"
-            />
-            <div class="mt-2">
-              <v-chip size="small" color="primary" variant="tonal">
-                {{ selectedTimezone }}
-              </v-chip>
-              <span class="ml-2 text-caption">± hours</span>
-              <input 
-                v-model="timePlusMinus"
-                type="number"
-                min="-12"
-                max="12"
-                step="0.5"
-                class="time-input"
-                style="width: 80px;"
-                placeholder="± hours"
-              />
-            </div>
-          </div>
-
-          <!-- Instances -->
-          <div class="mb-4">
-            <v-number-input
-              v-model="instancesBack"
-              label="Number of Instances"
-              :rules="instanceRules"
-              :min="1"
-              :max="104"
-              density="compact"
-              variant="outlined"
-              control-variant="split"
             />
           </div>
         </div>
@@ -311,8 +251,6 @@ const { setToMidnight, setToEndOfDay, formatDateDisplay } = useTimezone(timezone
 // Initialize the datetime selector composable with optional parameters
 const {
   selectionType,
-  selectedDayOfWeek,
-  selectedTime,
   instancesBack,
   timePlusMinus,
   weekdayStartDate,
@@ -338,8 +276,8 @@ const {
 
 // === REFS ===
 const weekdayCalendar = ref();
-const startDateCalendar = ref();
-const endDateCalendar = ref();
+// const startDateCalendar = ref();
+// const endDateCalendar = ref();
 const singleDateCalendar = ref();
 
 // === PICKER STATE ===
@@ -420,7 +358,7 @@ function handleStartDateChange(value: Date) {
       // Convert to timestamp and update composable
       const timestamp = setToMidnight(value);
       setStartTimestampInternal(timestamp);
-      startDateCalendar.value?.closeMenu();
+      // startDateCalendar.value?.closeMenu();
     }
   }
 }
@@ -432,7 +370,33 @@ function handleEndDateChange(value: Date) {
       // Convert to timestamp and update composable
       const timestamp = setToEndOfDay(value);
       setEndTimestampInternal(timestamp);
-      endDateCalendar.value?.closeMenu();
+      // endDateCalendar.value?.closeMenu();
+    }
+  }
+}
+
+
+const dateRangeArray = computed<Date[] | null>(() => {
+  if (startDateObj.value && endDateObj.value) {
+    return [startDateObj.value, endDateObj.value];
+  }
+  return null;
+});
+const dateRangeCalendar = ref();
+function handleDateRangeChange(value: Date[]) {
+  if (value && value.length === 2) {
+    const [start, end] = value;
+    let changed = false;
+    if (start.getTime() !== startDateObj.value?.getTime()) {
+      handleStartDateChange(start);
+      changed = true;
+    }
+    if (end.getTime() !== endDateObj.value?.getTime()) {
+      handleEndDateChange(end);
+      changed = true;
+    }
+    if (changed) {
+      dateRangeCalendar.value?.closeMenu();
     }
   }
 }
@@ -575,4 +539,30 @@ watch(() => endDate.value, (newTimestamp) => {
   border-color: rgb(var(--v-theme-primary));
   box-shadow: 0 0 0 2px rgba(var(--v-theme-primary), 0.2);
 }
+
+.dtrs-flex-time-box {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: center;
+}
+
+.pm-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
+.pm-wrapper > span {
+  font-size: 1.2em;
+  line-height: 1;
+}
+
+.reference-date-picker {
+  /*Font sizes*/
+    --dp-font-size: 0.8rem; /*Default font-size*/
+    --dp-preview-font-size: 0.7rem; /*Font size of the date preview in the action row*/
+}
+
 </style>

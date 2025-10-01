@@ -34,7 +34,7 @@ export function useDateTimeSelector(
   } = useTimezone(selectedTimezone);
   
   // Extend selection type locally to include 'singledate' and 'pattern' without altering global type
-  const selectionType = ref<TimeRangeSelectionType>('weekday');
+  const selectionType = ref<TimeRangeSelectionType>('singledate');
   
   // Weekday selection state
   const selectedDayOfWeek = ref<number>(1); // Default to Monday
@@ -79,9 +79,10 @@ export function useDateTimeSelector(
   
   // Generate millisecond ranges
   function generateMillisecondRanges(): MillisecondRange[] {
-    if (selectionType.value === 'weekday') {
-      return generateWeekdayRanges();
-    } else if (selectionType.value === 'pattern') {
+    // if (selectionType.value === 'weekday') {
+    //   return generateWeekdayRanges();
+    // } else 
+    if (selectionType.value === 'pattern') {
       return generatePatternRanges();
     } else if (selectionType.value === 'singledate') {
       return generateSingleDateRange();
@@ -182,10 +183,20 @@ export function useDateTimeSelector(
     const startMs = startDate.value;
     const endMs = endDate.value;
     
-    return [{
-      start: startMs,
-      end: endMs
-    }];
+    const ranges: MillisecondRange[] = [];
+    const oneDayMs = 24 * 60 * 60 * 1000; // Milliseconds in a day
+    let currentStart = startMs;
+
+    while (currentStart < endMs) {
+      const currentEnd = Math.min(currentStart + (10 * oneDayMs) - 1, endMs);
+      ranges.push({
+        start: currentStart,
+        end: currentEnd
+      });
+      currentStart = currentEnd + 1;
+    }
+
+    return ranges;
   }
   
   // Single date (timestamp at timezone-local midnight) state

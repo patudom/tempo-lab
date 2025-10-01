@@ -1,5 +1,5 @@
 <template>
-  <div id="dataset-sections">
+  <div id="dataset-sections" :style="cssVars">
     <h2>Investigate Patterns with Time</h2>
     <div id="add-region-time">
       <v-expansion-panels
@@ -172,7 +172,7 @@
                   v-bind="props"
                   :ref="(el) => datasetRowRefs[dataset.id] = el"
                   class="selection-item my-2"
-                  :style="{ 'background-color': dataset.region.color }"
+                  :style="{ 'background-color': dataset.customColor ?? dataset.region.color }"
                   :ripple="touchscreen"
                   @click="() => {
                     if (touchscreen) {
@@ -183,7 +183,21 @@
                 >
                   <template #default>
                     <div>
-                      <v-chip size="small">{{ dataset.region.name }}</v-chip>
+                      <v-chip
+                        size="small" 
+                        append-icon="mdi-pencil"
+                        elevation="1"
+                        @click="() => handleEditDataset(dataset)"
+                        >
+                        {{ dataset.name ?? dataset.region.name }}
+                      </v-chip>
+                      <v-chip 
+                        v-if="dataset.name" 
+                        size="small" 
+                        variant="flat"  
+                        :style="(dataset.customColor === dataset.region.color) ? {border: '1px solid #ffffff61'} : {}"
+                        :color="dataset.region.color"
+                        >{{ dataset.region.name }}</v-chip>
                       <v-chip size="small">{{ moleculeName(dataset.molecule) }}</v-chip>
                       <v-chip v-if="dataset.timeRange" size="small" class="text-caption">
                         {{ dataset.timeRange.description }}
@@ -308,6 +322,20 @@
                               :disabled="!dataset.samples"
                               variant="plain"
                               @click="() => openAggregationDialog(dataset)"
+                            ></v-btn>
+                          </template>
+                        </v-tooltip>
+                        <v-tooltip
+                          text="Edit Dataset Name/Color"
+                          location="top"
+                        >
+                          <template #activator="{ props }">
+                            <v-btn
+                              v-bind="props"
+                              size="x-small"
+                              icon="mdi-pencil"
+                              variant="plain"
+                              @click="() => handleEditDataset(dataset)"
                             ></v-btn>
                           </template>
                         </v-tooltip>
@@ -574,6 +602,20 @@
 
         </v-dialog>
         
+      <v-dialog
+        v-model="showDatasetEditor"
+      >
+        <user-dataset-editor
+          v-if="currentlyEditingDataset !== null"
+          v-model="currentlyEditingDataset" 
+          :name-only="datasetEditorNameOnly"
+          @complete="() => {
+            showDatasetEditor = false;
+            currentlyEditingDataset = null;
+          }"
+          />
+        </v-dialog>
+        
     <!-- Data Aggregation Dialog -->
     <advanced-operations
       v-model="showAggregationDialog"
@@ -620,6 +662,13 @@ const {
   focusRegion,
 } = storeToRefs(store);
 
+const cssVars = computed(() => {
+  return {
+    '--accent-color': accentColor.value,
+    '--accent-color-2': accentColor2.value,
+  };
+});
+
 function plotlyDragPredicate(element: HTMLElement): boolean {
   return element.closest(".plotly") === null;
 }
@@ -630,6 +679,7 @@ const openPanels = ref<number[]>([]);
 const openGraphs = ref<Record<string,boolean>>({});
 const openSelection = ref<string | null>(null);
 const tableSelection = ref<UserDataset | null>(null);
+const currentlyEditingDataset = ref<UserDataset | null>(null);
 
 const createTimeRangeActive = ref(false);
 const createDatasetActive = ref(false);
@@ -655,6 +705,15 @@ function handleAggregationSaved(aggregatedSelection: UserDataset) {
 function handleDatasetCreated(dataset: UserDataset) {
   store.addDataset(dataset);
   createDatasetActive.value = false;
+}
+
+import UserDatasetEditor from "./UserDatasetEditor.vue";
+const showDatasetEditor = ref(false);
+const datasetEditorNameOnly = ref(false);
+function handleEditDataset(dataset: UserDataset, nameOnly = false) {
+  datasetEditorNameOnly.value = nameOnly;
+  currentlyEditingDataset.value = dataset;
+  showDatasetEditor.value = true;
 }
 
 function removeDataset(dataset: UserDataset) {
