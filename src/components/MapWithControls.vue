@@ -212,7 +212,7 @@
         class="flex-grow-0"
         v-if="map"
         :mapRef="map as Map | null" 
-        :order="['power-plants-heatmap', 'aqi-layer-aqi', 'hms-layer', 'Population Density', 'esri-source']"
+        :order="['power-plants-heatmap', 'power-plants-layer', 'aqi-layer-aqi', 'hms-layer', 'Population Density', 'esri-source']"
         />
     </div>
   </div>
@@ -401,6 +401,7 @@ const onMapReady = (m: Map) => {
   console.log('Map ready event received');
   map.value = m; // ESRI source already added by EsriMap
   pp.addheatmapLayer();
+  pp.addLayer();
   pp.togglePowerPlants(false);
   aqiLayer.addToMap(m);
   hmsLayer.addToMap(m);
@@ -424,13 +425,14 @@ const onMapReady = (m: Map) => {
   const ignoredLayers = ['background'];
   const shownLayers = [
     'esri-source',
+    'power-plants-layer',
     'power-plants-heatmap',
     'aqi-layer-aqi',
     'hms-layer',
     'Population Density',
   ];
   const linkedLayers = {
-    'power-plants-heatmap': ['power-plants-layer'],
+    // 'power-plants-layer': ['power-plants-heatmap'],
     'aqi-layer-aqi': ['aqi-layer-aqi-label'],
     'hms-layer': ['hms-layer-circle', 'hms-layer-symbol'],
   };
