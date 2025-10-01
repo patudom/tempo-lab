@@ -439,7 +439,7 @@ function saveFolding() {
 
   const foldedSelection: UserDataset = {
     id: v4(),
-    region: { ...props.selection.region, color: '#333', name: props.selection.region.name } as typeof props.selection.region,
+    region: { ...props.selection.region, name: props.selection.region.name } as typeof props.selection.region,
     timeRange: createFoldedTimeRange(),
     molecule: props.selection.molecule,
     loading: false, // folded data is immediately available
