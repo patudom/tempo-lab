@@ -219,6 +219,7 @@ const includeBinPhase = ref(true);
 const alignToBinCenter = ref(false);
 const useErrorBars = ref(false);
 
+
 // Computed properties
 const originalDataPointCount = computed(() => {
   if (!props.selection?.samples) return 0;

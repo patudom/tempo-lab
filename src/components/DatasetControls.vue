@@ -519,8 +519,8 @@
       <plotly-graph
         :datasets="no2foldedGraphData.length > 0 ? no2foldedGraphData : []"
         :show-errors="showErrorBands"
-        :colors="['#FF5733', '#333']"
-        :data-options="[{mode: 'markers'}, {mode: 'lines+markers'}]"
+        :colors="no2foldedGraphData.map( v => v.color) ?? ['#FF5733', '#333']"
+        :data-options="[{mode: 'lines+markers'}, {mode: 'lines+markers'}]"
       />
     </cds-dialog>
 
@@ -546,8 +546,8 @@
       <plotly-graph
         :datasets="o3foldedGraphData.length > 0 ? o3foldedGraphData : []"
         :show-errors="showErrorBands"
-        :colors="['#FF5733', '#333']"
-        :data-options="[{mode: 'markers'}, {mode: 'lines+markers'}]"
+        :colors="o3foldedGraphData.map( v => v.color) ?? ['#FF5733', '#333']"
+        :data-options="[{mode: 'lines+markers'}, {mode: 'lines+markers'}]"
       />
     </cds-dialog>
 
@@ -573,8 +573,8 @@
       <plotly-graph
         :datasets="hchofoldedGraphData.length > 0 ? hchofoldedGraphData : []"
         :show-errors="showErrorBands"
-        :colors="['#FF5733', '#333']"
-        :data-options="[{mode: 'markers'}, {mode: 'lines+markers'}]"
+        :colors="hchofoldedGraphData.map( v => v.color) ?? ['#FF5733', '#333']"
+        :data-options="[{mode: 'lines+markers'}, {mode: 'lines+markers'}]"
       />
     </cds-dialog>
     </div>
@@ -646,7 +646,7 @@ import { TimeRangeSelectionType } from "@/types/datetime";
 import PlotlyGraph from "./PlotlyGraph.vue";
 import CTextField from "./CTextField.vue";
 
-type UnifiedRegionType = UnifiedRegion<typeof backend.value>;
+type UnifiedRegionType = UnifiedRegion;
 
 const store = useTempoStore();
 const {
@@ -734,9 +734,6 @@ function handleDateTimeRangeSelectionChange(timeRanges: MillisecondRange[], sele
   // Build description based on selection type
   let descriptionBase = 'Custom';
   switch (selectionType) {
-  case 'weekday':
-    descriptionBase = 'Weekday Pattern';
-    break;
   case 'daterange':
     descriptionBase = 'Date Range';
     break;
@@ -812,7 +809,12 @@ const no2foldedGraphData = computed(() =>{
       s.plotlyDatasets && 
       s.plotlyDatasets.length > 0
     );
-  return validFoldedDatasets.map(s => s.plotlyDatasets![1]); // "!" tells TS that we know it's not undefined
+  return validFoldedDatasets.map(s => {
+    return {
+      ...s.plotlyDatasets![1],
+      color: s.customColor || s.region.color,
+    };
+  }); // "!" tells TS that we know it's not undefined
 });
 
 const showfoldedO3Graph = ref(false);
@@ -824,7 +826,12 @@ const o3foldedGraphData = computed(() =>{
       s.plotlyDatasets && 
       s.plotlyDatasets.length > 0
     );
-  return validFoldedDatasets.map(s => s.plotlyDatasets![1]); // "!" tells TS that we know it's not undefined
+  return validFoldedDatasets.map(s => {
+    return {
+      ...s.plotlyDatasets![1],
+      color: s.customColor || s.region.color,
+    };
+  }); // "!" tells TS that we know it's not undefined
 }); 
 
 const showfoldedHCHOGraph = ref(false);
@@ -836,7 +843,12 @@ const hchofoldedGraphData = computed(() =>{
       s.plotlyDatasets && 
       s.plotlyDatasets.length > 0
     );
-  return validFoldedDatasets.map(s => s.plotlyDatasets![1]); // "!" tells TS that we know it's not undefined
+  return validFoldedDatasets.map(s => {
+    return {
+      ...s.plotlyDatasets![1],
+      color: s.customColor || s.region.color,
+    };
+  }); // "!" tells TS that we know it's not undefined
 }); 
 
 const showErrorBands = ref(true);
