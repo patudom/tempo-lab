@@ -118,7 +118,7 @@
                   :data-options="dataOptions"
                   :error-bar-styles="[
                     originalErrorType === 'bar' ? { thickness: 1, width: 0} : null,
-                    aggregatedErrorType === 'bar' ? { thickness: 3, width: 5 } : null
+                    aggregatedErrorType === 'bar' ? { thickness: 3, width: 0 } : null
                   ]"
                 />
               </div>

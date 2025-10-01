@@ -63,7 +63,7 @@
               <div class="d-flex flex-row flex-wrap">
               <v-checkbox
                 v-model="showErrors"
-                label="Show Error Bands"
+                label="Show Errors"
                 density="compact"
                 hide-details
                 class="mb-3"
@@ -71,7 +71,7 @@
               
               <v-checkbox
                 v-model="useErrorBars"
-                label="Error Bars"
+                label="Use Error Bars"
                 density="compact"
                 hide-details
                 class="mb-3"
@@ -149,6 +149,10 @@
                     {mode: 'markers'}, // options for the original data
                     {mode: 'lines+markers'} // options for the folded data
                     ]"
+                  :error-bar-styles="[
+                    {'thickness': 1, 'width': 0}, // original data error bar style
+                    { 'thickness': 3, 'width': 0 } // folded data error bar style
+                  ]"
                 />
               </div>
             </v-card>
@@ -209,10 +213,10 @@ const selectedFoldType = ref<FoldType>('hourOfDay');
 const selectedMethod = ref<AggregationMethod>('mean');
 const selectedTimezone = ref('US/Eastern');
 const showErrors = ref(true);
-const useSEM = ref(false);
+const useSEM = ref(true);
 const includeBinPhase = ref(true);
 const alignToBinCenter = ref(false);
-const useErrorBars = ref(true);
+const useErrorBars = ref(false);
 
 // Computed properties
 const originalDataPointCount = computed(() => {
@@ -275,7 +279,7 @@ function foldedTimesSeriesToDataSet(foldedTimeSeries: FoldedTimeSeriesData): Dat
     upper.push(error?.upper ?? null);
   });
 
-  return { x, y, lower, upper };
+  return { x, y, lower, upper, errorType: useErrorBars.value ? 'bar' : 'band'  };
 }
 
 function checkMonotonicIncreasing(arr: number[]): boolean {
@@ -320,7 +324,7 @@ function foldedTimeSeriesRawToDataSet(foldedTimeSeries: FoldedTimeSeriesData): D
   //   console.error("X values are not strictly increasing, adjusting for Plotly compatibility.");
   // }
   
-  return { x, y, lower, upper, errorType: useErrorBars.value ? 'bar' : 'band' };
+  return { x, y, lower, upper, errorType: 'bar' };
 }
 
 // Function to update graph data
@@ -426,12 +430,17 @@ function updateAggregatedData() {
   
   // Update graph data after folding
   updateGraphData();
+  console.log("graphData after update:", graphData.value);
 }
 
 // Save the folding
 function saveFolding() {
+  
   if (!canSave.value || !props.selection || !foldedData.value) return;
-
+  const oldAlignToBinCenter = alignToBinCenter.value;
+  // Ensure alignToBinCenter is false when saving, as we want to store raw bin indices
+  alignToBinCenter.value = false;
+  
   // Precompute datasets so parent consumers don't need to transform again.
   // We intentionally do NOT fabricate Dates for bins; x values remain numeric bin indices / phases.
   const rawDataset = foldedTimeSeriesRawToDataSet(foldedData.value);
@@ -459,6 +468,7 @@ function saveFolding() {
   } as unknown as UserDataset;
   console.log(foldedSelection);
   emit('save', foldedSelection);
+  alignToBinCenter.value = oldAlignToBinCenter;
   closeDialog();
 }
 

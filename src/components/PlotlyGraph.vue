@@ -151,7 +151,7 @@ function renderPlot() {
     const errorOptions = {} as Record<'error_y',Plotly.ErrorBar>;
     console.log(index, data.errorType);
     // https://plotly.com/javascript/error-bars/
-    if (data.errorType === 'bar') {
+    if (props.showErrors && data.errorType === 'bar') {
       const style = (props.errorBarStyles && props.errorBarStyles[index]) || {};
       errorOptions['error_y'] = {
         type: 'data',
@@ -161,7 +161,7 @@ function renderPlot() {
         color: props.colors ? props.colors[index % props.colors.length] : 'red',
         visible: true,
         thickness: 1.5,
-        width: 3,
+        width: 0,
         ...style,
       };
       
@@ -186,7 +186,7 @@ function renderPlot() {
     
     const hasErrors = data.lower && data.upper && data.lower.length === data.y.length && data.upper.length === data.y.length;
     // double checking to have valid types
-    if (hasErrors && data.lower && data.upper && data.errorType !== 'bar') {
+    if (hasErrors && data.lower && data.upper && data.errorType == 'band' && props.showErrors) {
       console.log("Adding error traces for dataset", index);
       const upperY: (number | null)[] = [];
       const lowerY: (number | null)[] = [];
@@ -327,7 +327,7 @@ onMounted(() => {
 });
 
 
-watch(() => props.showErrors, updateErrorDisplay);
+watch(() => props.showErrors, renderPlot);
 
 watch(() => props.datasets, (_newData, _oldData) => {
   console.log("Data prop changed, re-rendering plot");
