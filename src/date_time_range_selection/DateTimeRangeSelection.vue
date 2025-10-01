@@ -18,6 +18,11 @@
           value="daterange"
           density="compact"
         />
+        <v-radio 
+          label="Months Range" 
+          value="monthrange"
+          density="compact"
+        />
 
         <v-radio 
           label="Pattern (Days × Times)" 
@@ -191,6 +196,36 @@
           </div>
         </div>
       </v-expand-transition>
+      
+      <!-- Month Selection -->
+      <v-expand-transition>
+        <div v-if="selectionType === 'monthrange'" class="month-selection-section">
+          <div class="mb-4">
+            <label v-for="month in monthNames" :key="month" class="mr-3" style="text-wrap: nowrap;" for="dtrs-month-{{ month }}">
+              <input 
+                id="dtrs-month-{{ month }}"
+                type="checkbox" 
+                :value="monthNames.indexOf(month)" 
+                v-model="selectedMonths" 
+              />
+              <span class="ml-1">{{ month }}</span>
+            </label>
+          </div>
+          
+          <div class="mb-4">
+            <label v-for="year in possibleYears" :key="year" class="mr-3" style="text-wrap: nowrap;" for="dtrs-year-{{ year }}">
+              <input 
+                id="dtrs-year-{{ year }}"
+                type="checkbox" 
+                :value="year" 
+                v-model="selectedYears" 
+              />
+              <span class="ml-1">{{ year }}</span>
+            </label>
+          </div>
+        </div>
+      </v-expand-transition>
+      
 
       <!-- Update Custom Range Button -->
       <v-btn
@@ -237,7 +272,7 @@ const props = defineProps<{
 
 // === EMITS ===
 const emit = defineEmits<{
-  'ranges-change': [ranges: MillisecondRange[], selectionType: TimeRangeSelectionType]
+  'ranges-change': [ranges: MillisecondRange[], selectionType: TimeRangeSelectionType, customName: string];
 }>();
 
 // === COMPOSABLE SETUP ===
@@ -260,6 +295,9 @@ const {
   setStartTimestamp: setStartTimestampInternal,
   setEndTimestamp: setEndTimestampInternal,
   dayNames,
+  monthNames,
+  selectedMonths,
+  selectedYears,
   generateMillisecondRanges,
   // single date additions
   singleDate,
@@ -268,7 +306,8 @@ const {
   // pattern additions
   selectedDays,
   selectedTimes,
-  generatePatternRanges
+  generatePatternRanges,
+  generateMonthRanges,
 } = useDateTimeSelector({
   currentDate: currentDateRef,
   selectedTimezone: timezoneRef
@@ -310,6 +349,14 @@ const timeOptions = ref<string[]>(Array.from({ length: 15 }, (_, h) => `${String
 //   return hours.map(h => `${String(h).padStart(2, '0')}:00`);
 // });
 
+const possibleYears = computed(() => {
+  const dates = props.allowedDates ?? [2024];
+  if (dates.length === 0) return [2023, new Date().getFullYear()];
+  const years = dates.map(d => d.getFullYear());
+  // Deduplicate and sort
+  return [...new Set(years)].sort((a, b) => a - b);
+});
+
 // Day options for v-select
 const dayOptions = computed(() => 
   dayNames.map((day, index) => ({ title: day, value: index }))
@@ -325,6 +372,26 @@ const instanceRules = computed(() => [
   (v: number) => v >= 1 && v <= 104 || 'Must be between 1 and 104 (2 years)'
 ]);
 
+const customTimeRangeName = computed((): string => {
+  if (selectionType.value === 'singledate') {
+    return `${singleDateObj.value ? formatDateDisplay(singleDateObj.value) : 'No date selected'}`;
+  } else if (selectionType.value === 'pattern') {
+    // string to describe the pattern
+    const dayNamesSelected = selectedDays.value.map(d => dayNames[d].slice(0,3)).join(',');
+    const timesSelected = selectedTimes.value.join(', ');
+    return `Pattern: [${dayNamesSelected}] × [${timesSelected}] ± ${Math.abs(timePlusMinus.value)}h`;
+  } else if (selectionType.value === 'monthrange') {
+    const monthNamesSelected = selectedMonths.value.map(m => monthNames[m].slice(0,3)).join(', ');
+    const yearsSelected = selectedYears.value.join(', ');
+    return `Months: [${monthNamesSelected}] in [${yearsSelected}]`;
+  } else if (selectionType.value === 'daterange') {
+    return `${startDateObj.value ? formatDateDisplay(startDateObj.value) : 'No start date'} - ${endDateObj.value ? formatDateDisplay(endDateObj.value) : 'No end date'}`;
+  } else {
+    return 'Unrecognized selection type';
+  }
+    
+});
+
 // === METHODS ===
 // Update custom range button handler
 function updateCustomRange() {
@@ -333,10 +400,12 @@ function updateCustomRange() {
     currentRanges = generateSingleDateRange();
   } else if (selectionType.value === 'pattern') {
     currentRanges = generatePatternRanges();
+  } else if (selectionType.value === 'monthrange') {
+    currentRanges = generateMonthRanges();
   } else {
     currentRanges = generateMillisecondRanges();
   }
-  emit('ranges-change', currentRanges, selectionType.value);
+  emit('ranges-change', currentRanges, selectionType.value, customTimeRangeName.value);
 }
 
 // Date change handlers

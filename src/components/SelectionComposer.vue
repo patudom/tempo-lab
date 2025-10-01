@@ -29,7 +29,7 @@
           </v-list-item>
         </template>
         <template #selection>
-          {{ selectedTimeRange.name }}
+          {{ selectedTimeRange?.name || 'Select Time Range' }}
         </template>
       </v-select>
 
@@ -98,8 +98,6 @@ import { v4 } from "uuid";
 import type { MappingBackends, RectangleSelection, TimeRange, UserDataset } from "../types";
 import type { MillisecondRange } from "../types/datetime";
 import { type MoleculeType, MOLECULE_OPTIONS } from "../esri/utils";
-import { atleast1d } from "../utils/atleast1d";
-import { formatTimeRange } from "../utils/timeRange";
 
 const selectedTimeRange = ref<TimeRange | null>(null);
 
@@ -118,11 +116,11 @@ const emit = defineEmits<{
 
 const loading = ref(false);
 
-type RectangleSelectionType = RectangleSelection<typeof props.backend>;
+type RectangleSelectionType = RectangleSelection;
 
 interface DraftUserDataset {
   region?: RectangleSelectionType | null;
-  timeRange?: MillisecondRange | MillisecondRange[] | null;
+  timeRange?: TimeRange | null;
   molecule?: MoleculeType | null;
 }
 const draftUserDataset = ref<DraftUserDataset>({ region: null, timeRange: null, molecule: null });
@@ -145,7 +143,7 @@ function setDraftSelectionMolecule(molecule: MoleculeType | null) {
   draftUserDataset.value.molecule = molecule || null;
 }
 
-function setDraftSelectionTimeRange(range: MillisecondRange | MillisecondRange[] | null) {
+function setDraftSelectionTimeRange(range: TimeRange | null) {
   draftUserDataset.value.timeRange = range || null;
 }
 
@@ -158,19 +156,10 @@ async function composeSelection(): Promise<UserDataset | null> {
     return null;
   }
   
-  const timeRanges = atleast1d(draft.timeRange);
-  // Add to available list if new custom
-  const timeRange: TimeRange = { 
-    id: v4(), 
-    name: 'Selection Range', 
-    description: formatTimeRange(timeRanges), 
-    range: timeRanges.length === 1 ? timeRanges[0] : timeRanges,
-    type: selectedTimeRange.value?.type || 'custom'
-  };
   const sel: UserDataset = {
     id: v4(),
     region: draft.region, // as { id: string; name: string; rectangle: RectangleSelectionInfo; color: string; layer?: unknown },
-    timeRange,
+    timeRange: draft.timeRange,
     molecule: draft.molecule as MoleculeType,
   };
   emit("create", sel);
@@ -184,7 +173,7 @@ function reset() {
 }
 
 watch(selectedTimeRange, (timeRange: TimeRange | null) => {
-  setDraftSelectionTimeRange(timeRange?.range ?? null);
+  setDraftSelectionTimeRange(timeRange ?? null);
 });
 
 // just watch the id's. using a 'deep' watch caused a significant performance hit

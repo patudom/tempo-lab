@@ -70,6 +70,12 @@ export function useDateTimeSelector(
   });
   
   const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+  const selectedMonths = ref<number[]>([new Date().getMonth()]); // Default to current month
+  const selectedYears = ref<number[]>([new Date().getFullYear()]); // Default to current year
   
   // New methods for direct timestamp manipulation
   function setWeekdayStartTimestamp(timestamp: number): void {
@@ -86,6 +92,8 @@ export function useDateTimeSelector(
       return generatePatternRanges();
     } else if (selectionType.value === 'singledate') {
       return generateSingleDateRange();
+    } else if (selectionType.value === 'monthrange') {
+      return generateMonthRanges();
     } else {
       return generateDateRangeRanges();
     }
@@ -96,6 +104,24 @@ export function useDateTimeSelector(
     const [hour, minute] = selectedTime.value.split(':').map(Number);
     return { hour, minute };
   });
+  
+  function generateMonthRanges(): MillisecondRange[] {
+    if (selectedMonths.value.length === 0 || selectedYears.value.length === 0) {
+      return [];
+    }
+
+    const ranges: MillisecondRange[] = [];
+    for (const year of selectedYears.value) {
+      for (const month of selectedMonths.value) {
+        const startDate = fromTimezone(new Date(year, month, 1));
+        const endDate = fromTimezone(new Date(year, month + 1, 0, 23, 59, 59, 999)); // End of the month
+        parcelLongRanges(startDate, endDate).forEach(r => ranges.push(r));
+      }
+    }
+
+    // Sort newest-first
+    return ranges.sort((a, b) => b.start - a.start);
+  }
   
   function generateWeekdayRanges(): MillisecondRange[] {
     // Determine base timestamp: use manual timestamp if set, otherwise current date
@@ -176,19 +202,12 @@ export function useDateTimeSelector(
     return deduped;
   }
   
-  function generateDateRangeRanges(): MillisecondRange[] {
-    if (startDate.value === 0 || endDate.value === 0) return [];
-    
-    // Use timestamps directly - they should already be set to appropriate times (midnight, end of day, etc.)
-    const startMs = startDate.value;
-    const endMs = endDate.value;
-    
+  function parcelLongRanges(startMs: number, endMs: number, chunckSize = 864000000): MillisecondRange[] {
     const ranges: MillisecondRange[] = [];
-    const oneDayMs = 24 * 60 * 60 * 1000; // Milliseconds in a day
     let currentStart = startMs;
 
     while (currentStart < endMs) {
-      const currentEnd = Math.min(currentStart + (10 * oneDayMs) - 1, endMs);
+      const currentEnd = Math.min(currentStart + chunckSize - 1, endMs);
       ranges.push({
         start: currentStart,
         end: currentEnd
@@ -198,6 +217,19 @@ export function useDateTimeSelector(
 
     return ranges;
   }
+  
+  function generateDateRangeRanges(): MillisecondRange[] {
+    if (startDate.value === 0 || endDate.value === 0) return [];
+    
+    // Use timestamps directly - they should already be set to appropriate times (midnight, end of day, etc.)
+    const startMs = startDate.value;
+    const endMs = endDate.value;
+    
+    const oneDayMs = 24 * 60 * 60 * 1000; // Milliseconds in a day
+    
+    return parcelLongRanges(startMs, endMs, 10 * oneDayMs); // Chunk size of 10 days
+  }
+  
   
   // Single date (timestamp at timezone-local midnight) state
   const singleDate = ref<number>(0);
@@ -253,6 +285,10 @@ export function useDateTimeSelector(
     startDate,
     endDate,
     
+    selectedMonths,
+    selectedYears,
+    monthNames,
+    
     // New timestamp methods
     setWeekdayStartTimestamp,
     setStartTimestamp: (timestamp: number) => { startDate.value = timestamp; },
@@ -267,6 +303,7 @@ export function useDateTimeSelector(
     generateMillisecondRanges,
     formatTime,
     generateSingleDateRange,
-    generatePatternRanges
+    generatePatternRanges,
+    generateMonthRanges,
   };
 }

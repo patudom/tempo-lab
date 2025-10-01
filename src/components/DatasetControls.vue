@@ -38,7 +38,7 @@
                 <v-list-item
                   v-for="(timeRange, index) in timeRanges"
                   :key="index"
-                  :title="timeRange.name === 'Displayed Day' ? `Displayed Day: ${ formatTimeRange(timeRange.range) }` : formatTimeRange(timeRange.range)"
+                  :title="timeRange.name === 'Displayed Day' ? `Displayed Day: ${ formatTimeRange(timeRange.range) }` : (timeRange.name ?? formatTimeRange(timeRange.range))"
                   style="background-color: #444444"
                 >
 
@@ -724,32 +724,18 @@ function removeDataset(dataset: UserDataset) {
   delete datasetRowRefs[dataset.id];
 }
 
-function handleDateTimeRangeSelectionChange(timeRanges: MillisecondRange[], selectionType: TimeRangeSelectionType) {
+function handleDateTimeRangeSelectionChange(timeRanges: MillisecondRange[], selectionType: TimeRangeSelectionType, customName: string) {
   if (!Array.isArray(timeRanges) || timeRanges.length === 0) {
     console.error('No time ranges received from DateTimeRangeSelection');
     return;
   }
+  console.log(`Received ${timeRanges.length} time ranges of type ${selectionType} and name ${customName}`);
   const normalized = atleast1d(timeRanges);
   // No dedup tracking now
-  // Build description based on selection type
-  let descriptionBase = 'Custom';
-  switch (selectionType) {
-  case 'daterange':
-    descriptionBase = 'Date Range';
-    break;
-  case 'singledate':
-    descriptionBase = 'Single Date';
-    break;
-  case 'pattern':
-    descriptionBase = 'Pattern';
-    break;
-  }
-  const formatted = formatTimeRange(normalized);
-  const description = `${descriptionBase} (${formatted})`;
   const tr: TimeRange = {
     id: v4(),
-    name: formatted,
-    description,
+    name: customName,
+    description: customName,
     range: normalized.length === 1 ? normalized[0] : normalized,
     type: selectionType,
   };
