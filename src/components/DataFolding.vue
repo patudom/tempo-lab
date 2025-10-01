@@ -235,7 +235,7 @@ const canSave = computed(() => {
 });
 
 const foldedDatasetName = computed(() => {
-  if (!props.selection) return 'Folded Data';
+  if (!props.selection?.name) return 'Folded Data';
   return `Folded ${props.selection.name} (${selectedFoldType.value}, ${selectedMethod.value})`;
 });
 
