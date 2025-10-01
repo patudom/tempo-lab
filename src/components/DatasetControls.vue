@@ -378,6 +378,7 @@
                           :show-errors="showErrorBands"
                           :colors="[dataset.region.color, '#333']"
                           :data-options="[{mode: 'markers'}, {mode: 'lines+markers'}]"
+                          :names="[`Original Data`, `Binned`]"
                         />
                       </template>
                       <template v-else>

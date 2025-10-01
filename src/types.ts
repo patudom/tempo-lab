@@ -123,12 +123,13 @@ export interface DataPointError {
 }
 
 // Dataset shape for PlotlyGraph (date-less or numeric x values allowed)
-export interface DataSet {
+export interface PlotltGraphDataSet {
   x: (number | Date | string | null)[]; // Plotly Datum subset
   y: (number | null)[];
   lower?: (number | null)[];
   upper?: (number | null)[];
   errorType?: 'bar' | 'band';
+  name: string;
 }
 
 export interface MillisecondRange {
@@ -159,7 +160,7 @@ export interface UserDataset {
   // Used when timeRange.type === 'folded'
   folded?: unknown;
   // Direct plotly datasets (preferred for folded or synthetic selections)
-  plotlyDatasets?: DataSet[];
+  plotlyDatasets?: PlotltGraphDataSet[];
   // add two user editable properties
   name?: string; // user editable
   customColor?: string; // user editable

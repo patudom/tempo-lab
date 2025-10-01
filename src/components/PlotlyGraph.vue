@@ -14,7 +14,7 @@
 import { onMounted, ref, watch, nextTick } from "vue";
 import { v4 } from "uuid";
 import Plotly, { PlotlyHTMLElement, newPlot, restyle, type Data, type Datum, type PlotMouseEvent } from "plotly.js-dist-min";
-import type { DataSet } from '../types';
+import type { PlotltGraphDataSet } from '../types';
 
 // https://stackoverflow.com/a/7616484
 const generateHash = (string) => {
@@ -26,18 +26,19 @@ const generateHash = (string) => {
   return hash;
 };
 
-const hashDataset = (data: DataSet) => {
+const hashDataset = (data: PlotltGraphDataSet) => {
   const hash = JSON.stringify(data.x) + JSON.stringify(data.y) +
               JSON.stringify(data.lower) + JSON.stringify(data.upper) + JSON.stringify(data.errorType);
   return generateHash(hash).toString();
 };
 
 interface TimeseriesProps {
-  datasets: DataSet[];
+  datasets: PlotltGraphDataSet[];
   colors?: string[];
   showErrors?: boolean;
   dataOptions?: Partial<Data>[];
   errorBarStyles?: (Partial<Plotly.ErrorOptions> | null)[];
+  names?: string[];
 }
 
 const props = defineProps<TimeseriesProps>();
@@ -78,7 +79,7 @@ function nanMean(arr: (number | null)[]): number | null {
 
 const filterNulls = ref(true);
 
-function filterNullValues(data: DataSet): DataSet {
+function filterNullValues(data: PlotltGraphDataSet): PlotltGraphDataSet {
   // filter out any place where
   // data.x or data.y is null or undefined or NaN
   const filteredX: Datum[] = [];
@@ -98,9 +99,10 @@ function filterNullValues(data: DataSet): DataSet {
       }
     }
   });
-  const result: DataSet = {
+  const result: PlotltGraphDataSet = {
     x: filteredX,
     y: filteredY,
+    name: data.name
   };
   if (data.lower) {
     result.lower = filteredLower;
@@ -167,11 +169,12 @@ function renderPlot() {
       
     }
     console.log("Error options", errorOptions);
+    const datasetName = data.name || props.names?.[index] || `Dataset ${index + 1}`;
     const dataTraceOptions = {
       mode: "lines+markers",
       legendgroup: legendGroup,
       showlegend: true,
-      name: `Dataset ${index + 1}`,
+      name: datasetName,
       marker: { color: props.colors ? props.colors[index % props.colors.length] : 'red' },
       visible: traceVisible.value.get(id) ? true : "legendonly",
       ...errorOptions,
@@ -225,7 +228,7 @@ function renderPlot() {
         line: { width: 0 },
         showlegend: false,
         legendgroup: legendGroup,
-        name: `Dataset ${index + 1}`,
+        name: datasetName,
         marker: { color: props.colors ? props.colors[index % props.colors.length] : 'red' },
         // visible: props.showErrors && traceVisible.value.get(id),
       };

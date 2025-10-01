@@ -169,7 +169,7 @@ import { ref, computed, watch, nextTick } from 'vue';
 import { v4 } from 'uuid';
 import { TimeSeriesFolder, sortfoldBinContent } from '../esri/services/aggregation';
 import PlotlyGraph from './PlotlyGraph.vue';
-import type { Prettify, UserDataset, DataSet } from '../types';
+import type { Prettify, UserDataset, PlotltGraphDataSet } from '../types';
 import type { AggregationMethod, TimeSeriesData, FoldedTimeSeriesData , FoldType, FoldBinContent} from '../esri/services/aggregation';
 
 
@@ -196,6 +196,7 @@ const foldingOptions = [
 
 const methodOptions = [
   { title: 'Mean', value: 'mean' },
+  { title: 'Median', value: 'median' },
   { title: 'Min', value: 'min' },
   { title: 'Max', value: 'max' }
 ];
@@ -233,19 +234,24 @@ const canSave = computed(() => {
   return !!(props.selection && foldedData.value && foldedDataPointCount.value > 0);
 });
 
+const foldedDatasetName = computed(() => {
+  if (!props.selection) return 'Folded Data';
+  return `Folded ${props.selection.name} (${selectedFoldType.value}, ${selectedMethod.value})`;
+});
+
 // Aggregated data
 const foldedData = ref<FoldedTimeSeriesData | null>(null);
 const foldedSelection = ref<null>(null);
 // Graph data for display - now a ref that gets manually updated
-const graphData = ref<DataSet[]>([]);
+const graphData = ref<PlotltGraphDataSet[]>([]);
 
 
 
-function timeseriesToDataSet(timeseries: TimeSeriesData): DataSet {
-  const x: DataSet['x'] = [];
-  const y: DataSet['y'] = [];
-  const lower: DataSet['lower'] = [];
-  const upper: DataSet['upper'] = [];
+function timeseriesToDataSet(timeseries: TimeSeriesData): Omit<PlotltGraphDataSet, 'name'> {
+  const x: PlotltGraphDataSet['x'] = [];
+  const y: PlotltGraphDataSet['y'] = [];
+  const lower: PlotltGraphDataSet['lower'] = [];
+  const upper: PlotltGraphDataSet['upper'] = [];
 
   // tsa, tsb are the timestamps as strings
   const sortedEntries = Object.entries(timeseries.values).sort(([tsa, _a], [tsb, _b]) => parseInt(tsa) - parseInt(tsb));
@@ -261,7 +267,7 @@ function timeseriesToDataSet(timeseries: TimeSeriesData): DataSet {
   return { x, y, lower, upper };
 }
 
-function foldedTimesSeriesToDataSet(foldedTimeSeries: FoldedTimeSeriesData): DataSet {
+function foldedTimesSeriesToDataSet(foldedTimeSeries: FoldedTimeSeriesData): Omit<PlotltGraphDataSet, 'name'> {
   const x: (number | null)[] = [];
   const y: (number | null)[] = [];
   const lower: (number | null)[] = [];
@@ -291,7 +297,7 @@ function checkMonotonicIncreasing(arr: number[]): boolean {
   return true;
 }
   
-function foldedTimeSeriesRawToDataSet(foldedTimeSeries: FoldedTimeSeriesData): DataSet {
+function foldedTimeSeriesRawToDataSet(foldedTimeSeries: FoldedTimeSeriesData): Omit<PlotltGraphDataSet, 'name'> {
   const x: (number | null)[] = [];
   const y: (number | null)[] = [];
   const lower: (number | null)[] = [];
@@ -336,11 +342,15 @@ function updateGraphData() {
   }
   
   // const data = [timeseriesToDataSet(selectionToTimeseries(props.selection))]; // Original data
-  const data: DataSet[] = [];
+  const data: PlotltGraphDataSet[] = [];
   
   if (foldedData.value) {
-    data.push(foldedTimeSeriesRawToDataSet(foldedData.value)); // Raw folded data
-    data.push(foldedTimesSeriesToDataSet(foldedData.value));
+    const t = foldedTimeSeriesRawToDataSet(foldedData.value); // Raw folded data
+    (t as PlotltGraphDataSet).name = props.selection.name || 'Original Data';
+    data.push(t as PlotltGraphDataSet); // Raw folded data
+    const f = foldedTimesSeriesToDataSet(foldedData.value); // Summary folded data
+    (f as PlotltGraphDataSet).name = foldedDatasetName.value;
+    data.push(f as PlotltGraphDataSet); // Summary folded data
   }
   
   graphData.value = data;
@@ -444,7 +454,9 @@ function saveFolding() {
   // Precompute datasets so parent consumers don't need to transform again.
   // We intentionally do NOT fabricate Dates for bins; x values remain numeric bin indices / phases.
   const rawDataset = foldedTimeSeriesRawToDataSet(foldedData.value);
+  (rawDataset as PlotltGraphDataSet).name = props.selection.name || 'Original Data';
   const summaryDataset = foldedTimesSeriesToDataSet(foldedData.value);
+  (summaryDataset as PlotltGraphDataSet).name = foldedDatasetName.value;
 
   const foldedSelection: UserDataset = {
     id: v4(),
@@ -454,6 +466,7 @@ function saveFolding() {
     loading: false, // folded data is immediately available
     // samples/errors intentionally omitted for folded since bins are synthetic; rely on plotlyDatasets
     locations: foldedData.value.locations,
+    name: foldedDatasetName.value,
     folded: {
       foldType: selectedFoldType.value,
       method: selectedMethod.value,
@@ -464,8 +477,8 @@ function saveFolding() {
       useErrorBars: useErrorBars.value,
       raw: foldedData.value
     },
-    plotlyDatasets: [rawDataset, summaryDataset]
-  } as unknown as UserDataset;
+    plotlyDatasets: [rawDataset as PlotltGraphDataSet, summaryDataset as PlotltGraphDataSet]
+  };
   console.log(foldedSelection);
   emit('save', foldedSelection);
   alignToBinCenter.value = oldAlignToBinCenter;

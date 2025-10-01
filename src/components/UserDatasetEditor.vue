@@ -77,6 +77,9 @@ watch(color, () => {
 function save() {
   if (model.value) {
     model.value.name = name.value;
+    if (model.value.plotlyDatasets) {
+      model.value.plotlyDatasets[1].name = name.value;
+    }
     model.value.customColor = color.value;
   }
   emit('complete');

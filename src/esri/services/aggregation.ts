@@ -21,6 +21,7 @@ import {
   nanstandardError,
   nanstdev,
   nansum,
+  nanmedian,
   nanmin,
   nanmax,
   nanRootMeanSquare,
@@ -181,6 +182,9 @@ export class TimeSeriesResampler {
       switch (this.method) {
         case 'mean':
           aggregatedValue = nanmean(groupValues);
+          break;
+        case 'median':
+          aggregatedValue = nanmedian(groupValues);
           break;
         case 'min':
           aggregatedValue = nanmin(groupValues);
@@ -423,6 +427,9 @@ export class TimeSeriesFolder {
       switch (this.method) {
         case 'mean':
           aggregatedValue = nanmean(groupValues);
+          break;
+        case 'median':
+          aggregatedValue = nanmedian(groupValues);
           break;
         case 'min':
           aggregatedValue = nanmin(groupValues);

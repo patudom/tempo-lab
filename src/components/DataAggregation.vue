@@ -161,7 +161,7 @@ import { TimeSeriesResampler } from '../esri/services/aggregation';
 import PlotlyGraph from './PlotlyGraph.vue';
 import type { UserDataset, TimeRange } from '../types';
 import type { AggregationMethod, TimeSeriesData } from '../esri/services/aggregation';
-import type { DataSet } from '../types';
+import type { PlotltGraphDataSet } from '../types';
 import type { Data } from 'plotly.js-dist-min';
 
 interface DataAggregationProps {
@@ -186,6 +186,7 @@ const windowOptions = [
 
 const methodOptions = [
   { title: 'Mean', value: 'mean' },
+  { title: 'Median', value: 'median' },
   { title: 'Min', value: 'min' },
   { title: 'Max', value: 'max' }
 ];
@@ -230,7 +231,7 @@ const canSave = computed(() => {
 const aggregatedData = ref<TimeSeriesData | null>(null);
 const aggregatedSelection = ref<UserDataset | null>(null);
 // Graph data for display - now a ref that gets manually updated
-const graphData = ref<DataSet[]>([]);
+const graphData = ref<PlotltGraphDataSet[]>([]);
 
 // Per-dataset visual overrides (match length of graphData)
 const dataOptions = computed<Partial<Data>[]>(() => {
@@ -246,15 +247,15 @@ const dataOptions = computed<Partial<Data>[]>(() => {
 });
 
 
-function selectionSamplesToDataSet(selection: UserDataset, errorType: 'band' | 'bar'): DataSet {
+function selectionSamplesToDataSet(selection: UserDataset, errorType: 'band' | 'bar'): Omit<PlotltGraphDataSet, 'name'> {
   return timeSeriesDataToDataSet(selectionToTimeseries(selection), errorType);
 }
 
-function timeSeriesDataToDataSet(timeseries: TimeSeriesData, errorType: 'band' | 'bar'): DataSet {
-  const x: DataSet['x'] = [];
-  const y: DataSet['y'] = [];
-  const lower: DataSet['lower'] = [];
-  const upper: DataSet['upper'] = [];
+function timeSeriesDataToDataSet(timeseries: TimeSeriesData, errorType: 'band' | 'bar'): Omit<PlotltGraphDataSet, 'name'> {
+  const x: PlotltGraphDataSet['x'] = [];
+  const y: PlotltGraphDataSet['y'] = [];
+  const lower: PlotltGraphDataSet['lower'] = [];
+  const upper: PlotltGraphDataSet['upper'] = [];
 
   // tsa, tsb are the timestamps as strings
   const sortedEntries = Object.entries(timeseries.values).sort(([tsa, _a], [tsb, _b]) => parseInt(tsa) - parseInt(tsb));
@@ -276,10 +277,14 @@ function updateGraphData() {
     graphData.value = [];
     return;
   }
-  const data = [selectionSamplesToDataSet(props.selection, originalErrorType.value)];
+  const o = selectionSamplesToDataSet(props.selection, originalErrorType.value);
+  (o as PlotltGraphDataSet).name = props.selection.name || 'Original Data';
+  const data = [o as PlotltGraphDataSet];
   
   if (aggregatedData.value) {
-    data.push(timeSeriesDataToDataSet(aggregatedData.value, aggregatedErrorType.value));
+    const t= timeSeriesDataToDataSet(aggregatedData.value, aggregatedErrorType.value);
+    (t as PlotltGraphDataSet).name = aggregatedSelection.value?.name || 'Aggregated Data';
+    data.push(t as PlotltGraphDataSet);
   }
   
   graphData.value = data;
@@ -378,7 +383,8 @@ function saveAggregation() {
     molecule: props.selection.molecule,
     samples: aggregatedData.value!.values,
     errors: aggregatedData.value!.errors,
-    locations: aggregatedData.value!.locations
+    locations: aggregatedData.value!.locations,
+    name: `Aggregated ${props.selection.name} (${selectedWindow.value}, ${selectedMethod.value})`
   };
   
   emit('save', aggregatedSelection);
