@@ -44,7 +44,6 @@ export function useEsriImageServiceLayer(
   const tds = new TempoDataService(serviceUrl, 'un-adjusted-population-density');
   // bind tds to the window
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (window as any).tds = tds;
 
 
   const opacityRef = toRef(opacity);

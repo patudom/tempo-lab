@@ -108,46 +108,18 @@ function stringifyEsriGetSamplesParameters(params: {
   return new URLSearchParams(options);
 }
 
-// ============================================================================
-// TEMPO DATA SERVICE
-// ============================================================================
 
-export class TempoDataService {
-  private baseUrl: string;
-  private variable: Variables | string;
-  private metadataCache: EsriImageServiceSpec | null = null;
+class ImageServiceServiceMetadata {
+  url: string;
+  metadataCache: EsriImageServiceSpec | null = null;
   private _loadingMetadata: boolean = false;
   
-  constructor(baseUrl: string, variable: Variables | string = "NO2_Troposphere") {
-    this.baseUrl = baseUrl;
-    this.variable = variable;
-    this.updateMetadataCache();
+  constructor(url: string) {
+    this.url = url;
   }
-
-  // ============================================================================
-  // CONFIGURATION
-  // ============================================================================
-
-  setVariable(variable: Variables | string): void {
-    this.variable = variable;
-  }
-
-  getVariable(): Variables | string {
-    return this.variable;
-  }
-
-  setBaseUrl(baseUrl: string): void {
-    if (this.baseUrl === baseUrl) return;
-    this.baseUrl = baseUrl;
-    this.updateMetadataCache();
-  }
-
-  getBaseUrl(): string {
-    return this.baseUrl;
-  }
-
+  
   private async _getServiceMetadata(): Promise<EsriImageServiceSpec> {
-    const url = `${this.baseUrl}?f=json`;
+    const url = `${this.url}?f=json`;
     return fetch(url)
       .then((response) => {
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -203,6 +175,123 @@ export class TempoDataService {
     }
     return this.updateMetadataCache();
   }
+  
+  async waitForCache(): Promise<ImageServiceServiceMetadata> {
+    await this.withMetadataCache();
+    return this;
+  }
+  
+  
+  get timeRange(): [number, number] | null {
+    if (this.metadataCache && this.metadataCache.timeInfo && this.metadataCache.timeInfo.timeExtent) {
+      return [this.metadataCache.timeInfo.timeExtent[0], this.metadataCache.timeInfo.timeExtent[1]];
+    }
+    return null;
+  }
+  
+  get extent(): RectBounds | null {
+    if (this.metadataCache && this.metadataCache.extent) {
+      return {
+        xmin: this.metadataCache.extent.xmin,
+        ymin: this.metadataCache.extent.ymin,
+        xmax: this.metadataCache.extent.xmax,
+        ymax: this.metadataCache.extent.ymax,
+      };
+    }
+    return null;
+  } 
+  
+  get spatialReference(): number | null {
+    if (this.metadataCache && this.metadataCache.spatialReference) {
+      return this.metadataCache.spatialReference.wkid || null;
+    }
+    return null;
+  }
+  
+  clippedToTimeExtent(timeRange: MillisecondRange): [MillisecondRange, boolean] {
+    const serviceTimeRange = this.timeRange;
+    if (!serviceTimeRange) return [timeRange, false];
+    const start = Math.max(timeRange.start, serviceTimeRange[0]);
+    const end = Math.min(timeRange.end, serviceTimeRange[1]);
+    const clipped = start !== timeRange.start || end !== timeRange.end;
+    return [{ start, end }, clipped];
+  }
+  
+  // 
+}
+
+
+// ============================================================================
+// TEMPO DATA SERVICE
+// ============================================================================
+
+export class TempoDataService extends ImageServiceServiceMetadata {
+  private _baseUrls: string | string[] = [];
+  private requestUrl: string = '';
+  private variable: Variables | string;
+  private metas = new Map<string, ImageServiceServiceMetadata>();
+  
+  constructor(baseUrl: string | string[], variable: Variables | string = "NO2_Troposphere") {
+    super(Array.isArray(baseUrl) ? baseUrl[0] : baseUrl);
+    this._baseUrls = baseUrl;
+    if (!Array.isArray(this._baseUrls)) {
+      this.requestUrl = this._baseUrls;
+    } else {
+      this.requestUrl = this._baseUrls[this._baseUrls.length - 1];
+    }
+    this.baseUrlArray.forEach((url) => {
+      this.metas.set(url, new ImageServiceServiceMetadata(url));
+    });
+    
+    this.variable = variable;
+    this.updateMetadataCache();
+  }
+
+  
+  get baseUrlArray(): string[] {
+    return Array.isArray(this._baseUrls) ? this._baseUrls : [this._baseUrls];
+  }
+  
+  // updateMetadataCache(): void {
+  //   this.baseUrlArray.forEach((url) => {
+  //     if (!this.metas.has(url)) {
+  //       this.metas.set(url, new ImageServiceServiceMetadata(url));
+  //     }
+  //   });
+  // }
+
+  // ============================================================================
+  // CONFIGURATION
+  // ============================================================================
+
+  setVariable(variable: Variables | string): void {
+    this.variable = variable;
+  }
+
+  getVariable(): Variables | string {
+    return this.variable;
+  }
+
+  setBaseUrl(baseUrl: string): void {
+    if (this.baseUrl === baseUrl) return;
+    this.baseUrl = baseUrl;
+    this.updateMetadataCache();
+  }
+  
+  get baseUrl(): string {
+    return this.url;
+  }
+  
+  set baseUrl(value: string) {
+    if (this.url === value) return;
+    this.url = value;
+    this.updateMetadataCache();
+  }
+
+  getBaseUrl(): string {
+    return this.baseUrl;
+  }
+
   
 
   // ============================================================================

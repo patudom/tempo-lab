@@ -92,6 +92,12 @@ export function useMap(id="map", options: InitMapOptions, _showRoads: Ref<boolea
     // Type instantiation is excessively deep and possibly infinite.ts(2589)
     // See discussion here https://github.com/mapbox/mapbox-gl-js/issues/13203#issuecomment-2634013147
     const libreMap = map.value as unknown as M.Map;
+    
+
+    // libreMap.setProjection({
+    //   type: 'globe' // This activates the 3D globe view
+    // });
+
     addCoastlines(libreMap);
     addStates(libreMap);
     addLabels(libreMap);
@@ -138,7 +144,8 @@ export function useMap(id="map", options: InitMapOptions, _showRoads: Ref<boolea
       style: 'https://basemaps.cartocdn.com/gl/positron-nolabels-gl-style/style.json',
       center: options.loc ? [options.loc[1], options.loc[0]] : [0, 0], // starting position [lng, lat]
       zoom: options.zoom ?? 1, // starting zoom,
-      attributionControl: false
+      attributionControl: false,
+      
     }).addControl(new AttributionControl({
       compact: true,
     }));
