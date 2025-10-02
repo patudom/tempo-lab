@@ -372,6 +372,10 @@ function updateAggregatedData() {
   // Update graph data after aggregation
   updateGraphData();
 }
+const aggDatasetName = computed(() => {
+  if (!props.selection?.name) return 'Binned Data';
+  return `Aggregated ${props.selection.name} (${selectedWindow.value}, ${selectedMethod.value})`
+});
 
 // Save the aggregation
 function saveAggregation() {
@@ -385,7 +389,7 @@ function saveAggregation() {
     samples: aggregatedData.value!.values,
     errors: aggregatedData.value!.errors,
     locations: aggregatedData.value!.locations,
-    name: `Aggregated ${props.selection.name} (${selectedWindow.value}, ${selectedMethod.value})`
+    name: aggDatasetName.value,
   };
   
   emit('save', aggregatedSelection);
