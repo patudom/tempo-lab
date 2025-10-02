@@ -2,6 +2,7 @@
   <ul>
     <draggable
       v-model="currentOrder"
+      @sort="(event: SortableEndEvent) => handleEnd(event)">
     >
       <MaplibreLayerControlItem
         v-for="layer in layers"
@@ -19,6 +20,8 @@ import { computed, toRef, ref, onMounted } from "vue";
 import type { LayerSpecification, Map } from "maplibre-gl";
 
 import MaplibreLayerControlItem from "@/components/MaplibreLayerControlItem.vue";
+import { useMaplibreLayerOrderControl } from "@/composables/useMaplibreLayerOrderControl";
+import type { SortableEndEvent } from "@/types/sortablejs";
 
 interface Props {
   map: Map;
@@ -28,12 +31,17 @@ const props = defineProps<Props>();
 const mapRef = toRef(() => props.map);
 
 const layers = ref<LayerSpecification[]>(props.map.getStyle().layers);
-const order = computed<string[]>(() => layers.value.map(layer => layer.id));
 
 const {
   currentOrder,
   controller
-} = useMaplibreLayerOrderControl(mapRef, order, true);
+} = useMaplibreLayerOrderControl(mapRef, props.map.getStyle().layers.map(layer => layer.id), true);
+
+function handleEnd(event: SortableEndEvent) {
+  if (controller && event.oldIndex && event.newIndex) {
+    controller.moveActualLayerByIndex(event.oldIndex, event.newIndex);
+  }
+}
 
 
 onMounted(() => {
