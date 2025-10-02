@@ -374,7 +374,7 @@ function updateAggregatedData() {
 }
 const aggDatasetName = computed(() => {
   if (!props.selection?.name) return 'Binned Data';
-  return `Aggregated ${props.selection.name} (${selectedWindow.value}, ${selectedMethod.value})`
+  return `Aggregated ${props.selection.name} (${selectedWindow.value}, ${selectedMethod.value})`;
 });
 
 // Save the aggregation
