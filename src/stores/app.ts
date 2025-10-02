@@ -229,6 +229,13 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
     }
     region.name = newName;
     console.log(`Renamed ${region.geometryType} region to: ${newName}`);
+    
+    // check for any datasets using this region and update the region name
+    datasets.value.forEach(ds => {
+      if (ds.region.id === region.id) {
+        ds.region.name = region.name;
+      }
+    });
   }
 
   async function fetchDataForDataset(dataset: UserDataset) {
