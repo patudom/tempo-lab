@@ -162,50 +162,10 @@
           <div class="my-selections" v-if="datasets.length>0" style="margin-top: 1em;">
 
             <h4>My Datasets</h4>
-            <v-list>
-              <v-hover
-                v-slot="{ isHovering, props }"
-                v-for="dataset in datasets"
-                :key="dataset.id"
+            <dataset-card
+              :datasets="datasets"
               >
-                <v-list-item
-                  v-bind="props"
-                  :ref="(el) => datasetRowRefs[dataset.id] = el"
-                  class="selection-item my-2"
-                  :style="{ 'background-color': dataset.customColor ?? dataset.region.color }"
-                  :ripple="touchscreen"
-                  @click="() => {
-                    if (touchscreen) {
-                      openSelection = (openSelection == dataset.id) ? null : dataset.id;
-                    }
-                  }"
-                  lines="two"
-                >
-                  <template #default>
-                    <div>
-                      <v-chip
-                        size="small" 
-                        append-icon="mdi-pencil"
-                        elevation="1"
-                        @click="() => handleEditDataset(dataset)"
-                        >
-                        {{ dataset.name ?? dataset.region.name }}
-                      </v-chip>
-                      <v-chip 
-                        v-if="dataset.name" 
-                        size="small" 
-                        variant="flat"  
-                        :style="(dataset.customColor === dataset.region.color) ? {border: '1px solid #ffffff61'} : {}"
-                        :color="dataset.region.color"
-                        >{{ dataset.region.name }}</v-chip>
-                      <v-chip size="small">{{ moleculeName(dataset.molecule) }}</v-chip>
-                      <v-chip v-if="dataset.timeRange" size="small" class="text-caption">
-                        {{ dataset.timeRange.description }}
-                      </v-chip>
-                      <v-chip v-if="dataset.timeRange" size="small" class="text-caption">
-                        {{ dataset.timeRange?.type ?? 'no type' }}
-                      </v-chip>
-                    </div>
+              <template #action-row="{ isHovering, dataset }">
                     <div
                       v-if="(dataset.loading || !dataset.samples)  && !(dataset.timeRange?.type === 'folded' && dataset.plotlyDatasets)"
                       class="dataset-loading"
@@ -412,9 +372,7 @@
                       </v-card>
                     </v-dialog>
                   </template>
-                </v-list-item>
-              </v-hover>
-            </v-list>
+            </dataset-card>
           </div>
         </template>
       </v-expansion-panel>
@@ -636,7 +594,7 @@ import { supportsTouchscreen } from "@cosmicds/vue-toolkit";
 
 import type { MillisecondRange, TimeRange, UserDataset, UnifiedRegion } from "../types";
 import { useTempoStore } from "../stores/app";
-import { moleculeName, MOLECULE_OPTIONS } from "../esri/utils";
+import { MOLECULE_OPTIONS } from "../esri/utils";
 import { areEquivalentTimeRanges, formatTimeRange } from "../utils/timeRange";
 import { atleast1d } from "../utils/atleast1d";
 
@@ -645,6 +603,7 @@ import AdvancedOperations from "./AdvancedOperations.vue";
 import { TimeRangeSelectionType } from "@/types/datetime";
 import PlotlyGraph from "./PlotlyGraph.vue";
 import CTextField from "./CTextField.vue";
+import DatasetCard from "./DatasetCard.vue";
 
 type UnifiedRegionType = UnifiedRegion;
 
