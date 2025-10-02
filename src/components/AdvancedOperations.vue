@@ -12,9 +12,10 @@
         class="ma-4"
         variant="outlined"
         density="compact"
+        color="primary"
       >
-        <v-btn value="aggregate" >Aggregate Data</v-btn>
-        <v-btn value="fold" >Fold Data</v-btn>
+        <v-btn value="aggregate" >Bin the Data</v-btn>
+        <v-btn value="fold" >Fold the Data</v-btn>
       </v-btn-toggle>
     </v-toolbar>
     <data-aggregation

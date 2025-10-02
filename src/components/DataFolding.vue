@@ -65,6 +65,7 @@
                 v-model="showErrors"
                 label="Show Errors"
                 density="compact"
+                :disabled="selectedMethod == 'min' || selectedMethod == 'max'"
                 hide-details
                 class="mb-3"
               />

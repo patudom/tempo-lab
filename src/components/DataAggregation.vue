@@ -56,6 +56,7 @@
               <v-checkbox
                 v-model="showErrors"
                 label="Show Error Bands"
+                :disabled="selectedMethod == 'min' || selectedMethod == 'max'"
                 density="compact"
                 hide-details
                 class="mb-3"
