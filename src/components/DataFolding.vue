@@ -38,7 +38,17 @@
               />
               
               <!-- Timezone Selection -->
+              <div class="selected-timezone-details d-flex mb-4">
+                  <v-checkbox
+                    v-model="useTzCenter"
+                    :label="`Use timezone of region center: ${tzCenter}`"
+                    density="compact"
+                    hide-details
+                    class="mb-1"
+                  />
+                </div>
               <v-select
+                v-if="!useTzCenter"
                 v-model="selectedTimezone"
                 :items="timezoneOptions"
                 label="Timezone"
@@ -170,9 +180,9 @@ import { ref, computed, watch, nextTick } from 'vue';
 import { v4 } from 'uuid';
 import { TimeSeriesFolder, sortfoldBinContent } from '../esri/services/aggregation';
 import PlotlyGraph from './PlotlyGraph.vue';
-import type { Prettify, UserDataset, PlotltGraphDataSet } from '../types';
+import type { Prettify, UserDataset, PlotltGraphDataSet, UnifiedRegion } from '../types';
 import type { AggregationMethod, TimeSeriesData, FoldedTimeSeriesData , FoldType, FoldBinContent} from '../esri/services/aggregation';
-
+import tz_lookup from '@photostructure/tz-lookup';
 
 interface DataFoldingProps {
   selection: UserDataset | null;
@@ -206,6 +216,7 @@ const timezoneOptions = [
   { title: 'US/Eastern', value: 'US/Eastern' },
   { title: 'US/Central', value: 'US/Central' },
   { title: 'US/Mountain', value: 'US/Mountain' },
+  { title: 'US/Arizona', value: 'US/Arizona' },
   { title: 'US/Pacific', value: 'US/Pacific' },
   { title: 'UTC', value: 'UTC' }
 ];
@@ -220,6 +231,41 @@ const includeBinPhase = ref(true);
 const alignToBinCenter = ref(false);
 const useErrorBars = ref(false);
 
+const regionCenter = computed(() => {
+  const region = props.selection?.region as UnifiedRegion;
+  
+  if (region && region.geometryType === 'point') {
+    return { lat: region.geometryInfo.y, lon: region.geometryInfo.x };
+  }
+  
+  if (region && region.geometryType === 'rectangle') {
+    const { xmin, ymin, xmax, ymax } = region.geometryInfo;
+    return { lat: (ymin + ymax) / 2, lon: (xmin + xmax) / 2 };
+  }
+  
+  return { lat: 0, lon: 0 };
+});
+
+
+
+const useTzCenter = ref(true);
+const tzCenter = tz_lookup(regionCenter.value.lat, regionCenter.value.lon);
+
+if (regionCenter.value.lat !== 0 || regionCenter.value.lon !== 0) {
+  const tz = tz_lookup(regionCenter.value.lat, regionCenter.value.lon);
+  if (tz && useTzCenter.value) {
+    selectedTimezone.value = tz;
+  }
+}
+
+watch(useTzCenter, (newVal) => {
+  if (newVal && regionCenter.value.lat !== 0 && regionCenter.value.lon !== 0) {
+    const tz = tz_lookup(regionCenter.value.lat, regionCenter.value.lon);
+    if (tz) {
+      selectedTimezone.value = tz;
+    }
+  }
+});
 
 // Computed properties
 const originalDataPointCount = computed(() => {
@@ -388,6 +434,12 @@ watch([
   useErrorBars
 ], () => {
   updateAggregatedData();
+  if (useTzCenter.value && regionCenter.value.lat !== 0 && regionCenter.value.lon !== 0) {
+    const tz = tz_lookup(regionCenter.value.lat, regionCenter.value.lon);
+    if (tz) {
+      selectedTimezone.value = tz;
+    }
+  }
 }, { immediate: true });
 
 function selectionToTimeseries(selection: UserDataset): TimeSeriesData {
@@ -505,15 +557,5 @@ watch(() => props.selection, () => {
 </script>
 
 <style scoped>
-.v-card {
-  height: 100%;
-}
 
-.v-row {
-  height: 100%;
-}
-
-.v-col {
-  height: 100%;
-}
 </style>
