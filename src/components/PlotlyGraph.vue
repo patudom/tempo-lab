@@ -32,16 +32,18 @@ const hashDataset = (data: PlotltGraphDataSet) => {
   return generateHash(hash).toString();
 };
 
-interface TimeseriesProps {
+export interface PlotlyGraphProps {
   datasets: PlotltGraphDataSet[];
   colors?: string[];
   showErrors?: boolean;
   dataOptions?: Partial<Data>[];
   errorBarStyles?: (Partial<Plotly.ErrorOptions> | null)[];
   names?: string[];
+  layoutOptions?: Partial<Plotly.Layout>;
+  configOptions?: Partial<Plotly.Config>;
 }
 
-const props = defineProps<TimeseriesProps>();
+const props = defineProps<PlotlyGraphProps>();
 
 const id = `timeseries-${v4()}`;
 
@@ -251,18 +253,15 @@ function renderPlot() {
 
   const paddingFactor = 1.1;
   const axisMax = Math.max(1, paddingFactor * max);
-  // get width of parent element .plot-container.plotly
-  const width = document.querySelector('.plot-container.plotly')?.clientWidth ?? 600;
   const layout: Partial<Plotly.Layout> = {
-    width: width,
-    height: 400,
     yaxis: {
       title: { text: "Molecules / cm<sup>2</sup>" },
       range: [0, axisMax],
     },
+    ...(props.layoutOptions || {}),
   };
 
-  newPlot(graph.value ?? id, plotlyData, layout).then((el: PlotlyHTMLElement) => {
+  newPlot(graph.value ?? id, plotlyData, layout, {responsive: true, ...props.configOptions}).then((el: PlotlyHTMLElement) => {
     plot.value = el;
     el.on("plotly_click", (data: PlotMouseEvent) => {
       data.points.forEach(point => {
@@ -340,8 +339,5 @@ watch(() => props.datasets, (_newData, _oldData) => {
 </script>
 
 <style scoped>
-.timeseries:not(:empty) {
-  width: 600px;
-  height: 400px;
-}
+
 </style>
