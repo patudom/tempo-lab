@@ -26,7 +26,7 @@ import {
   nanmax,
   nanRootMeanSquare,
 } from "./array_math";
-import { Period } from "vuetify/lib/components/VTimePicker/VTimePicker";
+
 
 
 export interface TimeSeriesData {
@@ -249,10 +249,28 @@ export class TimeSeriesResampler {
 
 
 export type FoldType = 
+    // Original fold types
     'hourOfDay' | 
     'dayOfWeek' | 
     'hourOfWeek'|
-    'weekdayWeekend';
+    'weekdayWeekend' |
+    // Hour-based bins
+    'hourOfWeek' |    // hour bins, folded over a week (0-167)
+    'hourOfMonth' |   // hour bins, folded over a month (0-743 max)
+    'hourOfYear' |    // hour bins, folded over a year (0-8783 max)
+    'hourOfSeason' |  // hour bins, folded over a season (0-2183 max)
+    // Day-based bins
+    'dayOfWeek' |     // day bins, folded over a week (0-6)
+    'dayOfMonth' |    // day bins, folded over a month (0-30 max)
+    'dayOfYear' |     // day bins, folded over a year (0-365)
+    'dayOfSeason' |   // day bins, folded over a season (0-91 max)
+    // Week-based bins
+    'weekOfMonth' |   // week bins, folded over a month (0-4 max)
+    'weekOfYear' |    // week bins, folded over a year (0-52)
+    'weekOfSeason' |  // week bins, folded over a season (0-13 max)
+    // Month-based bins
+    'monthOfYear' |   // month bins, folded over a year (0-11)
+    'monthOfSeason';  // month bins, folded over a season (0-2)
 
 export interface FoldBinContent {
   bin: number;
@@ -340,31 +358,177 @@ export class TimeSeriesFolder {
   // convenience to get the number of bins
   private _binCount(): number {
     switch (this.foldType) {
+      // Hour-based bins
       case 'hourOfDay': return 24;
+      case 'hourOfWeek': return 24 * 7;        // 168
+      case 'hourOfMonth': return 24 * 31;      // 744 (max for 31-day month)
+      case 'hourOfYear': return 24 * 366;      // 8784 (max for leap year)
+      case 'hourOfSeason': return 24 * 92;     // 2208 (max ~92 days)
+      
+      // Day-based bins
       case 'dayOfWeek': return 7;
-      case 'hourOfWeek': return 24*7;
+      case 'dayOfMonth': return 31;            // max days in a month
+      case 'dayOfYear': return 366;            // max for leap year
+      case 'dayOfSeason': return 92;           // max ~92 days in a season
+      
+      // Week-based bins
+      case 'weekOfMonth': return 5;            // max ~5 weeks in a month
+      case 'weekOfYear': return 53;            // max 53 weeks in a year
+      case 'weekOfSeason': return 14;          // max ~14 weeks in a season
+      
+      // Month-based bins
+      case 'monthOfYear': return 12;
+      case 'monthOfSeason': return 3;          // 3 months per season
+      
+      // Special cases
       case 'weekdayWeekend': return 2;
+      
+      default:
+        console.error('Unknown fold type:', this.foldType);
+        return 1;
     }
   }
   
   // instead of a groupId we just need the bin index
   private _binIndex(date: Date): number {
     const z = this._getZonedDate(date);
+    
     switch (this.foldType) {
-      case 'hourOfDay': return z.getHours();                 // 0–23
-      case 'dayOfWeek': return z.getDay();                   // 0–6
-      case 'hourOfWeek': return z.getDay() * 24 + z.getHours(); // 0–167
-      case 'weekdayWeekend': return (z.getDay() % 6 > 0) ? 1 : 0; // 1=weekday, 0=weekend
+      // Hour-based bins
+      case 'hourOfDay': 
+        return z.getHours();                                    // 0–23
+      case 'hourOfWeek': 
+        return z.getDay() * 24 + z.getHours();                  // 0–167
+      case 'hourOfMonth': 
+        return (z.getDate() - 1) * 24 + z.getHours();           // 0–743
+      case 'hourOfYear': {
+        const yearStart = new Date(z.getFullYear(), 0, 1);
+        const dayOfYear = Math.floor((z.getTime() - yearStart.getTime()) / (1000 * 60 * 60 * 24));
+        return dayOfYear * 24 + z.getHours();                   // 0–8783
+      }
+      case 'hourOfSeason': {
+        const month = z.getMonth();
+        const season = Math.floor(((month + 1) / 3) % 4);       // 0-3 for DJF, MAM, JJA, SON
+        const seasonStartMonths = [11, 2, 5, 8];                // Dec, Mar, Jun, Sep
+        const yearOff = season === 0 ? 1 : 0;
+        const seasonStart = new Date(z.getFullYear() - yearOff, seasonStartMonths[season], 1);
+        const dayOfSeason = Math.floor((z.getTime() - seasonStart.getTime()) / (1000 * 60 * 60 * 24));
+        return dayOfSeason * 24 + z.getHours();                 // 0–2207
+      }
+      
+      // Day-based bins
+      case 'dayOfWeek': 
+        return z.getDay();                                      // 0–6
+      case 'dayOfMonth': 
+        return z.getDate() - 1;                                 // 0–30
+      case 'dayOfYear': {
+        const yearStart = new Date(z.getFullYear(), 0, 1);
+        return Math.floor((z.getTime() - yearStart.getTime()) / (1000 * 60 * 60 * 24)); // 0–365
+      }
+      case 'dayOfSeason': {
+        const month = z.getMonth();
+        const season = Math.floor(((month + 1) / 3) % 4);
+        const seasonStartMonths = [11, 2, 5, 8];
+        const yearOff = season === 0 ? 1 : 0;
+        const seasonStart = new Date(z.getFullYear() - yearOff, seasonStartMonths[season], 1);
+        return Math.floor((z.getTime() - seasonStart.getTime()) / (1000 * 60 * 60 * 24)); // 0–91
+      }
+      
+      // Week-based bins
+      case 'weekOfMonth': {
+        const dayOfMonth = z.getDate();
+        return Math.floor((dayOfMonth - 1) / 7);                // 0–4
+      }
+      case 'weekOfYear': {
+        const yearStart = new Date(z.getFullYear(), 0, 1);
+        const dayOfYear = Math.floor((z.getTime() - yearStart.getTime()) / (1000 * 60 * 60 * 24));
+        return Math.floor(dayOfYear / 7);                       // 0–52
+      }
+      case 'weekOfSeason': {
+        const month = z.getMonth();
+        const season = Math.floor(((month + 1) / 3) % 4);
+        const seasonStartMonths = [11, 2, 5, 8];
+        const yearOff = season === 0 ? 1 : 0;
+        const seasonStart = new Date(z.getFullYear() - yearOff, seasonStartMonths[season], 1);
+        const dayOfSeason = Math.floor((z.getTime() - seasonStart.getTime()) / (1000 * 60 * 60 * 24));
+        return Math.floor(dayOfSeason / 7);                     // 0–13
+      }
+      
+      // Month-based bins
+      case 'monthOfYear': 
+        return z.getMonth();                                    // 0–11
+      case 'monthOfSeason': {
+        const month = z.getMonth();
+        const season = Math.floor(((month + 1) / 3) % 4);
+        const seasonStartMonths = [11, 2, 5, 8];
+        const seasonStartMonth = seasonStartMonths[season];
+        // Calculate month offset within season
+        if (season === 0) { // DJF
+          return month === 11 ? 0 : month + 1;                  // Dec=0, Jan=1, Feb=2
+        } else {
+          return (month - seasonStartMonth + 12) % 12;          // 0–2
+        }
+      }
+      
+      // Special cases
+      case 'weekdayWeekend': 
+        return (z.getDay() % 6 > 0) ? 1 : 0;                    // 1=weekday, 0=weekend
+      
+      default:
+        console.error('Unknown fold type:', this.foldType);
+        return 0;
     }
   }
   
   private _binPhase(date: Date): number {
     const z = this._getZonedDate(date);
+    const minutes = z.getMinutes();
+    const seconds = z.getSeconds();
+    const milliseconds = z.getMilliseconds();
+    
     switch (this.foldType) {
-      case 'hourOfDay': return z.getMinutes() / 60 + z.getSeconds() / 3600; // fraction of hour
-      case 'dayOfWeek': return (z.getHours() + z.getMinutes() / 60 + z.getSeconds() / 3600) / 24; // fraction of day
-      case 'hourOfWeek': return (z.getMinutes() / 60 + z.getSeconds() / 3600) ; // fraction of hour
-      case 'weekdayWeekend': return 0;  // this is a binary choice, no phase
+      // Hour-based bins - return fraction of hour
+      case 'hourOfDay':
+      case 'hourOfWeek':
+      case 'hourOfMonth':
+      case 'hourOfYear':
+      case 'hourOfSeason':
+        return minutes / 60 + seconds / 3600 + milliseconds / 3600000; // fraction of hour
+      
+      // Day-based bins - return fraction of day (as hours)
+      case 'dayOfWeek':
+      case 'dayOfMonth':
+      case 'dayOfYear':
+      case 'dayOfSeason': {
+        const hourOfDay = z.getHours() + minutes / 60 + seconds / 3600;
+        return hourOfDay / 24; // fraction of day
+      }
+      
+      // Week-based bins - return fraction of week (as days)
+      case 'weekOfMonth':
+      case 'weekOfYear':
+      case 'weekOfSeason': {
+        const dayOfWeek = z.getDay();
+        const hourOfDay = z.getHours() + minutes / 60 + seconds / 3600;
+        return (dayOfWeek + hourOfDay / 24) / 7; // fraction of week
+      }
+      
+      // Month-based bins - return fraction of month (as days)
+      case 'monthOfYear':
+      case 'monthOfSeason': {
+        const dayOfMonth = z.getDate() - 1; // 0-based
+        const hourOfDay = z.getHours() + minutes / 60 + seconds / 3600;
+        const daysInMonth = new Date(z.getFullYear(), z.getMonth() + 1, 0).getDate();
+        return (dayOfMonth + hourOfDay / 24) / daysInMonth; // fraction of month
+      }
+      
+      // Special cases
+      case 'weekdayWeekend': 
+        return 0;  // binary choice, no phase
+      
+      default:
+        console.error('Unknown fold type:', this.foldType);
+        return 0;
     }
   }
   

@@ -6,6 +6,7 @@ export function nan2null(v: number | null): number | null {
   return isBad(v) ? null : v;
 }
 
+
 // typeof NaN is 'number'. Just included here 
 type DirtyNumberArray = Array<number | null | typeof NaN | undefined>;
 
@@ -117,11 +118,11 @@ export function nanstandardError(arr: DirtyNumberArray): number | null {
   return stdev / Math.sqrt(length);
 }
 
-export function nanmedian(arr: DirtyNumberArray): number | null {
-  const { validArr } = _getValidData(arr);
-  if (validArr.length === 0) return null;
-  
-  const sorted = [...validArr].sort((a, b) => a - b);
+export function median(arr: DirtyNumberArray): number | null {
+  if (arr.length === 0 || arr.some(v => isBad(v))) {
+    return null;
+  }
+  const sorted = [...(arr as number[])].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
   
   if (sorted.length % 2 === 0) {
@@ -131,6 +132,24 @@ export function nanmedian(arr: DirtyNumberArray): number | null {
   }
 }
 
+export function nanmedian(arr: DirtyNumberArray): number | null {
+  const { validArr } = _getValidData(arr);
+  if (validArr.length === 0) return null;
+  return median(validArr);
+}
+
+export function nanmedianAbsoluteDeviation(arr: DirtyNumberArray): number | null {
+  const { validArr } = _getValidData(arr);
+  if (validArr.length === 0) return null;
+  const med = median(validArr);
+  if (med === null) return null;
+  const absDevs = validArr.map(v => Math.abs(v - med));
+  return median(absDevs);
+}
+
+export function nanmad(arr: DirtyNumberArray): number | null {
+  return nanmedianAbsoluteDeviation(arr);
+}
 export function nanmin(arr: DirtyNumberArray): number | null {
   const { validArr } = _getValidData(arr);
   if (validArr.length === 0) return null;
@@ -197,3 +216,7 @@ export function weightedMean(values: DirtyNumberArray, errors: DirtyNumberArray)
   if (weightTotal === 0) return {mean: null, error: null};
   return {mean: weightedSum / weightTotal, error: Math.sqrt(1 / weightTotal)};
 } 
+
+export function clip(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}

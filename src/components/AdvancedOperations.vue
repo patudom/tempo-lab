@@ -16,6 +16,7 @@
       >
         <v-btn value="aggregate" >Bin the Data</v-btn>
         <v-btn value="fold" >Fold the Data</v-btn>
+        <v-btn value="new" >New Generic Aggregation</v-btn>
       </v-btn-toggle>
     </v-toolbar>
     <data-aggregation
@@ -31,6 +32,13 @@
       :selection="selection"
       @save="saveFolded"
     />
+    
+    <new-data-generic-aggregation
+      v-if="mode === 'new'"
+      v-model="dialogOpen"
+      :selection="selection"
+      @save="saveFolded"
+    />
   </v-dialog>
 
   
@@ -42,6 +50,7 @@ import type { UserDataset } from '../types';
 
 import DataAggregation from './DataAggregation.vue';
 import DataFolding from './DataFolding.vue';
+import NewDataGenericAggregation from './NewDataGenericAggregation.vue';
 
 interface DataAggregationProps {
   selection: UserDataset | null;
@@ -51,7 +60,7 @@ const { selection } = defineProps<DataAggregationProps>();
 const dialogOpen = defineModel<boolean>('modelValue', { type: Boolean, required: true });
 
 
-const mode = ref<'aggregate' | 'fold'>('aggregate');
+const mode = ref<'aggregate' | 'fold' | 'new'>('new');
 
 const emit = defineEmits<{
   (event: 'save', aggregatedSelection: UserDataset): void;
