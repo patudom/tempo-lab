@@ -188,7 +188,6 @@
 </template>
 
 <script setup lang="ts">
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { ref, computed, watch, nextTick } from 'vue';
 import { v4 } from 'uuid';
 import { TimeSeriesFolder, sortfoldBinContent } from '../esri/services/aggregation';
@@ -211,23 +210,22 @@ const emit = defineEmits<{
 const dialogOpen = defineModel<boolean>('modelValue', { type: Boolean, required: true });
 
 
-
+type TimeBinOptions = 'hour' | 'day' | 'week' | 'month';
+type FoldingPeriodOptions = 'day' | 'week' | 'year' | 'weekdayWeekend';
 
 // Time bin and folding period options
-const timeBinOptions = [
+const timeBinOptions: {title: string, value: TimeBinOptions}[] = [
   { title: 'Hour', value: 'hour' },
   { title: 'Day', value: 'day' },
   { title: 'Week', value: 'week' },
   { title: 'Month', value: 'month' }
 ];
 
-const allFoldingPeriodOptions = [
+const allFoldingPeriodOptions: {title: string, value: FoldingPeriodOptions}[] = [
   { title: 'Day', value: 'day' },
   { title: 'Week', value: 'week' },
-  { title: 'Month', value: 'month' },
   { title: 'Year', value: 'year' },
   { title: 'Weekend/Weekday', value: 'weekdayWeekend' },
-  { title: 'Season', value: 'season' }
 ];
 
 // Computed property to filter valid folding periods based on selected time bin
@@ -235,24 +233,17 @@ const foldingPeriodOptions = computed(() => {
   const timeBin = selectedTimeBin.value;
   
   // Define valid combinations
-  const validCombinations: Record<string, string[]> = {
-    'hour': ['day', 'week', 'month', 'year', 'season', 'weekdayWeekend'],
-    'day': ['week', 'month', 'year', 'season', 'weekdayWeekend'],
-    'week': ['month', 'year', 'season'],
-    'month': ['year', 'season'],
+  const validCombinations: Record<TimeBinOptions, FoldingPeriodOptions[]> = {
+    'hour': ['day', 'week', 'year', 'weekdayWeekend'],
+    'day': ['week', 'year', 'weekdayWeekend'],
+    'week': ['year'],
+    'month': ['year'],
   };
   
   const validPeriods = validCombinations[timeBin] || [];
   return allFoldingPeriodOptions.filter(option => validPeriods.includes(option.value));
 });
 
-// Legacy folding options (kept for backward compatibility)
-const foldingOptions = [
-  { title: 'By Hour', value: 'hourOfDay' },
-  { title: 'By Day of Week', value: 'dayOfWeek' },
-  { title: 'By Hour of Week', value: 'hourOfWeek' },
-  { title: 'Weekday vs Weekend', value: 'weekdayWeekend' }
-];
 
 const methodOptions = [
   { title: 'Mean', value: 'mean' },
@@ -271,8 +262,8 @@ const timezoneOptions = [
 ];
 
 // Reactive state
-const selectedTimeBin = ref<'hour' | 'day' | 'week' | 'month' | 'weekdayWeekend'>('hour');
-const selectedFoldingPeriod = ref<'day' | 'week' | 'month' | 'year' | 'season'>('day');
+const selectedTimeBin = ref<TimeBinOptions>('hour');
+const selectedFoldingPeriod = ref<FoldingPeriodOptions>('day');
 const selectedMethod = ref<AggregationMethod>('mean');
 const selectedTimezone = ref('US/Eastern');
 const showErrors = ref(true);
@@ -316,7 +307,7 @@ watch(selectedTimeBin, () => {
   if (!validPeriods.includes(selectedFoldingPeriod.value)) {
     // Set to first valid option
     if (validPeriods.length > 0) {
-      selectedFoldingPeriod.value = validPeriods[0] as 'day' | 'week' | 'month' | 'year' | 'season';
+      selectedFoldingPeriod.value = validPeriods[0];
     }
   }
 });
@@ -385,6 +376,7 @@ const graphData = ref<PlotltGraphDataSet[]>([]);
 
 
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function timeseriesToDataSet(timeseries: TimeSeriesData): Omit<PlotltGraphDataSet, 'name'> {
   const x: PlotltGraphDataSet['x'] = [];
   const y: PlotltGraphDataSet['y'] = [];
@@ -425,15 +417,6 @@ function foldedTimesSeriesToDataSet(foldedTimeSeries: FoldedTimeSeriesData): Omi
 
   return { x, y, lower, upper, errorType: useErrorBars.value ? 'bar' : 'band'  };
 }
-
-function checkMonotonicIncreasing(arr: number[]): boolean {
-  for (let i = 1; i < arr.length; i++) {
-    if (arr[i] < arr[i - 1]) {
-      return false;
-    }
-  }
-  return true;
-}
   
 function foldedTimeSeriesRawToDataSet(foldedTimeSeries: FoldedTimeSeriesData): Omit<PlotltGraphDataSet, 'name'> {
   const x: (number | null)[] = [];
@@ -444,9 +427,9 @@ function foldedTimeSeriesRawToDataSet(foldedTimeSeries: FoldedTimeSeriesData): O
   // tsa, tsb are the timestamps as strings
   const sortedEntries = Object.entries(foldedTimeSeries.bins).sort(([binIndexa, _a], [binIndexb, _b]) => parseInt(binIndexa) - parseInt(binIndexb));
 
-  sortedEntries.forEach(([binIndex, binContent]) => {
+  sortedEntries.forEach(([_binIndex, binContent]) => {
     const sortedBinContent = sortfoldBinContent(binContent);
-    const idx = sortedBinContent.bin;
+    const _idx = sortedBinContent.bin;
     const bins = sortedBinContent as Prettify<FoldBinContent>;
     bins.rawValues.forEach((rv, index) => {
       x.push(bins.bin + (includeBinPhase.value ? bins.binPhase[index] : 0));
@@ -513,25 +496,13 @@ function createFoldedTimeRange() {
   };
 }
 
-// Watch for changes in folding parameters
-watch([
-  selectedTimeBin,
-  selectedFoldingPeriod,
-  selectedMethod, 
-  selectedTimezone, 
-  useSEM, 
-  includeBinPhase, 
-  alignToBinCenter, 
-  useErrorBars
-], () => {
-  updateAggregatedData();
-  if (useTzCenter.value && regionCenter.value.lat !== 0 && regionCenter.value.lon !== 0) {
-    const tz = tz_lookup(regionCenter.value.lat, regionCenter.value.lon);
-    if (tz) {
-      selectedTimezone.value = tz;
-    }
-  }
-}, { immediate: true });
+
+// Only recalculate when data-affecting parameters change
+watch([selectedTimeBin, selectedFoldingPeriod, selectedMethod, selectedTimezone, useSEM], 
+  updateAggregatedData, { immediate: true });
+
+// Handle display-only changes separately
+watch([useErrorBars, alignToBinCenter, includeBinPhase], updateGraphData);
 
 function selectionToTimeseries(selection: UserDataset): TimeSeriesData {
   return {
@@ -562,20 +533,6 @@ function updateAggregatedData() {
       selectedMethod.value, 
       useSEM.value ? 'sem' : 'std', true);
     foldedData.value = grouper.foldData(timeSeriesData);
-      
-    
-    
-    
-    
-    // foldedSelection.value = {
-    //   id: v4(),
-    //   region: props.selection.region,
-    //   timeRange: createAggregatedTimeRange(),
-    //   molecule: props.selection.molecule,
-    //   samples: foldedData.value.values,
-    //   errors: foldedData.value.errors,
-    //   locations: foldedData.value.locations
-    // };
     
   } catch (error) {
     console.error('Error aggregating data:', error);
