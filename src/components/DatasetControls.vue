@@ -270,7 +270,7 @@
                           </template>
                         </v-tooltip>
                         <v-tooltip
-                          v-if="dataset.timeRange.type === 'pattern' || dataset.timeRange.type === 'daterange'"
+                          v-if="dataset.timeRange.type === 'pattern' || dataset.timeRange.type === 'daterange' || dataset.timeRange.type === 'monthrange'"
                           text="Aggregate Data"
                           location="top"
                         >

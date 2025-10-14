@@ -11,7 +11,7 @@
         density="compact"
         color="var(--info-background)"
       >
-        <v-toolbar-title>Data Folding</v-toolbar-title>
+        <v-toolbar-title>Data Aggregation</v-toolbar-title>
         <v-spacer></v-spacer>
         <v-btn
           icon="mdi-close"
@@ -24,10 +24,10 @@
           <!-- Left Panel: Folding Options -->
           <v-col cols="12" md="4">
             <v-card variant="outlined" class="pa-3">
-              <v-card-title class="text-h6 pa-0 mb-3">Folding Options</v-card-title>
               
               <!-- Time Bin Selection -->
               <v-select
+                v-if="false"
                 v-model="selectedTimeBin"
                 :items="timeBinOptions"
                 label="Time Bin"
@@ -36,9 +36,27 @@
                 hide-details
                 class="mb-3"
               />
+              <!-- use chips for select -->
+              <h3>Time Bin</h3>
+              <v-chip-group
+                v-model="selectedTimeBin"
+                column
+                class="mb-3"
+              >
+                <v-chip
+                  v-for="option in timeBinOptions"
+                  :key="option.value"
+                  :value="option.value"
+                  variant="outlined"    
+                  density="compact"
+                >
+                  {{ option.title }}
+                </v-chip>
+              </v-chip-group> 
               
               <!-- Folding Period Selection -->
               <v-select
+                v-if="false"
                 v-model="selectedFoldingPeriod"
                 :items="foldingPeriodOptions"
                 label="Folding Period"
@@ -47,6 +65,22 @@
                 hide-details
                 class="mb-3"
               />
+              <h3>Folding Period</h3>
+              <v-chip-group
+                v-model="selectedFoldingPeriod"
+                column
+                class="mb-3"
+              >
+                <v-chip
+                  v-for="option in foldingPeriodOptions"
+                  :key="option.value"
+                  :value="option.value"
+                  variant="outlined"    
+                  density="compact"
+                >
+                  {{ option.title }}
+                </v-chip>
+              </v-chip-group> 
               
               <!-- Timezone Selection -->
               <div class="selected-timezone-details d-flex mb-4">
