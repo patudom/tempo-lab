@@ -149,6 +149,39 @@ export const foldTypeStyles: Record<FoldType, FoldTypeStyle> = {
     }
   },
   
+  // None-period bins (simple binning with dates)
+  'hourOfNone': {
+    xaxis: {
+      title: { text: 'Date' },
+      type: 'date',
+      // tickformat: '%Y-%m-%d %H:%M'
+    }
+  },
+  
+  'dayOfNone': {
+    xaxis: {
+      title: { text: 'Date' },
+      type: 'date',
+      // tickformat: '%Y-%m-%d'
+    }
+  },
+  
+  'weekOfNone': {
+    xaxis: {
+      title: { text: 'Date' },
+      type: 'date',
+      // tickformat: '%Y-%m-%d'
+    }
+  },
+  
+  'monthOfNone': {
+    xaxis: {
+      title: { text: 'Date' },
+      type: 'date',
+      // tickformat: '%Y-%m'
+    }
+  },
+  
   // Special cases
   'dayOfWeekdayWeekend': {
     xaxis: {

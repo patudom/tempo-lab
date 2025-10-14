@@ -226,6 +226,11 @@ export type FoldType =
     // Month-based bins
     'monthOfYear' |   // month bins, folded over a year (0-11)
     'monthOfSeason'|  // month bins, folded over a season (0-2)
+    // None-period bins (simple binning with dates, no folding)
+    'hourOfNone' |    // hour bins with no folding (x-axis shows dates)
+    'dayOfNone' |     // day bins with no folding (x-axis shows dates)
+    'weekOfNone' |    // week bins with no folding (x-axis shows dates)
+    'monthOfNone' |   // month bins with no folding (x-axis shows dates)
     // Others
     'hourOfWeekdayWeekend'; // shows hours of the weekday, and hour of the weekend
 
@@ -265,6 +270,7 @@ export type Seasons = 'DJF' | 'MAM' | 'JJA' | 'SON'; // meteorological seasons
 export interface FoldedAggValue {
   value: number | null;
   bin: number; // 0–23, 0–6, or 0–167 depending on fold
+  date?: Date; // actual date for None-period bins (hourOfNone, dayOfNone, etc.)
 }
 
 interface InternalBin {
@@ -336,6 +342,13 @@ export class TimeSeriesFolder {
       // Month-based bins
       case 'monthOfYear': return 12;
       case 'monthOfSeason': return 3;          // 3 months per season
+      
+      // None-period bins (use timestamps as keys, so no fixed count)
+      case 'hourOfNone':
+      case 'dayOfNone':
+      case 'weekOfNone':
+      case 'monthOfNone':
+        return Infinity;  // no fixed bin count for None-period types
       
       // Special cases
       case 'dayOfWeekdayWeekend': return 2;
@@ -428,6 +441,28 @@ export class TimeSeriesFolder {
         }
       }
       
+      // None-period bins (return timestamp of bin start, like resampler)
+      case 'hourOfNone': {
+        const zBinStart = new Date(z);
+        zBinStart.setMinutes(0, 0, 0);
+        return (this.timezone ? fromZonedTime(zBinStart, this.timezone) : zBinStart).getTime();
+      }
+      case 'dayOfNone': {
+        const zBinStart = new Date(z);
+        zBinStart.setHours(0, 0, 0, 0);
+        return (this.timezone ? fromZonedTime(zBinStart, this.timezone) : zBinStart).getTime();
+      }
+      case 'weekOfNone': {
+        const weekStart = getBeginningOfWeek(date, this.timezone);
+        return weekStart.getTime();
+      }
+      case 'monthOfNone': {
+        const zBinStart = new Date(z);
+        zBinStart.setDate(1);
+        zBinStart.setHours(0, 0, 0, 0);
+        return (this.timezone ? fromZonedTime(zBinStart, this.timezone) : zBinStart).getTime();
+      }
+      
       // Special cases
       case 'dayOfWeekdayWeekend': 
         return (z.getDay() % 6 > 0) ? 1 : 0;                    // 1=weekday, 0=weekend
@@ -456,13 +491,15 @@ export class TimeSeriesFolder {
       case 'hourOfMonth':
       case 'hourOfYear':
       case 'hourOfSeason':
+      case 'hourOfNone':
         return minutes / 60 + seconds / 3600 + milliseconds / 3600000; // fraction of hour
       
       // Day-based bins - return fraction of day (as hours)
       case 'dayOfWeek':
       case 'dayOfMonth':
       case 'dayOfYear':
-      case 'dayOfSeason': {
+      case 'dayOfSeason':
+      case 'dayOfNone': {
         const hourOfDay = z.getHours() + minutes / 60 + seconds / 3600;
         return hourOfDay / 24; // fraction of day
       }
@@ -470,7 +507,8 @@ export class TimeSeriesFolder {
       // Week-based bins - return fraction of week (as days)
       case 'weekOfMonth':
       case 'weekOfYear':
-      case 'weekOfSeason': {
+      case 'weekOfSeason':
+      case 'weekOfNone': {
         const dayOfWeek = z.getDay();
         const hourOfDay = z.getHours() + minutes / 60 + seconds / 3600;
         return (dayOfWeek + hourOfDay / 24) / 7; // fraction of week
@@ -478,7 +516,8 @@ export class TimeSeriesFolder {
       
       // Month-based bins - return fraction of month (as days)
       case 'monthOfYear':
-      case 'monthOfSeason': {
+      case 'monthOfSeason':
+      case 'monthOfNone': {
         const dayOfMonth = z.getDate() - 1; // 0-based
         const hourOfDay = z.getHours() + minutes / 60 + seconds / 3600;
         const daysInMonth = new Date(z.getFullYear(), z.getMonth() + 1, 0).getDate();
@@ -543,6 +582,9 @@ export class TimeSeriesFolder {
       
     });
 
+    // Check if this is a None-period fold type
+    const isNonePeriod = ['hourOfNone', 'dayOfNone', 'weekOfNone', 'monthOfNone'].includes(this.foldType);
+
     // these will be the time-aggregated values
     const values: Record<number, FoldedAggValue> = {};
     const errors: Record<number, DataPointError> = {};
@@ -564,9 +606,14 @@ export class TimeSeriesFolder {
       // Use aggregateData (errors are symmetric, so we reuse the result)
       const result = aggregateData(rawValues, errorValues, this.method, errorFunc);
       
-      // we just want to keep the bin index as the "timestamp"
-      // so use obviously wrong date
-      values[binIndex] = { value: result.value, bin: binIndex };
+      // For None-period bins, binIndex is a timestamp, convert to Date
+      const binDate = isNonePeriod ? new Date(binIndex) : undefined;
+      
+      values[binIndex] = { 
+        value: result.value, 
+        bin: binIndex,
+        date: binDate
+      };
       
       errors[binIndex] = { 
         lower: result.error, 

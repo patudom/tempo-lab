@@ -356,7 +356,7 @@ export class TempoDataService extends ImageServiceServiceMetadata {
         locationId: sample.locationId,
         geometryType: this.isRectBounds(geometry) ? 'rectangle' : 'point' as 'rectangle' | 'point'
       })); // this is a CEsriTimeseries[]
-      console.log(`Fetched ${processedSamples.length} samples for time range ${timeRange.start}-${timeRange.end}`);
+      console.log(`Fetched ${processedSamples.length} samples for time range ${new Date(timeRange.start)}-${new Date(timeRange.end)}`);
       return {
         samples: processedSamples,
         metadata: {

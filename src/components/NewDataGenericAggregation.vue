@@ -146,6 +146,7 @@
                 v-model="includeBinPhase"
                 label="Use True Time"
                 density="compact"
+                :disabled="isNonePeriod"
                 hide-details
                 class="mb-3"
               />
@@ -154,6 +155,7 @@
                 v-model="alignToBinCenter"
                 label="Center bins"
                 density="compact"
+                :disabled="isNonePeriod"
                 hide-details
                 class="mb-3"
               />
@@ -167,6 +169,11 @@
                   <div>Time Bin: {{ selectedTimeBin }}</div>
                   <div>Folding Period: {{ selectedFoldingPeriod }}</div>
                   <div>Fold Type: {{ selectedFoldType }}</div>
+                  <div>First bin: {{ foldedData && foldedData.bins ? Object.keys(foldedData.bins)[0] : 'N/A' }}</div>
+                  <!-- show first bins time in the local timezone if it's a date using toZonedTime -->
+                  <div v-if="foldedData && foldedData.bins && foldedData.bins[Object.keys(foldedData.bins)[0]] && foldedData.values[Object.keys(foldedData.bins)[0]] && foldedData.values[Object.keys(foldedData.bins)[0]].date">
+                    First bin time: 
+                    </div>
                 </div>
               </v-card>
               
@@ -223,6 +230,7 @@
 </template>
 
 <script setup lang="ts">
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { ref, computed, watch, nextTick } from 'vue';
 import { v4 } from 'uuid';
 import { TimeSeriesFolder, sortfoldBinContent } from '../esri/services/aggregation';
@@ -230,6 +238,7 @@ import FoldedPlotlyGraph from './FoldedPlotlyGraph.vue';
 import type { Prettify, UserDataset, PlotltGraphDataSet, UnifiedRegion } from '../types';
 import type { AggregationMethod, TimeSeriesData, FoldedTimeSeriesData , FoldType, FoldBinContent} from '../esri/services/aggregation';
 import tz_lookup from '@photostructure/tz-lookup';
+import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 
 interface DataFoldingProps {
   selection: UserDataset | null;
@@ -246,7 +255,7 @@ const dialogOpen = defineModel<boolean>('modelValue', { type: Boolean, required:
 
 
 type TimeBinOptions = 'hour' | 'day' | 'week' | 'month';
-type FoldingPeriodOptions = 'day' | 'week' | 'year' | 'weekdayWeekend';
+type FoldingPeriodOptions = 'day' | 'week' | 'year' | 'weekdayWeekend' | 'none';
 
 // Time bin and folding period options
 const timeBinOptions: {title: string, value: TimeBinOptions}[] = [
@@ -261,6 +270,7 @@ const allFoldingPeriodOptions: {title: string, value: FoldingPeriodOptions}[] = 
   { title: 'Week', value: 'week' },
   { title: 'Year', value: 'year' },
   { title: 'Weekend/Weekday', value: 'weekdayWeekend' },
+  { title: 'None (Simple Binning)', value: 'none' },
 ];
 
 // Computed property to filter valid folding periods based on selected time bin
@@ -269,10 +279,10 @@ const foldingPeriodOptions = computed(() => {
   
   // Define valid combinations
   const validCombinations: Record<TimeBinOptions, FoldingPeriodOptions[]> = {
-    'hour': ['day', 'week', 'year', 'weekdayWeekend'],
-    'day': ['week', 'year', 'weekdayWeekend'],
-    'week': ['year'],
-    'month': ['year'],
+    'hour': ['day', 'week', 'year', 'weekdayWeekend', 'none'],
+    'day': ['week', 'year', 'weekdayWeekend', 'none'],
+    'week': ['year', 'none'],
+    'month': ['year', 'none'],
   };
   
   const validPeriods = validCombinations[timeBin] || [];
@@ -313,6 +323,11 @@ const selectedFoldType = computed<FoldType>(() => {
   const timeBin = selectedTimeBin.value;
   const period = selectedFoldingPeriod.value;
   
+  // Handle 'none' period case
+  if (period === 'none') {
+    return `${timeBin}OfNone` as FoldType;
+  }
+  
   // Construct the fold type string
   const foldType = `${timeBin}Of${period.charAt(0).toUpperCase()}${period.slice(1)}` as FoldType;
   
@@ -324,7 +339,8 @@ const selectedFoldType = computed<FoldType>(() => {
     'dayOfWeek', 'dayOfMonth', 'dayOfYear', 'dayOfSeason',
     'weekOfMonth', 'weekOfYear', 'weekOfSeason',
     'monthOfYear', 'monthOfSeason',
-    'dayOfWeekdayWeekend', 'hourOfWeekdayWeekend'
+    'dayOfWeekdayWeekend', 'hourOfWeekdayWeekend',
+    'hourOfNone', 'dayOfNone', 'weekOfNone', 'monthOfNone'
   ];
   
   if (validFoldTypes.includes(foldType)) {
@@ -336,6 +352,11 @@ const selectedFoldType = computed<FoldType>(() => {
   return 'hourOfDay';
 });
 
+// Check if we're using a None-period fold type (no actual folding)
+const isNonePeriod = computed(() => {
+  return ['hourOfNone', 'dayOfNone', 'weekOfNone', 'monthOfNone'].includes(selectedFoldType.value);
+});
+
 // Watch to ensure selected folding period is valid when time bin changes
 watch(selectedTimeBin, () => {
   const validPeriods = foldingPeriodOptions.value.map(opt => opt.value);
@@ -344,6 +365,15 @@ watch(selectedTimeBin, () => {
     if (validPeriods.length > 0) {
       selectedFoldingPeriod.value = validPeriods[0];
     }
+  }
+});
+
+// Watch for None-period types and reset incompatible options
+watch(isNonePeriod, (isNone) => {
+  if (isNone) {
+    // Reset options that don't make sense for None-period types
+    includeBinPhase.value = false;
+    alignToBinCenter.value = true;
   }
 });
 
@@ -433,18 +463,50 @@ function timeseriesToDataSet(timeseries: TimeSeriesData): Omit<PlotltGraphDataSe
 }
 
 function foldedTimesSeriesToDataSet(foldedTimeSeries: FoldedTimeSeriesData): Omit<PlotltGraphDataSet, 'name'> {
-  const x: (number | null)[] = [];
+  const x: (number | Date | null)[] = [];
   const y: (number | null)[] = [];
   const lower: (number | null)[] = [];
   const upper: (number | null)[] = [];
+
+  // Check if this is a None-period fold type
+  const isNonePeriod = ['hourOfNone', 'dayOfNone', 'weekOfNone', 'monthOfNone'].includes(foldedTimeSeries.foldType);
 
   // tsa, tsb are the timestamps as strings
   const sortedEntries = Object.entries(foldedTimeSeries.bins).sort(([binIndexa, _a], [binIndexb, _b]) => parseInt(binIndexa) - parseInt(binIndexb));
 
   sortedEntries.forEach(([binIndex, _binContent]) => {
     const idx = parseInt(binIndex);
-    x.push(idx + (alignToBinCenter.value ? 0.5 : 0));
-    y.push(foldedTimeSeries.values[idx].value);
+    const aggValue = foldedTimeSeries.values[idx];
+    
+    // Use date if available (for None-period types), otherwise use bin index
+    if (isNonePeriod && aggValue.date) {
+      // For None-period types with dates, center bins by adding half the bin width
+      if (alignToBinCenter.value) {
+        const date = new Date(aggValue.date);
+        switch (foldedTimeSeries.foldType) {
+        case 'hourOfNone':
+          date.setMinutes(30); // Center of hour
+          break;
+        case 'dayOfNone':
+          date.setHours(date.getHours() + 12); // Noon
+          break;
+        case 'weekOfNone':
+          date.setDate(date.getDate() + 3); // Middle of week (approx)
+          date.setHours(date.getHours() + 12);
+          break;
+        case 'monthOfNone':
+          date.setDate(15); // Middle of month (approx)
+          break;
+        }
+        x.push(date);
+      } else {
+        x.push(aggValue.date);
+      }
+    } else {
+      x.push(idx + (alignToBinCenter.value ? 0.5 : 0));
+    }
+    
+    y.push(aggValue.value);
     const error = foldedTimeSeries.errors[idx];
     lower.push(error?.lower ?? null);
     upper.push(error?.upper ?? null);
@@ -454,20 +516,29 @@ function foldedTimesSeriesToDataSet(foldedTimeSeries: FoldedTimeSeriesData): Omi
 }
   
 function foldedTimeSeriesRawToDataSet(foldedTimeSeries: FoldedTimeSeriesData): Omit<PlotltGraphDataSet, 'name'> {
-  const x: (number | null)[] = [];
+  const x: (number | Date | null)[] = [];
   const y: (number | null)[] = [];
   const lower: (number | null)[] = [];
   const upper: (number | null)[] = [];
+
+  // Check if this is a None-period fold type
+  const isNonePeriod = ['hourOfNone', 'dayOfNone', 'weekOfNone', 'monthOfNone'].includes(foldedTimeSeries.foldType);
 
   // tsa, tsb are the timestamps as strings
   const sortedEntries = Object.entries(foldedTimeSeries.bins).sort(([binIndexa, _a], [binIndexb, _b]) => parseInt(binIndexa) - parseInt(binIndexb));
 
   sortedEntries.forEach(([_binIndex, binContent]) => {
     const sortedBinContent = sortfoldBinContent(binContent);
-    const _idx = sortedBinContent.bin;
     const bins = sortedBinContent as Prettify<FoldBinContent>;
+    
     bins.rawValues.forEach((rv, index) => {
-      x.push(bins.bin + (includeBinPhase.value ? bins.binPhase[index] : 0));
+      if (isNonePeriod) {
+        // For None-period types, use the actual timestamp
+        x.push(new Date(bins.timestamps[index]));
+      } else {
+        // For regular fold types, use bin index with optional phase
+        x.push(bins.bin + (includeBinPhase.value ? bins.binPhase[index] : 0));
+      }
       y.push(rv);
     });
     bins.lowers.forEach(low => {
@@ -476,15 +547,7 @@ function foldedTimeSeriesRawToDataSet(foldedTimeSeries: FoldedTimeSeriesData): O
     bins.uppers.forEach(up => {
       upper.push(up ?? null);
     });
-    // const error = foldedTimeSeries.errors[idx];
-    // lower.push(error?.lower ?? null);
-    // upper.push(error?.upper ?? null);
   });
-  
-  // Ensure x is strictly increasing for Plotly
-  // if (!checkMonotonicIncreasing(x)) {
-  //   console.error("X values are not strictly increasing, adjusting for Plotly compatibility.");
-  // }
   
   return { x, y, lower, upper, errorType: 'bar' };
 }
