@@ -226,6 +226,7 @@ const allFoldingPeriodOptions = [
   { title: 'Week', value: 'week' },
   { title: 'Month', value: 'month' },
   { title: 'Year', value: 'year' },
+  { title: 'Weekend/Weekday', value: 'weekdayWeekend' },
   { title: 'Season', value: 'season' }
 ];
 
@@ -235,10 +236,10 @@ const foldingPeriodOptions = computed(() => {
   
   // Define valid combinations
   const validCombinations: Record<string, string[]> = {
-    'hour': ['day', 'week', 'month', 'year', 'season'],
-    'day': ['week', 'month', 'year', 'season'],
+    'hour': ['day', 'week', 'month', 'year', 'season', 'weekdayWeekend'],
+    'day': ['week', 'month', 'year', 'season', 'weekdayWeekend'],
     'week': ['month', 'year', 'season'],
-    'month': ['year', 'season']
+    'month': ['year', 'season'],
   };
   
   const validPeriods = validCombinations[timeBin] || [];
@@ -270,7 +271,7 @@ const timezoneOptions = [
 ];
 
 // Reactive state
-const selectedTimeBin = ref<'hour' | 'day' | 'week' | 'month'>('hour');
+const selectedTimeBin = ref<'hour' | 'day' | 'week' | 'month' | 'weekdayWeekend'>('hour');
 const selectedFoldingPeriod = ref<'day' | 'week' | 'month' | 'year' | 'season'>('day');
 const selectedMethod = ref<AggregationMethod>('mean');
 const selectedTimezone = ref('US/Eastern');
@@ -297,7 +298,7 @@ const selectedFoldType = computed<FoldType>(() => {
     'dayOfWeek', 'dayOfMonth', 'dayOfYear', 'dayOfSeason',
     'weekOfMonth', 'weekOfYear', 'weekOfSeason',
     'monthOfYear', 'monthOfSeason',
-    'weekdayWeekend'
+    'dayOfWeekdayWeekend', 'hourOfWeekdayWeekend'
   ];
   
   if (validFoldTypes.includes(foldType)) {

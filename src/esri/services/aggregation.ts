@@ -17,17 +17,9 @@ import {
 } from 'date-fns-tz';
 import {
   nan2null,
-  nanmean,
-  nanstandardError,
-  nanstdev,
-  nansum,
-  nanmedian,
-  nanmin,
-  nanmax,
-  nanRootMeanSquare,
-} from "./array_math";
+} from "../../utils/array_operations/array_math";
 
-
+import { aggregateData } from "../../utils/array_operations/aggregator";
 
 export interface TimeSeriesData {
   values: Record<number, AggValue>;
@@ -177,62 +169,25 @@ export class TimeSeriesResampler {
       const timestamp = parseInt(groupId); // this is the UTC for the start of the group
 
       const groupValues = groupData.values.map(d => d.value);
-      let aggregatedValue: number | null;
       
-      switch (this.method) {
-        case 'mean':
-          aggregatedValue = nanmean(groupValues);
-          break;
-        case 'median':
-          aggregatedValue = nanmedian(groupValues);
-          break;
-        case 'min':
-          aggregatedValue = nanmin(groupValues);
-          break;
-        case 'max':
-          aggregatedValue = nanmax(groupValues);
-          break;
-        default:
-          aggregatedValue = nanmean(groupValues);
-      }
+      // Prepare error arrays for aggregateData (using uppers since errors are symmetric)
+      const errorValues = this.includeCalibrationUncertainty && groupData.errors.length > 0
+        ? groupData.errors.map(e => e.upper)
+        : undefined;
       
-      values[timestamp] = { value: aggregatedValue, date: new Date(timestamp) };
+      // Map error method from 'sem'/'std' to aggregateData's format
+      const errorFunc = this.errorMethod === 'sem' ? 'standardError' : 'stdev';
       
-      const standardError = this.errorMethod === 'sem' ? nanstandardError(groupValues) : (nanstdev(groupValues) || 0);
-      if (!standardError) {
-        console.error(
-          'Standard error is null for group', 
-          formatInTimeZone(new Date(timestamp), this.timezone ?? 'UTC', "yyyy-mm-dd"), 
-          'with values', groupValues);
-      }
-
-      if (this.includeCalibrationUncertainty && groupData.errors.length > 0) {
-        const lowers = groupData.errors.map(e => e.lower).filter(v => v !== null) as number[];
-        const uppers = groupData.errors.map(e => e.upper).filter(v => v !== null) as number[];
-        
-        const newLower = nanRootMeanSquare(lowers);
-        const newUpper = nanRootMeanSquare(uppers);
-        
-        errors[timestamp] = {
-          lower: nan2null(nanRootMeanSquare([standardError, newLower])),
-          upper: nan2null(nanRootMeanSquare([standardError, newUpper]))
-        };
-      } else {
-        errors[timestamp] = { lower: nan2null(standardError), upper: nan2null(standardError) };
-      }
+      // Use aggregateData (errors are symmetric, so we reuse the result)
+      const result = aggregateData(groupValues, errorValues, this.method, errorFunc);
+      
+      values[timestamp] = { value: result.value, date: new Date(timestamp) };
+      errors[timestamp] = { 
+        lower: result.error, 
+        upper: result.error 
+      };
+      
       // end of loop over groups
-    }
-    
-    // DEBUG ONLY: this loop should never have to do anything
-    for (const ts in errors) {
-      if (errors[ts].lower !== null && isNaN(errors[ts].lower!)) {
-        console.error('Error lower is NaN for timestamp. Setting to null.', ts, errors[ts]);
-        errors[ts].lower = null;
-      }
-      if (errors[ts].upper !== null && isNaN(errors[ts].upper!)) {
-        console.error('Error upper is NaN for timestamp. Setting to null.', ts, errors[ts]);
-        errors[ts].upper = null;
-      }
     }
     
     return {
@@ -253,7 +208,7 @@ export type FoldType =
     'hourOfDay' | 
     'dayOfWeek' | 
     'hourOfWeek'|
-    'weekdayWeekend' |
+    'dayOfWeekdayWeekend' |
     // Hour-based bins
     'hourOfWeek' |    // hour bins, folded over a week (0-167)
     'hourOfMonth' |   // hour bins, folded over a month (0-743 max)
@@ -270,7 +225,9 @@ export type FoldType =
     'weekOfSeason' |  // week bins, folded over a season (0-13 max)
     // Month-based bins
     'monthOfYear' |   // month bins, folded over a year (0-11)
-    'monthOfSeason';  // month bins, folded over a season (0-2)
+    'monthOfSeason'|  // month bins, folded over a season (0-2)
+    // Others
+    'hourOfWeekdayWeekend'; // shows hours of the weekday, and hour of the weekend
 
 export interface FoldBinContent {
   bin: number;
@@ -381,7 +338,8 @@ export class TimeSeriesFolder {
       case 'monthOfSeason': return 3;          // 3 months per season
       
       // Special cases
-      case 'weekdayWeekend': return 2;
+      case 'dayOfWeekdayWeekend': return 2;
+      case 'hourOfWeekdayWeekend': return 48; // 0-23 for weekday, 24-48 for weekend
       
       default:
         console.error('Unknown fold type:', this.foldType);
@@ -471,8 +429,13 @@ export class TimeSeriesFolder {
       }
       
       // Special cases
-      case 'weekdayWeekend': 
+      case 'dayOfWeekdayWeekend': 
         return (z.getDay() % 6 > 0) ? 1 : 0;                    // 1=weekday, 0=weekend
+        
+      case 'hourOfWeekdayWeekend': {
+        const isWeekend = (z.getDay() % 6 === 0);                // true if weekend
+        return isWeekend ? (24 + z.getHours()) : z.getHours();  // 0-23 for weekday, 24-47 for weekend
+      }
       
       default:
         console.error('Unknown fold type:', this.foldType);
@@ -523,8 +486,13 @@ export class TimeSeriesFolder {
       }
       
       // Special cases
-      case 'weekdayWeekend': 
+      case 'dayOfWeekdayWeekend': 
         return 0;  // binary choice, no phase
+        
+      case 'hourOfWeekdayWeekend': {
+        // Return fraction of hour (0-1) to match other hour-based bins
+        return minutes / 60 + seconds / 3600 + milliseconds / 3600000;
+      }
       
       default:
         console.error('Unknown fold type:', this.foldType);
@@ -543,7 +511,7 @@ export class TimeSeriesFolder {
     
     Object.entries(timeseries.values).forEach(([ts,d]) => {
       const binIndex = this._binIndex(d.date);
-      console.log('Folding date', d.date, 'to bin index', binIndex, 'with fold type', this.foldType);
+      // console.log('Folding date', d.date, 'to bin index', binIndex, 'with fold type', this.foldType);
       if (binIndex == null || binIndex < 0 || binIndex >= binCount) {
         console.error('Invalid bin index', binIndex, 'for date', d.date, 'with fold type', this.foldType);
         return;
@@ -584,63 +552,26 @@ export class TimeSeriesFolder {
     Object.values(binsRecord).forEach(bin => {
       // const bin = binsRecord[binKey];
       const { bin: binIndex, numericValues, calibrationErrors, rawValues, timestamps } = bin;
-      const groupValues = numericValues;
       
-      let aggregatedValue: number | null;
+      // Prepare error arrays for aggregateData (using uppers since errors are symmetric)
+      const errorValues = this.includeCalibrationUncertainty && calibrationErrors.length > 0
+        ? calibrationErrors.map(e => e.upper)
+        : undefined;
       
-      switch (this.method) {
-        case 'mean':
-          aggregatedValue = nanmean(groupValues);
-          break;
-        case 'median':
-          aggregatedValue = nanmedian(groupValues);
-          break;
-        case 'min':
-          aggregatedValue = nanmin(groupValues);
-          break;
-        case 'max':
-          aggregatedValue = nanmax(groupValues);
-          break;
-        default:
-          aggregatedValue = nanmean(groupValues);
-      }
+      // Map error method from 'sem'/'std' to aggregateData's format
+      const errorFunc = this.errorMethod === 'sem' ? 'standardError' : 'stdev';
+      
+      // Use aggregateData (errors are symmetric, so we reuse the result)
+      const result = aggregateData(rawValues, errorValues, this.method, errorFunc);
       
       // we just want to keep the bin index as the "timestamp"
       // so use obviously wrong date
-      values[binIndex] = { value: aggregatedValue, bin: binIndex };
+      values[binIndex] = { value: result.value, bin: binIndex };
       
-      const dispersionMeasure = this.errorMethod === 'sem' 
-        ? nanstandardError(groupValues) 
-        : (nanstdev(groupValues) || 0);
-      
-      if (this.includeCalibrationUncertainty && calibrationErrors.length > 0) {
-        const lowers = calibrationErrors.map(e => e.lower).filter(v => v !== null) as number[];
-        const uppers = calibrationErrors.map(e => e.upper).filter(v => v !== null) as number[];
-        
-        const newLower = nanRootMeanSquare(lowers);
-        const newUpper = nanRootMeanSquare(uppers);
-        
-        errors[binIndex] = {
-          lower: nan2null(nanRootMeanSquare([dispersionMeasure, newLower])),
-          upper: nan2null(nanRootMeanSquare([dispersionMeasure, newUpper]))
-        };
-      } else {
-        errors[binIndex] = { lower: nan2null(dispersionMeasure), upper: nan2null(dispersionMeasure) };
-      }
-      
-      // DEBUG ONLY: this loop should never have to do anything
-      for (const ts in errors) {
-        if (errors[ts].lower !== null && isNaN(errors[ts].lower)) {
-          console.error('Error lower is NaN for timestamp. Setting to null.', ts, errors[ts]);
-          errors[ts].lower = null;
-        }
-        if (errors[ts].upper !== null && isNaN(errors[ts].upper)) {
-          console.error('Error upper is NaN for timestamp. Setting to null.', ts, errors[ts]);
-          errors[ts].upper = null;
-        }
-      }
-      
-      
+      errors[binIndex] = { 
+        lower: result.error, 
+        upper: result.error 
+      };
       
       // expose the full bin contents
       publicBins[binIndex] = {

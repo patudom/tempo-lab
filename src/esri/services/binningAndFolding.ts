@@ -26,7 +26,7 @@ import {
   nanmax,
   nanRootMeanSquare,
   clip,
-} from "./array_math";
+} from "../../utils/array_operations/array_math";
 
 function getBeginningOfWeek(date: Date, timezone?: string): Date {
   const zonedDate = timezone ? toZonedTime(date, timezone) : date;
