@@ -14,6 +14,9 @@ import type { AggValue, DataPointError, MillisecondRange } from "../../types";
 import {nanmean, diff} from '../../utils/array_operations/array_math';
 import { EsriSampler } from './sampling';
 
+import { TimeRangeOffsetter } from './TimeRangeOffsetter';
+import tz_lookup from '@photostructure/tz-lookup';
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -528,6 +531,19 @@ export class TempoDataService extends ImageServiceServiceMetadata {
     };
   }
   
+  getRegionCenter(geometry: RectBounds | PointBounds): { lat: number; lon: number } {
+    if (this.isRectBounds(geometry)) {
+      return {
+        lat: (geometry.ymin + geometry.ymax) / 2,
+        lon: (geometry.xmin + geometry.xmax) / 2
+      };
+    } else { // It's a point
+      return {
+        lat: geometry.y,
+        lon: geometry.x
+      };
+    }
+  }
   /**
    * Fetch and aggragate any valid geometry data (rectangle or point)
    */
@@ -536,6 +552,20 @@ export class TempoDataService extends ImageServiceServiceMetadata {
     timeRanges: TimeRanges,
     options: FetchOptions = {}
   ): Promise<TimeSeriesData> {
+    
+    const { lat: centerLat, lon: centerLon } = this.getRegionCenter(geometry);
+    const timezone = tz_lookup(centerLat, centerLon);
+    console.log(`Determined timezone for geometry (${centerLat.toFixed(2)}, ${centerLon.toFixed(2)}): ${timezone}`);
+    
+    // Convert UTC time ranges to local time ranges for this timezone
+    const offsetter = new TimeRangeOffsetter(timezone);
+    const timeRangesArray = Array.isArray(timeRanges) ? timeRanges : [timeRanges];
+    const localTimeRanges = offsetter.offsetRanges(timeRangesArray);
+    
+    console.log(`Offset ${timeRangesArray.length} UTC time range(s) to ${timezone}`);
+    console.log('UTC ranges:', timeRangesArray);
+    console.log('Local ranges:', localTimeRanges);
+    
     if (this.isRectBounds(geometry) && this.meta) {
       const sampler = new EsriSampler(this.meta, geometry);
       const sampleCount = options.sampleCount || 30;
@@ -543,7 +573,7 @@ export class TempoDataService extends ImageServiceServiceMetadata {
       options.sampleCount = sampler.getSamplingSpecificationFromSampleCount(sampleCount).count;
       console.log(`Using sample count: ${options.sampleCount}`);
     }
-    const rawData = await this.fetchSamples(geometry, timeRanges, options);
+    const rawData = await this.fetchSamples(geometry, localTimeRanges, options);
     const stats = this.getTimeSeriesStatistics(rawData);
     console.log(`Data is sampled from ${stats.numUniqueLocations} unique locations with a total of ${stats.totalValues} values.`);
     
