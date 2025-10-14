@@ -165,9 +165,10 @@
                 Time Series Comparison
               </v-card-title>
               <div style="height: calc(100% - 40px);">
-                <plotly-graph
+                <folded-plotly-graph
                   :datasets="graphData"
                   :show-errors="showErrors"
+                  :fold-type="selectedFoldType"
                   :colors="[selection?.region.color ?? 'blue', '#333']"
                   :data-options="[
                     {mode: 'markers'}, // options for the original data
@@ -191,7 +192,7 @@
 import { ref, computed, watch, nextTick } from 'vue';
 import { v4 } from 'uuid';
 import { TimeSeriesFolder, sortfoldBinContent } from '../esri/services/aggregation';
-import PlotlyGraph from './PlotlyGraph.vue';
+import FoldedPlotlyGraph from './FoldedPlotlyGraph.vue';
 import type { Prettify, UserDataset, PlotltGraphDataSet, UnifiedRegion } from '../types';
 import type { AggregationMethod, TimeSeriesData, FoldedTimeSeriesData , FoldType, FoldBinContent} from '../esri/services/aggregation';
 import tz_lookup from '@photostructure/tz-lookup';
