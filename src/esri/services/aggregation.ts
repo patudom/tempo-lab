@@ -498,7 +498,7 @@ export class TimeSeriesFolder {
       case 'hourOfYear':
       case 'hourOfSeason':
       case 'hourOfNone':
-        return (minutes / 60 + seconds / 3600 + milliseconds / 3600000 ) - 0.5; // fraction of hour
+        return -((minutes / 60 + seconds / 3600 + milliseconds / 3600000 ) - 0.5); // fraction of hour
       
       // Day-based bins - return fraction of day (as hours)
       case 'dayOfWeek':
@@ -547,16 +547,13 @@ export class TimeSeriesFolder {
   
   foldData(timeseries: Prettify<TimeSeriesData>): FoldedTimeSeriesData {
     
-    // the data and the error are in the same order
-    const data = Object.values(timeseries.values) as Prettify<AggValue>[]; // AggValue[]
-    const error = Object.values(timeseries.errors); // DataPointError[] | undefined
-    
     const binCount = this._binCount();
-    const binsRecord: Record<number, InternalBin> = {};
+    const binsRecord: Record<number, Prettify<InternalBin>> = {};
     
+    // bundle data and errors into bins
+    // it includes the timestamps, and raw/cleaned valued
     Object.entries(timeseries.values).forEach(([ts,d]) => {
       const binIndex = this._binIndex(d.date);
-      // console.log('Folding date', d.date, 'to bin index', binIndex, 'with fold type', this.foldType);
       if (binIndex == null || binIndex < 0 || binIndex >= binCount) {
         console.error('Invalid bin index', binIndex, 'for date', d.date, 'with fold type', this.foldType);
         return;
@@ -596,9 +593,9 @@ export class TimeSeriesFolder {
     const errors: Record<number, DataPointError> = {};
     const publicBins: Record<number, FoldBinContent> = {};
     
-    // loop over the groups
+    // loop over the groups and aggregate
     Object.values(binsRecord).forEach(bin => {
-      // const bin = binsRecord[binKey];
+
       const { bin: binIndex, numericValues, calibrationErrors, rawValues, timestamps } = bin;
       
       // Prepare error arrays for aggregateData (using uppers since errors are symmetric)
