@@ -851,31 +851,7 @@ watch(() => props.selection, () => {
 </script>
 
 <style scoped>
-#data-aggregation-card .explainer-text {
-  border-radius: 5px;
-  padding: 5px;
-  padding-inline-start: 10px;
-  background-color: rgb(var(--v-theme-surface-bright));
-  font-size: 0.8em;
-  color: rgb(var(--v-theme-on-surface-bright));
-  
-}
 
-#data-aggregation-card .explainer-text hr {
-  border: none;
-  border-top: 1px solid rgb(var(--v-theme-on-surface-bright));
-  margin-inline: 0;
-  margin-block: 1em;
-}
-
-#data-aggregation-card .explainer-text dt {
-  font-weight: bold;
-}
-
-#data-aggregation-card .explainer-text dd {
-  margin-left: 0;
-  margin-bottom: 8px;
-}
 
 
 

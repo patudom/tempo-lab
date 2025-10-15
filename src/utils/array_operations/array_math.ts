@@ -264,3 +264,9 @@ export function weightedMean(values: DirtyNumberArray, errors: DirtyNumberArray)
 export function clip(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
+
+export function allEqual<T>(arr: T[]): boolean {
+  if (arr.length === 0) return true;
+  const first = arr[0];
+  return arr.every(v => v === first);
+}

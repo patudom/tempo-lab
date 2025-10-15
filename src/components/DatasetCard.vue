@@ -2,7 +2,7 @@
   <v-list>
     <v-hover
       v-slot="{ isHovering, props }"
-      v-for="dataset in datasets"
+      v-for="dataset in datesetsWithNotFoldedFisrt"
       :key="dataset.id"
     > 
       <!-- create a checkbox input that will -->
@@ -10,8 +10,8 @@
       <v-list-item
         v-bind="props"
         :ref="(el) => datasetRowRefs[dataset.id] = el"
-        class="selection-item my-2"
-        :style="{ 'background-color': dataset.customColor ?? dataset.region.color }"
+        class="selection-item my-2 rounded-lg"
+        :style="{ 'background-color': isFolded(dataset) ? '#333' : '#999', 'color': isFolded(dataset) ? '#fff' : '#000' }"
         :ripple="touchscreen"
         lines="two"
       >
@@ -28,44 +28,40 @@
           <div>
             <v-chip
               size="small" 
-              append-icon="mdi-pencil"
               elevation="1"
-              @click="() => handleEditDataset(dataset)"
+              variant="flat"
+              :color="dataset.customColor ?? dataset.region.color"
               >
               {{ dataset.name ?? dataset.region.name }}
             </v-chip>
             
             <v-chip 
-              v-if="dataset.name" 
               size="small" 
               variant="flat"  
               :style="(dataset.customColor === dataset.region.color) ? {border: '1px solid #ffffff61'} : {}"
               :color="dataset.region.color"
               >
-              {{ dataset.region.name }}
+              Region: {{ dataset.region.name }}
             </v-chip>
             
             <v-chip size="small">
-              {{ moleculeName(dataset.molecule) }}
+              Mol: {{ moleculeName(dataset.molecule) }}
             </v-chip>
             
-            <v-chip
+            <div class="d-inline-block text-caption dataset-patttern-chip ma-2"
               v-if="dataset.timeRange" 
-              size="small" 
-              class="text-caption"
               >
-              {{ dataset.timeRange.description }}
-            </v-chip>
+              <span>{{ dataset.timeRange.description }}</span>
+            </div>
             
-            <v-chip 
+            <!-- <v-chip 
               v-if="dataset.timeRange" 
               size="small" 
               class="text-caption"
               >
               {{ dataset.timeRange?.type ?? 'no type' }}
-            </v-chip>
+            </v-chip> -->
           </div>
-          
           <!-- this is where the actions will go -->
           <slot name="action-row" :isHovering="isHovering" :dataset="dataset">
           </slot>
@@ -78,7 +74,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref, computed } from "vue";
 import { supportsTouchscreen } from "@cosmicds/vue-toolkit";
 import type { UserDataset } from "../types";
 import { useTempoStore } from "../stores/app";
@@ -103,21 +99,24 @@ const touchscreen = supportsTouchscreen();
 
 
 const openGraphs = ref<Record<string,boolean>>({});
-const currentlyEditingDataset = ref<UserDataset | null>(null);
+
 
 
 const datasetRowRefs = ref({});
 
-
-
-
-const showDatasetEditor = ref(false);
-const datasetEditorNameOnly = ref(false);
-function handleEditDataset(dataset: UserDataset, nameOnly = false) {
-  datasetEditorNameOnly.value = nameOnly;
-  currentlyEditingDataset.value = dataset;
-  showDatasetEditor.value = true;
+function isFolded(dataset: UserDataset): boolean {
+  return !!(dataset.timeRange && dataset.timeRange.type === 'folded');
 }
+
+
+const datesetsWithNotFoldedFisrt = computed(() => {
+  return [...datasets].sort((a, b) => {
+    const aFolded = isFolded(a) ? 1 : 0;
+    const bFolded = isFolded(b) ? 1 : 0;
+    return aFolded - bFolded;
+  });
+});
+
 
 function _removeDataset(dataset: UserDataset) {
   store.deleteDataset(dataset);
@@ -130,4 +129,14 @@ function _removeDataset(dataset: UserDataset) {
 </script>
 
 <style scoped lang="less">
+.dataset-patttern-chip {
+  text-wrap: auto;
+  background-color: #878787;
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+.dataset-patttern-chip > span {
+  opacity: 1;
+  color: black;
+}
 </style>

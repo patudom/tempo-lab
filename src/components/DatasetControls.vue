@@ -161,16 +161,22 @@
           <div class="my-selections" v-if="datasets.length>0" style="margin-top: 1em;">
 
             <h4>My Datasets</h4>
+            <div v-if="datasets.some(s => s.timeRange.type === 'folded')" class="pa-2 mb-2 explainer-text">
+              Note: You can only overlay datasets with the same molecule and fold type.
+            </div>
+            <v-btn color="#ffcc33" size="small" :block="false" @click="allDatasetSelection = !allDatasetSelection">
+              {{ allDatasetSelection ? 'Cancel Selection' : 'Select Datasets to Graph' }}
+            </v-btn>
             <dataset-card
               :datasets="datasets"
-              :turn-on-selection="true"
+              :turn-on-selection="allDatasetSelection"
               v-model:selected-datasets="selectedDatasets"
               >
               <template #action-row="{ isHovering, dataset }">
                     <div
                       v-if="(dataset.loading || !dataset.samples)  && !(dataset.timeRange?.type === 'folded' && dataset.plotlyDatasets)"
                       class="dataset-loading"
-                    >
+                    > <hr/>
                       <v-progress-linear
                         :class="['dataset-loading-progress', !(dataset.loading && dataset.samples) ? 'dataset-loading-failed' : '']"
                         :active="dataset.loading || !dataset.samples"
@@ -189,6 +195,7 @@
                         </template>
                       </v-progress-linear>
                       <div v-if="!(dataset.loading || dataset.samples || dataset.plotlyDatasets)">
+                        <hr/>
                         <v-tooltip
                           text="Failure info"
                           location="top"
@@ -337,7 +344,7 @@
                         <folded-plotly-graph
                           :datasets="dataset.plotlyDatasets"
                           :show-errors="showErrorBands"
-                          :colors="[dataset.region.color, '#333']"
+                          :colors="[dataset.customColor ?? dataset.region.color, '#333']"
                           :data-options="[{mode: 'markers'}, {mode: 'lines+markers'}]"
                           :names="[`Original Data`, `Binned`]"
                           :layout-options="{width: 600, height: 400}"
@@ -458,6 +465,15 @@
         :show-errors="showErrorBands"
       />
     </cds-dialog>
+    
+    <div 
+      v-if="!allEqual(no2foldedGraphData.map(v => v.foldType)) || 
+            !allEqual(o3foldedGraphData.map(v => v.foldType)) || 
+            !allEqual(hchofoldedGraphData.map(v => v.foldType))"
+      class="mixed-foldType-warning pa-2 ma-2 text-large text-red explainer-text"
+    >
+    Warning: Be sure to only select datasets that have the same type of fold. It is not possible to overlay different FoldTypes.
+    </div>
     
     <v-btn v-if="no2foldedGraphData.length > 0" @click="showfoldedNO2Graph = true">
       Show Folded NO₂ Data
@@ -618,6 +634,7 @@ import FoldedPlotlyGraph from "./FoldedPlotlyGraph.vue";
 import CTextField from "./CTextField.vue";
 import DatasetCard from "./DatasetCard.vue";
 import { toZonedTime } from "date-fns-tz";
+import { allEqual } from "@/utils/array_operations/array_math";
 
 type UnifiedRegionType = UnifiedRegion;
 
@@ -670,12 +687,14 @@ function openAggregationDialog(selection: UserDataset) {
   showAggregationDialog.value = true;
 }
 function handleAggregationSaved(aggregatedSelection: UserDataset) {
+  aggregatedSelection.name = `${aggregatedSelection.name} ${datasets.value.length + 1}`;
   store.addDataset(aggregatedSelection, false); // no need to fetch anything
   showAggregationDialog.value = false;
   aggregationDataset.value = null;
 }
 
 function handleDatasetCreated(dataset: UserDataset) {
+  dataset.name = `Dataset ${datasets.value.length + 1}`; // give it a default name
   store.addDataset(dataset);
   createDatasetActive.value = false;
 }
@@ -766,7 +785,13 @@ function _toZonedTime(date: number | Date | string, timezone): number | Date {
   return toZonedTime(date, timezone);
 }
 
+const allDatasetSelection = ref(false);
 const selectedDatasets = ref<string[]>([]);
+watch(allDatasetSelection, (newVal) => {
+  if (!newVal) {
+    selectedDatasets.value = [];
+  }
+});
 watch(selectedDatasets, (newVal) => {
   console.log('Selected datasets changed:', newVal);
 });
@@ -863,5 +888,33 @@ const showErrorBands = ref(true);
 .h3-panel-titles .v-expansion-panel-title {
   font-size: 1.17em;
   font-weight: bold;
+}
+</style>
+
+<style>
+.explainer-text {
+  border-radius: 5px;
+  padding: 5px;
+  padding-inline-start: 10px;
+  background-color: rgb(var(--v-theme-surface-bright));
+  font-size: 0.8em;
+  color: rgb(var(--v-theme-on-surface-bright));
+  
+}
+
+.explainer-text hr {
+  border: none;
+  border-top: 1px solid rgb(var(--v-theme-on-surface-bright));
+  margin-inline: 0;
+  margin-block: 1em;
+}
+
+.explainer-text dt {
+  font-weight: bold;
+}
+
+.explainer-text dd {
+  margin-left: 0;
+  margin-bottom: 8px;
 }
 </style>
