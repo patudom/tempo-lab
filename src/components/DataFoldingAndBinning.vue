@@ -261,7 +261,7 @@
                   :datasets="graphData"
                   :show-errors="showErrors"
                   :fold-type="selectedFoldType"
-                  :colors="[selection?.region.color ?? 'blue', '#333']"
+                  :colors="[theColor, '#333']"
                   :timezones="selectedTimezone"
                   :data-options="[
                     {mode: 'markers'}, // options for the original data
@@ -310,6 +310,9 @@ const emit = defineEmits<{
 // Dialog state
 const dialogOpen = defineModel<boolean>('modelValue', { type: Boolean, required: true });
 
+const theColor = computed(() => {
+  return props.selection?.customColor ?? (props.selection?.region.color ?? 'blue');
+});
 
 type TimeBinOptions = 'hour' | 'day' | 'week' | 'month';
 type FoldingPeriodOptions = 'day' | 'week' | 'year' | 'weekdayWeekend' | 'none';
@@ -790,6 +793,7 @@ function saveFolding() {
     region: { ...props.selection.region, name: props.selection.region.name } as typeof props.selection.region,
     timeRange: createFoldedTimeRange(),
     molecule: props.selection.molecule,
+    customColor: '#333',
     loading: false, // folded data is immediately available
     // samples/errors intentionally omitted for folded since bins are synthetic; rely on plotlyDatasets
     locations: foldedData.value.locations,
