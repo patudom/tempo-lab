@@ -270,6 +270,7 @@
                     {'thickness': 1, 'width': 0}, // original data error bar style
                     { 'thickness': 3, 'width': 0 } // folded data error bar style
                   ]"
+                  @click="handlePointClick"
                 />
               </div>
             </v-card>
@@ -616,8 +617,8 @@ function foldedTimeSeriesRawToDataSet(foldedTimeSeries: FoldedTimeSeriesData): O
       upper.push(up ?? null);
     });
   });
-  
-  const hovertemplate = '%{customdata|%Y-%m-%d %H:%M}<br>%{y}<extra></extra>';
+  // the ascii +- symbol is this characher: ±
+  const hovertemplate = '%{customdata|%Y-%m-%d %H:%M}<br>%{y:0.2e}±%{error_y.array:0.2e}<extra></extra>';
   
   return { x, y, lower, upper, errorType: 'bar', datasetOptions: { customdata, hovertemplate } };
 }
@@ -711,6 +712,13 @@ function updateAggregatedData() {
   // Update graph data after folding
   updateGraphData();
   console.log("graphData after update:", graphData.value);
+}
+
+function handlePointClick(value: {x: Date, y: number, customdata: unknown}) {
+  console.log("Point clicked:", value);
+  console.log("Custom data Date:", value.customdata ? value.customdata as Date: value.customdata);
+  // the from timezoned time is what we want to to send work with if we go back to esri stuff
+  console.log("fromZonedTime", value.customdata ? fromZonedTime(value.customdata as Date, selectedTimezone.value) : value.customdata);
 }
 
 // Save the folding

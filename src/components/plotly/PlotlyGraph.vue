@@ -53,7 +53,7 @@ const graph = ref<HTMLDivElement | null>(null);
 
 const emit = defineEmits<{
   // Datum is from type of x in DataSet
-  (event: "click", value: {x: Datum, y: number}): void;
+  (event: "click", value: {x: Datum, y: number, customdata: unknown}): void;
 }>();
 
 function datumToDate(datum: Datum): Date | null {
@@ -223,7 +223,8 @@ function renderPlot() {
         }
         const date = datumToDate(point.x);
         if (date !== null) {
-          emit("click", {x: point.x, y: point.y as number} );
+          console.log("Clicked point", point);
+          emit("click", {x: point.x, y: point.y as number, customdata: point.customdata} );
         }
       });
     });

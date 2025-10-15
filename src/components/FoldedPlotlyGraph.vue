@@ -26,7 +26,7 @@ interface FoldedPlotlyGraphProps extends PlotlyGraphProps {
 const props = defineProps<FoldedPlotlyGraphProps>();
 
 const emit = defineEmits<{
-  (event: "click", value: {x: Datum, y: number}): void;
+  (event: "click", value: {x: Datum, y: number, customdata: unknown}): void;
 }>();
 
 // Merge the fold-type specific layout with any custom layout options
