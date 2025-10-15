@@ -29,7 +29,7 @@
               <v-select
                 v-if="false"
                 v-model="selectedTimeBin"
-                :items="timeBinOptions"
+                :items="timeBinOptions.filter(opt => validTimeBinForData(opt.value as TimeBinOptions))"
                 label="Time Bin"
                 density="compact"
                 variant="outlined"
@@ -44,7 +44,7 @@
                 class="mb-3"
               >
                 <v-chip
-                  v-for="option in timeBinOptions"
+                  v-for="option in timeBinOptions.filter(opt => validTimeBinForData(opt.value as TimeBinOptions))"
                   :key="option.value"
                   :value="option.value"
                   color="#092088"
@@ -98,7 +98,7 @@
               <v-select
                 v-if="false"
                 v-model="selectedFoldingPeriod"
-                :items="foldingPeriodOptions"
+                :items="foldingPeriodOptions.filter(opt => validFoldingForData(opt.value as FoldingPeriodOptions))"
                 label="Folding Period"
                 density="compact"
                 variant="outlined"
@@ -112,7 +112,7 @@
                 class="mb-3"
               >
                 <v-chip
-                  v-for="option in foldingPeriodOptions"
+                  v-for="option in foldingPeriodOptions.filter(opt => validFoldingForData(opt.value as FoldingPeriodOptions))"
                   :key="option.value"
                   :value="option.value"
                   color="#092088"
@@ -252,7 +252,7 @@
           
           <!-- Right Panel: Timeseries Graph -->
           <v-col cols="12" md="8">
-            <v-card variant="outlined" class="pa-3" style="height: 500px;">
+            <v-card variant="outlined" class="pa-3" style="height: auto;">
               <v-card-title>
                 Time Series Comparison
               </v-card-title>
@@ -273,6 +273,9 @@
                   @click="handlePointClick"
                 />
               </div>
+            <div id="below-graph-stuff" class="mt-2 explainer-text">
+              If you don't see any data, please press the "Autoscale" <v-icon size="1.2em" style="margin-top:-0.1em;">mdi-arrow-expand-all</v-icon> button on the graph menu (visible when you hover over the graph)
+            </div>
             </v-card>
           </v-col>
         </v-row>
@@ -308,6 +311,54 @@ const dialogOpen = defineModel<boolean>('modelValue', { type: Boolean, required:
 
 type TimeBinOptions = 'hour' | 'day' | 'week' | 'month';
 type FoldingPeriodOptions = 'day' | 'week' | 'year' | 'weekdayWeekend' | 'none';
+const MS_IN_HOUR = 3600000;
+const MS_IN_DAY = MS_IN_HOUR * 24;
+const MS_IN_WEEK = MS_IN_DAY * 7;
+const MS_IN_YEAR = MS_IN_DAY * 365.25;
+
+const timeBinDurations: Record<TimeBinOptions, number> = {
+  'hour': MS_IN_HOUR,
+  'day': MS_IN_DAY,
+  'week': MS_IN_WEEK,
+  'month': MS_IN_YEAR / 12, // average month length
+};
+
+const foldingPeriodDurations: Record<FoldingPeriodOptions, number> = {
+  'day': MS_IN_DAY,
+  'week': MS_IN_WEEK,
+  'year': MS_IN_YEAR,
+  'weekdayWeekend': MS_IN_WEEK, // weekend is part of week
+  'none': 0,
+};
+
+const dataDuration = computed(() => {
+  if (!props.selection?.samples) return 0;
+  const timestamps = Object.values(props.selection.samples).map(s => s.date.getTime());
+  if (timestamps.length === 0) return 0;
+  // single loop to find min and max on unsorted array
+  // (but it may already be sorted, but we only need to do this once so it's fine)
+  const minMax = timestamps.reduce((acc, t) => {
+    return {
+      min: Math.min(acc.min, t),
+      max: Math.max(acc.max, t)
+    };
+  }, { min: Infinity, max: -Infinity });
+  return minMax.max - minMax.min;
+});
+
+function validTimeBinForData(timeBin: TimeBinOptions): boolean {
+  if (dataDuration.value === 0) return false;
+
+  return dataDuration.value >= timeBinDurations[timeBin];
+}
+
+function validFoldingForData(foldType: FoldingPeriodOptions): boolean {
+  if (dataDuration.value === 0) return false;
+  if (foldType === 'weekdayWeekend') {
+    return props.selection?.samples && Object.values(props.selection?.samples).map(s => s.date.getDay()).some(d => d === 0 || d === 6); // has at least one weekend day
+  }
+  return dataDuration.value >= foldingPeriodDurations[foldType];
+}
 
 // Time bin and folding period options
 const timeBinOptions: {title: string, value: TimeBinOptions}[] = [
@@ -714,11 +765,12 @@ function updateAggregatedData() {
   console.log("graphData after update:", graphData.value);
 }
 
-function handlePointClick(value: {x: Date, y: number, customdata: unknown}) {
+function handlePointClick(value: {x: Plotly.Datum, y: number, customdata: unknown}) {
   console.log("Point clicked:", value);
   console.log("Custom data Date:", value.customdata ? value.customdata as Date: value.customdata);
   // the from timezoned time is what we want to to send work with if we go back to esri stuff
   console.log("fromZonedTime", value.customdata ? fromZonedTime(value.customdata as Date, selectedTimezone.value) : value.customdata);
+  return;
 }
 
 // Save the folding

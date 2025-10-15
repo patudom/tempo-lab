@@ -184,12 +184,13 @@ function renderPlot() {
     if (hasErrors && data.lower && data.upper && data.errorType == 'band' && props.showErrors) {
       console.log("Adding error traces for dataset", index);
       
-      const {lower, upper} = createErrorBands(
+      const {lower, upper, max: newMax} = createErrorBands(
         data,
         props.colors ? props.colors[index % props.colors.length] : 'red',
         datasetName,
         legendGroup,
       );
+      max = Math.max(max, newMax);
 
       if (lower === null || upper === null) {
         console.error("Error creating error bands for dataset", index, data);

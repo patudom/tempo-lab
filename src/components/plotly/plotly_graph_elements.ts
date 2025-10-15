@@ -12,10 +12,12 @@ function normalizeBadValue(v: number | null | undefined): number | null {
 import { deepMerge } from "./plotly_styles";
 
 export function createErrorBands(data: PlotltGraphDataSet, color: string, datasetName: string, legendGroup: string, options: object = {}) {
-  if (!data.upper || !data.lower) return {lower: null, upper: null};
+  if (!data.upper || !data.lower) return {lower: null, upper: null, max: 0, min: 0};
       
   const upperY: (number | null)[] = [];
   const lowerY: (number | null)[] = [];
+  let max = 0;
+  let min = 0;
     
   data.y.forEach((y, idx) => {
     if (y === null) {
@@ -29,6 +31,7 @@ export function createErrorBands(data: PlotltGraphDataSet, color: string, datase
     } else {
       const high = y + (data.upper[idx] ?? nanmean(data.upper) ?? 0);
       upperY.push(high);
+      max = Math.max(max, high !== null ? high : 0);
     }
         
     if (data.lower === undefined) {
@@ -36,6 +39,7 @@ export function createErrorBands(data: PlotltGraphDataSet, color: string, datase
     } else {
       const low = y - (data.lower[idx] ?? nanmean(data.lower) ?? 0);
       lowerY.push(low);
+      min = Math.min(min, low !== null ? low : 0);
           
     }
         
@@ -61,7 +65,9 @@ export function createErrorBands(data: PlotltGraphDataSet, color: string, datase
       y: upperY.map(normalizeBadValue),
       ...deepMerge(traceErrorOptions, options),
       fill: "tonexty",
-    }
+    },
+    max,
+    min
 
   };
     
