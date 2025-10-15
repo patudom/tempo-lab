@@ -24,6 +24,10 @@
           <!-- Left Panel: Folding Options -->
           <v-col cols="12" md="4">
             <v-card variant="outlined" class="pa-3">
+              <div class="explainer-text mb-3">
+                Greyed out options are options which are either not able to applied to the current dataset (due to insufficient data), or 
+                which are incompatible with other selected options. 
+              </div>
               
               <!-- Time Bin Selection -->
               <v-select
@@ -44,12 +48,13 @@
                 class="mb-3"
               >
                 <v-chip
-                  v-for="option in timeBinOptions.filter(opt => validTimeBinForData(opt.value as TimeBinOptions))"
+                  v-for="option in timeBinOptions"
                   :key="option.value"
                   :value="option.value"
                   color="#092088"
                   :variant="option.value === selectedTimeBin ? 'flat' : 'outlined'"    
                   density="compact"
+                  :disabled="!validTimeBinForData(option.value as TimeBinOptions)"
                 >
                   {{ option.title }}
                 </v-chip>
@@ -113,14 +118,14 @@
               >
                 {{ selectedFoldingPeriod }}
                 <v-chip
-                  v-for="option in foldingPeriodOptions.filter(opt => validFoldingForData(opt.value as FoldingPeriodOptions))"
+                  v-for="option in foldingPeriodOptions"
                   :key="option.value"
                   :value="option.value"
                   color="#092088"
                   :variant="option.value === selectedFoldingPeriod ? 'flat' : 'outlined'"
                   outline
                   density="compact"
-                  :disabled="!isValidCombination(option.value, selectedTimeBin)"
+                  :disabled="!isValidCombination(option.value, selectedTimeBin) || !validFoldingForData(option.value as FoldingPeriodOptions)"
                 >
                   {{ option.title }}
                 </v-chip>
