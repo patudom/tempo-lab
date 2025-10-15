@@ -116,7 +116,6 @@
                 column
                 class="mb-3"
               >
-                {{ selectedFoldingPeriod }}
                 <v-chip
                   v-for="option in foldingPeriodOptions"
                   :key="option.value"
@@ -163,7 +162,7 @@
               <v-select
                 v-model="selectedMethod"
                 :items="methodOptions"
-                label="Folding Method"
+                label="Aggregation Method"
                 density="compact"
                 variant="outlined"
                 hide-details
@@ -192,7 +191,7 @@
               <!-- Show Errors Toggle -->
               <v-checkbox
                 v-model="useSEM"
-                label="Use SEM"
+                label="Use Standard Error of the Mean"
                 density="compact"
                 hide-details
                 class="mb-3"
