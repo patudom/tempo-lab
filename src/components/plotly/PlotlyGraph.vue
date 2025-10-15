@@ -258,7 +258,7 @@ function renderPlot() {
       // if currently visible and errors are visible set stlye the error traces too
       nextTick(() => { // next tick so that updated traceVisible is available
         if (props.showErrors) {
-          updateErrorDisplay(!currentlyVisible);
+          updateErrorDisplay(!currentlyVisible, group);
         }
       });
       return true;
@@ -266,7 +266,7 @@ function renderPlot() {
   });
 }
 
-function updateErrorDisplay(visible: boolean) {
+function updateErrorDisplay(visible: boolean, legendGroup?: string) {
   if (graph.value) {
     errorTraces.forEach((traceIndex) => {
       const trace = plot.value?.data[traceIndex];
@@ -275,6 +275,8 @@ function updateErrorDisplay(visible: boolean) {
       // eslint-disable-next-line 
       // @ts-ignore legend group should exist. but guard anyway
       const group = trace.legendgroup as string;
+      if (group === undefined) return;
+      if (legendGroup && group !== legendGroup) return;
       const dataId = Object.keys(legendGroups).find(key => legendGroups[key] === group);
       if (dataId && traceVisible.value.get(dataId)) {
         restyle(graph.value, { visible: visible ? true : "legendonly" }, [traceIndex]);
