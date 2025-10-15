@@ -6,7 +6,7 @@
     persistent
     scrollable
   > -->
-    <v-card>
+    <v-card id="data-aggregation-card">
       <v-toolbar
         density="compact"
         color="var(--info-background)"
@@ -55,6 +55,45 @@
                 </v-chip>
               </v-chip-group> 
               
+              <div class="mb-2 explainer-text">
+                <strong class="text-red">FIX</strong>
+                Select the time bin for which we will aggregate the data. 
+                When aggregating data, we take all of the data in a bin (say the 1pm bin) and
+                computed a single (aggregated) value for it, such as a mean or a max value.
+                <hr/>
+                <div>
+                  <div v-if="selectedTimeBin === 'hour'">
+                    <dt>Hour</dt>
+                    <dd>
+                      Rounds data to the nearest hour. For example: Date from 12:30pm to 1:29pm will go into the 1pm bin.
+                      The binned point, shown in black is placed on the hour (e.g. at 1:00pm).
+                    </dd>
+                  </div>
+                  <div v-else-if="selectedTimeBin === 'day'">
+                    <dt>Day</dt>
+                    <dd>Bins all data within a date. For example, all data points occuring on Dec 5 2025, or on Aug 28 2024, etc.
+                      The binned point, shown in black is placed at local noon (12:00pm) of that day.
+                    </dd>
+                  </div>
+                  <div v-else-if="selectedTimeBin === 'week'">
+                    <dt>Week</dt>
+                    <dd>
+                      Rounds data to the nearest week. Weeks start on Sunday. For example: Date from Sunday 12:00am to Saturday 11:59pm will go into the week bin.
+                      The binned point, shown in black is placed at local noon (12:00pm) on Wednesday of that week.
+                    </dd>
+                  </div>
+                  <div v-else-if="selectedTimeBin === 'month'">
+                    <dt>Month</dt>
+                    <dd>
+                      Rounds data to the nearest month. 
+                      For example: Date from the 1st of the month 12:00am to the last day of the month 11:59pm will go into the month bin.
+                      The binned point, shown in black is placed at local noon (12:00pm) on the 15th of that month.
+                    </dd>
+                  </div>
+                </div>
+                
+              </div>
+              
               <!-- Folding Period Selection -->
               <v-select
                 v-if="false"
@@ -85,6 +124,13 @@
                   {{ option.title }}
                 </v-chip>
               </v-chip-group> 
+              
+              <div class="mb-2 explainer-text">
+                <strong class="text-red">FIX</strong>
+                We "fold" data, by stacking data re-aligning data based on a periodic cycle. For example, if we fold by "Week", then
+                
+                Select the period over which to fold the data. Selecting "None" will simply bin the data without folding.
+              </div>
               
               <!-- Timezone Selection -->
               <div class="selected-timezone-details d-flex mb-4">
@@ -725,5 +771,32 @@ watch(() => props.selection, () => {
 </script>
 
 <style scoped>
+#data-aggregation-card .explainer-text {
+  border-radius: 5px;
+  padding: 5px;
+  padding-inline-start: 10px;
+  background-color: rgb(var(--v-theme-surface-bright));
+  font-size: 0.8em;
+  color: rgb(var(--v-theme-on-surface-bright));
+  
+}
+
+#data-aggregation-card .explainer-text hr {
+  border: none;
+  border-top: 1px solid rgb(var(--v-theme-on-surface-bright));
+  margin-inline: 0;
+  margin-block: 1em;
+}
+
+#data-aggregation-card .explainer-text dt {
+  font-weight: bold;
+}
+
+#data-aggregation-card .explainer-text dd {
+  margin-left: 0;
+  margin-bottom: 8px;
+}
+
+
 
 </style>
