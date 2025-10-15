@@ -122,18 +122,14 @@
               />
               
               <div class="pm-wrapper">
-                <span>±</span>
-                <input 
+                <input
+                  id="dtrs-time-plus-minus"
+                  type="checkbox"
                   v-model="timePlusMinus"
-                  type="number"
-                  min="-12"
-                  max="12"
-                  step="0.5"
-                  class="time-input"
-                  style="width: 5ch;"
-                  placeholder="± hours"
+                  :true-value="11.9999"
+                  :false-value="0.49999"
                 />
-                <span>h</span>
+                <label for="dtrs-time-plus-minus">All Day</label>
               </div>
             </div>
           </div>

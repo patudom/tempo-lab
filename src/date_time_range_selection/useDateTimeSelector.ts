@@ -37,7 +37,7 @@ export function useDateTimeSelector(
   const selectedDayOfWeek = ref<number>(1); // Default to Monday
   const selectedTime = ref<string>('09:00');
   const instancesBack = ref<number>(4);
-  const timePlusMinus = ref<number>(1); // +/- 1 hour for hour selection
+  const timePlusMinus = ref<number>(0.4999); // +/- 0.5 hour by default. 
   // Pattern selection state (multi-day and multi-time)
   const selectedDays = ref<number[]>([1, 2, 3, 4, 5]); // Default Mon-Fri
   const selectedTimes = ref<string[]>(['12:00']); // Default 9 AM
