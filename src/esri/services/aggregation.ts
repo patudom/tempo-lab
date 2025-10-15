@@ -265,6 +265,11 @@ export function sortfoldBinContent(bin: FoldBinContent): FoldBinContent {
   };
 }
 
+function altFloorHour(date: Date): Date {
+  const msPerHour = 3600000; // milliseconds in an hour
+  return new Date(Math.round(date.getTime() / msPerHour) * msPerHour);
+}
+
 export type Seasons = 'DJF' | 'MAM' | 'JJA' | 'SON'; // meteorological seasons
 
 export interface FoldedAggValue {
@@ -367,15 +372,15 @@ export class TimeSeriesFolder {
     switch (this.foldType) {
       // Hour-based bins
       case 'hourOfDay': 
-        return z.getHours();                                    // 0–23
+        return altFloorHour(z).getHours();                                    // 0–23
       case 'hourOfWeek': 
-        return z.getDay() * 24 + z.getHours();                  // 0–167
+        return z.getDay() * 24 + altFloorHour(z).getHours();                  // 0–167
       case 'hourOfMonth': 
-        return (z.getDate() - 1) * 24 + z.getHours();           // 0–743
+        return (z.getDate() - 1) * 24 + altFloorHour(z).getHours();           // 0–743
       case 'hourOfYear': {
         const yearStart = new Date(z.getFullYear(), 0, 1);
         const dayOfYear = Math.floor((z.getTime() - yearStart.getTime()) / (1000 * 60 * 60 * 24));
-        return dayOfYear * 24 + z.getHours();                   // 0–8783
+        return dayOfYear * 24 + altFloorHour(z).getHours();                   // 0–8783
       }
       case 'hourOfSeason': {
         const month = z.getMonth();
@@ -384,7 +389,7 @@ export class TimeSeriesFolder {
         const yearOff = season === 0 ? 1 : 0;
         const seasonStart = new Date(z.getFullYear() - yearOff, seasonStartMonths[season], 1);
         const dayOfSeason = Math.floor((z.getTime() - seasonStart.getTime()) / (1000 * 60 * 60 * 24));
-        return dayOfSeason * 24 + z.getHours();                 // 0–2207
+        return dayOfSeason * 24 + altFloorHour(z).getHours();                 // 0–2207
       }
       
       // Day-based bins
@@ -443,8 +448,9 @@ export class TimeSeriesFolder {
       
       // None-period bins (return timestamp of bin start, like resampler)
       case 'hourOfNone': {
-        const zBinStart = new Date(z);
-        zBinStart.setMinutes(0, 0, 0);
+        // const zBinStart = new Date(z);
+        // zBinStart.setMinutes(0, 0, 0);
+        const zBinStart = altFloorHour(z);
         return (this.timezone ? fromZonedTime(zBinStart, this.timezone) : zBinStart).getTime();
       }
       case 'dayOfNone': {
@@ -465,11 +471,11 @@ export class TimeSeriesFolder {
       
       // Special cases
       case 'dayOfWeekdayWeekend': 
-        return (z.getDay() % 6 > 0) ? 1 : 0;                    // 1=weekday, 0=weekend
+        return (z.getDay() % 6 > 0) ? 0 : 1;                    // 1=weekend, 0=weekday
         
       case 'hourOfWeekdayWeekend': {
         const isWeekend = (z.getDay() % 6 === 0);                // true if weekend
-        return isWeekend ? (24 + z.getHours()) : z.getHours();  // 0-23 for weekday, 24-47 for weekend
+        return isWeekend ? (24 + altFloorHour(z).getHours()) : altFloorHour(z).getHours();  // 0-23 for weekday, 24-47 for weekend
       }
       
       default:
@@ -492,7 +498,7 @@ export class TimeSeriesFolder {
       case 'hourOfYear':
       case 'hourOfSeason':
       case 'hourOfNone':
-        return minutes / 60 + seconds / 3600 + milliseconds / 3600000; // fraction of hour
+        return (minutes / 60 + seconds / 3600 + milliseconds / 3600000 ) - 0.5; // fraction of hour
       
       // Day-based bins - return fraction of day (as hours)
       case 'dayOfWeek':

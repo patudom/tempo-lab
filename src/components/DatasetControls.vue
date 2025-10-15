@@ -28,7 +28,6 @@
             <date-time-range-selection
               v-if="createTimeRangeActive"
               :current-date="singleDateSelected"
-              :selected-timezone="selectedTimezone"
               :allowed-dates="uniqueDays"
               @ranges-change="handleDateTimeRangeSelectionChange"
             />
@@ -616,7 +615,6 @@ const {
   datasets,
   timeRanges,
   singleDateSelected,
-  selectedTimezone,
   uniqueDays,
   selectionActive,
   focusRegion,

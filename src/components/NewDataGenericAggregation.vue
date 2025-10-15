@@ -47,7 +47,8 @@
                   v-for="option in timeBinOptions"
                   :key="option.value"
                   :value="option.value"
-                  variant="outlined"    
+                  color="#092088"
+                  :variant="option.value === selectedTimeBin ? 'flat' : 'outlined'"    
                   density="compact"
                 >
                   {{ option.title }}
@@ -75,8 +76,11 @@
                   v-for="option in foldingPeriodOptions"
                   :key="option.value"
                   :value="option.value"
-                  variant="outlined"    
+                  color="#092088"
+                  :variant="option.value === selectedFoldingPeriod ? 'flat' : 'outlined'"
+                  outline
                   density="compact"
+                  :disabled="!isValidCombination(option.value, selectedTimeBin)"
                 >
                   {{ option.title }}
                 </v-chip>
@@ -146,16 +150,17 @@
                 v-model="includeBinPhase"
                 label="Use True Time"
                 density="compact"
-                :disabled="isNonePeriod"
+                :disabled="!disableIncludePhaseCheckbox"
                 hide-details
                 class="mb-3"
               />
               
               <v-checkbox
+                v-if="false"
                 v-model="alignToBinCenter"
                 label="Center bins"
                 density="compact"
-                :disabled="isNonePeriod"
+                :disabled="!disableBinCenterCheckbox"
                 hide-details
                 class="mb-3"
               />
@@ -273,20 +278,11 @@ const allFoldingPeriodOptions: {title: string, value: FoldingPeriodOptions}[] = 
   { title: 'None (Simple Binning)', value: 'none' },
 ];
 
+
+
 // Computed property to filter valid folding periods based on selected time bin
 const foldingPeriodOptions = computed(() => {
-  const timeBin = selectedTimeBin.value;
-  
-  // Define valid combinations
-  const validCombinations: Record<TimeBinOptions, FoldingPeriodOptions[]> = {
-    'hour': ['day', 'week', 'year', 'weekdayWeekend', 'none'],
-    'day': ['week', 'year', 'weekdayWeekend', 'none'],
-    'week': ['year', 'none'],
-    'month': ['year', 'none'],
-  };
-  
-  const validPeriods = validCombinations[timeBin] || [];
-  return allFoldingPeriodOptions.filter(option => validPeriods.includes(option.value));
+  return allFoldingPeriodOptions;
 });
 
 
@@ -313,48 +309,69 @@ const selectedMethod = ref<AggregationMethod>('mean');
 const selectedTimezone = ref('US/Eastern');
 const showErrors = ref(true);
 const useSEM = ref(true);
-const includeBinPhase = ref(true);
-const alignToBinCenter = ref(false);
 const useErrorBars = ref(false);
+
+const validCombinations: Record<TimeBinOptions, FoldingPeriodOptions[]> = {
+  'hour': ['day', 'week', 'year', 'weekdayWeekend'],
+  'day': ['week', 'year', 'weekdayWeekend', 'none'],
+  'week': ['year', 'none'],
+  'month': ['year', 'none'],
+};
+const isValidCombination = (period: FoldingPeriodOptions, bin: TimeBinOptions) => {
+  return validCombinations[bin].includes(period);
+};
+  
+watch(selectedTimeBin, (newBin) => {
+  if (!isValidCombination(selectedFoldingPeriod.value, newBin)) {
+    // Set to first valid option
+    const validPeriods = validCombinations[newBin];
+    if (validPeriods.length > 0) {
+      selectedFoldingPeriod.value = validPeriods[0];
+    }
+  }
+});
 
 // Computed FoldType based on time bin and folding period selections
 const selectedFoldType = computed<FoldType>(() => {
   // Map the combination to the appropriate FoldType
   const timeBin = selectedTimeBin.value;
   const period = selectedFoldingPeriod.value;
-  
-  // Handle 'none' period case
-  if (period === 'none') {
-    return `${timeBin}OfNone` as FoldType;
-  }
-  
-  // Construct the fold type string
+    
   const foldType = `${timeBin}Of${period.charAt(0).toUpperCase()}${period.slice(1)}` as FoldType;
-  
   console.log('Computed FoldType:', foldType, 'from', timeBin, 'and', period);
-  
-  // Validate that this is a valid FoldType
-  const validFoldTypes: FoldType[] = [
-    'hourOfDay', 'hourOfWeek', 'hourOfMonth', 'hourOfYear', 'hourOfSeason',
-    'dayOfWeek', 'dayOfMonth', 'dayOfYear', 'dayOfSeason',
-    'weekOfMonth', 'weekOfYear', 'weekOfSeason',
-    'monthOfYear', 'monthOfSeason',
-    'dayOfWeekdayWeekend', 'hourOfWeekdayWeekend',
-    'hourOfNone', 'dayOfNone', 'weekOfNone', 'monthOfNone'
-  ];
-  
-  if (validFoldTypes.includes(foldType)) {
-    return foldType;
-  }
-  
-  // Fallback to a safe default
-  console.warn('Invalid fold type combination:', timeBin, period, '- falling back to hourOfDay');
-  return 'hourOfDay';
+  return foldType;
 });
+
+
+
 
 // Check if we're using a None-period fold type (no actual folding)
 const isNonePeriod = computed(() => {
-  return ['hourOfNone', 'dayOfNone', 'weekOfNone', 'monthOfNone'].includes(selectedFoldType.value);
+  return selectedFoldingPeriod.value === 'none';
+});
+
+// Check if we're using any hour-based fold type (which is always centered)
+const isHourBinned = computed(() => {
+  return selectedTimeBin.value === 'hour';
+});
+
+const includeBinPhase = ref(true);
+// const alignToBinCenter = ref(true);
+const alignToBinCenter = computed(() => {
+  if (isNonePeriod.value) return true;
+  if (selectedFoldingPeriod.value === 'weekdayWeekend') return false;
+  if (includeBinPhase.value === false) return false;
+  if (isHourBinned.value) return true;
+  return true;
+});
+
+
+const disableBinCenterCheckbox = computed(() => {
+  return !isNonePeriod.value && includeBinPhase.value && !isHourBinned.value;
+});
+
+const disableIncludePhaseCheckbox = computed(() => {
+  return !isNonePeriod.value;
 });
 
 // Watch to ensure selected folding period is valid when time bin changes
@@ -371,9 +388,8 @@ watch(selectedTimeBin, () => {
 // Watch for None-period types and reset incompatible options
 watch(isNonePeriod, (isNone) => {
   if (isNone) {
-    // Reset options that don't make sense for None-period types
-    includeBinPhase.value = false;
-    alignToBinCenter.value = true;
+    includeBinPhase.value = true;
+    // alignToBinCenter.value = true;
   }
 });
 
@@ -488,7 +504,7 @@ function foldedTimesSeriesToDataSet(foldedTimeSeries: FoldedTimeSeriesData): Omi
           date.setMinutes(30); // Center of hour
           break;
         case 'dayOfNone':
-          date.setHours(date.getHours() + 12); // Noon
+          date.setHours(date.getHours() + 12); // local Noon
           break;
         case 'weekOfNone':
           date.setDate(date.getDate() + 3); // Middle of week (approx)
@@ -503,7 +519,11 @@ function foldedTimesSeriesToDataSet(foldedTimeSeries: FoldedTimeSeriesData): Omi
         x.push(aggValue.date);
       }
     } else {
-      x.push(idx + (alignToBinCenter.value ? 0.5 : 0));
+      if (foldedTimeSeries.foldType !== 'hourOfDay') {
+        x.push(idx + (alignToBinCenter.value ? 0.5 : 0));
+      } else {
+        x.push(idx);
+      }
     }
     
     y.push(aggValue.value);
@@ -649,7 +669,7 @@ function saveFolding() {
   if (!canSave.value || !props.selection || !foldedData.value) return;
   const oldAlignToBinCenter = alignToBinCenter.value;
   // Ensure alignToBinCenter is false when saving, as we want to store raw bin indices
-  alignToBinCenter.value = false;
+  // alignToBinCenter.value = false;
   
   // Precompute datasets so parent consumers don't need to transform again.
   // We intentionally do NOT fabricate Dates for bins; x values remain numeric bin indices / phases.
@@ -683,7 +703,7 @@ function saveFolding() {
   };
   console.log(foldedSelection);
   emit('save', foldedSelection);
-  alignToBinCenter.value = oldAlignToBinCenter;
+  // alignToBinCenter.value = oldAlignToBinCenter;
   closeDialog();
 }
 
