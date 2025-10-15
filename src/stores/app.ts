@@ -370,6 +370,10 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
 
 export const useTempoStore = createTempoStore("maplibre");
 
+function isDateLikeString(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}/.test(value);
+}
+
 export function deserializeTempoStore(value: string): StateTree {
   if (!value) {
     return {};
@@ -382,6 +386,20 @@ export function deserializeTempoStore(value: string): StateTree {
       if (samples) {
         for (const entry of Object.values(samples)) {
           entry.date = new Date(entry.date);
+        }
+      }
+
+      // Convert dates in plotlyDatasets if they exist
+      if (dataset.plotlyDatasets) {
+        for (const plotlyDataset of dataset.plotlyDatasets) {
+          if (plotlyDataset.datasetOptions?.customdata) {
+            plotlyDataset.datasetOptions.customdata = plotlyDataset.datasetOptions.customdata.map(d => d ? new Date(d) : d);
+          }
+          
+          // Convert strings in x array if they are dates
+          if (plotlyDataset.x?.[0] && typeof plotlyDataset.x[0] === 'string' && isDateLikeString(plotlyDataset.x[0])) {
+            plotlyDataset.x = plotlyDataset.x.map(d => d ? new Date(d) : d);
+          }
         }
       }
     }
