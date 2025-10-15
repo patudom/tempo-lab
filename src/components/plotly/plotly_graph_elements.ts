@@ -12,7 +12,7 @@ function normalizeBadValue(v: number | null | undefined): number | null {
 import { deepMerge } from "./plotly_styles";
 
 export function createErrorBands(data: PlotltGraphDataSet, color: string, datasetName: string, legendGroup: string, options: object = {}) {
-  if (data.upper !== undefined || data.lower !== undefined) {lower: null, upper: null};
+  if (data.upper !== undefined || data.lower !== undefined) return {lower: null, upper: null};
       
   const upperY: (number | null)[] = [];
   const lowerY: (number | null)[] = [];

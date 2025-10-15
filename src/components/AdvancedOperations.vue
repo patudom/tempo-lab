@@ -20,7 +20,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import type { UserDataset } from '../types';
-import NewDataGenericAggregation from './NewDataGenericAggregation.vue';
+import NewDataGenericAggregation from './DataFoldingAndBinning.vue';
 
 interface DataAggregationProps {
   selection: UserDataset | null;
