@@ -357,7 +357,7 @@ function validTimeBinForData(timeBin: TimeBinOptions): boolean {
 function validFoldingForData(foldType: FoldingPeriodOptions): boolean {
   if (dataDuration.value === 0) return false;
   if (foldType === 'weekdayWeekend') {
-    return props.selection?.samples && Object.values(props.selection?.samples).map(s => s.date.getDay()).some(d => d === 0 || d === 6); // has at least one weekend day
+    return (props.selection?.samples && Object.values(props.selection?.samples).map(s => s.date.getDay()).some(d => d === 0 || d === 6)) as boolean; // has at least one weekend day
   }
   return dataDuration.value >= foldingPeriodDurations[foldType];
 }

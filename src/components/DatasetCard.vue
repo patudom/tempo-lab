@@ -4,20 +4,26 @@
       v-slot="{ isHovering, props }"
       v-for="dataset in datasets"
       :key="dataset.id"
-    >
+    > 
+      <!-- create a checkbox input that will -->
+    
       <v-list-item
         v-bind="props"
         :ref="(el) => datasetRowRefs[dataset.id] = el"
         class="selection-item my-2"
         :style="{ 'background-color': dataset.customColor ?? dataset.region.color }"
         :ripple="touchscreen"
-        @click="() => {
-          if (touchscreen) {
-            openSelection = (openSelection == dataset.id) ? null : dataset.id;
-          }
-        }"
         lines="two"
       >
+        <template v-slot:prepend v-if="turnOnSelection">
+          <v-checkbox
+            v-model="selectedDatasets"
+            :value="dataset.id"
+            @click.stop
+            hide-details
+            density="compact"
+          />
+        </template>
         <template #default>
           <div>
             <v-chip
@@ -72,7 +78,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, watch } from "vue";
 import { supportsTouchscreen } from "@cosmicds/vue-toolkit";
 import type { UserDataset } from "../types";
 import { useTempoStore } from "../stores/app";
@@ -83,16 +89,20 @@ const store = useTempoStore();
 
 interface DatasetCardProps {
   datasets: UserDataset[];
+  turnOnSelection?: boolean;
 }
-const { datasets } = defineProps<DatasetCardProps>();
+const { datasets, turnOnSelection } = defineProps<DatasetCardProps>();
 
+// create a selectedDatasets model, to hold selectedDatsets use (defineModel). should just store the dataset.id values
+const selectedDatasets = defineModel<string[]>('selectedDatasets', {
+  type: Array as () => string[],
+  default: () => [],
+});
 
 const touchscreen = supportsTouchscreen();
 
 
 const openGraphs = ref<Record<string,boolean>>({});
-const openSelection = ref<string | null>(null);
-
 const currentlyEditingDataset = ref<UserDataset | null>(null);
 
 

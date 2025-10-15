@@ -163,6 +163,8 @@
             <h4>My Datasets</h4>
             <dataset-card
               :datasets="datasets"
+              :turn-on-selection="true"
+              v-model:selected-datasets="selectedDatasets"
               >
               <template #action-row="{ isHovering, dataset }">
                     <div
@@ -598,7 +600,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { storeToRefs } from "pinia";
 import { v4 } from "uuid";
 import { supportsTouchscreen } from "@cosmicds/vue-toolkit";
@@ -764,6 +766,11 @@ function _toZonedTime(date: number | Date | string, timezone): number | Date {
   return toZonedTime(date, timezone);
 }
 
+const selectedDatasets = ref<string[]>([]);
+watch(selectedDatasets, (newVal) => {
+  console.log('Selected datasets changed:', newVal);
+});
+
 const showfoldedNO2Graph = ref(false);
 const no2foldedGraphData = computed(() =>{
   const validFoldedDatasets = datasets.value
@@ -771,7 +778,8 @@ const no2foldedGraphData = computed(() =>{
       s => s.molecule.includes('no2') && 
       s.timeRange?.type === 'folded' && 
       s.plotlyDatasets && 
-      s.plotlyDatasets.length > 0
+      s.plotlyDatasets.length > 0 &&
+      selectedDatasets.value.includes(s.id)
     );
   return validFoldedDatasets.map(s => {    
     return {
@@ -790,7 +798,8 @@ const o3foldedGraphData = computed(() =>{
       s => s.molecule.includes('o3') && 
       s.timeRange?.type === 'folded' && 
       s.plotlyDatasets && 
-      s.plotlyDatasets.length > 0
+      s.plotlyDatasets.length > 0 &&
+      selectedDatasets.value.includes(s.id)
     );
   return validFoldedDatasets.map(s => {
     return {
@@ -809,7 +818,8 @@ const hchofoldedGraphData = computed(() =>{
       s => s.molecule.includes('hcho') && 
       s.timeRange?.type === 'folded' && 
       s.plotlyDatasets && 
-      s.plotlyDatasets.length > 0
+      s.plotlyDatasets.length > 0 &&
+      selectedDatasets.value.includes(s.id)
     );
   return validFoldedDatasets.map(s => {
     return {
