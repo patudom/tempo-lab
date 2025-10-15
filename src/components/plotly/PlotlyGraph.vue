@@ -220,7 +220,7 @@ function renderPlot() {
     ...(props.layoutOptions || {}),
   };
 
-  newPlot(graph.value ?? id, plotlyData, layout, {responsive: true, ...props.configOptions}).then((el: PlotlyHTMLElement) => {
+  newPlot(graph.value ?? id, plotlyData, layout, {...props.configOptions}).then((el: PlotlyHTMLElement) => {
     plot.value = el;
     el.on("plotly_click", (data: PlotMouseEvent) => {
       data.points.forEach(point => {
@@ -299,5 +299,8 @@ watch(() => props.datasets, (_newData, _oldData) => {
 </script>
 
 <style scoped>
+.js-plotly-plot  {
+  min-width: 30px;
+}
 
 </style>

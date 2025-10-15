@@ -338,6 +338,7 @@
                           :colors="[dataset.region.color, '#333']"
                           :data-options="[{mode: 'markers'}, {mode: 'lines+markers'}]"
                           :names="[`Original Data`, `Binned`]"
+                          :layout-options="{width: 600, height: 400}"
                         />
                       </template>
                       <template v-else>
@@ -478,6 +479,7 @@
         :show-errors="showErrorBands"
         :colors="no2foldedGraphData.map( v => v.color) ?? ['#FF5733', '#333']"
         :data-options="[{mode: 'lines+markers'}, {mode: 'lines+markers'}]"
+        :layout-options="{width: 600, height: 400}"
       />
     </cds-dialog>
 
@@ -505,6 +507,7 @@
         :show-errors="showErrorBands"
         :colors="o3foldedGraphData.map( v => v.color) ?? ['#FF5733', '#333']"
         :data-options="[{mode: 'lines+markers'}, {mode: 'lines+markers'}]"
+        :layout-options="{width: 600, height: 400}"
       />
     </cds-dialog>
 
@@ -532,6 +535,7 @@
         :show-errors="showErrorBands"
         :colors="hchofoldedGraphData.map( v => v.color) ?? ['#FF5733', '#333']"
         :data-options="[{mode: 'lines+markers'}, {mode: 'lines+markers'}]"
+        :layout-options="{width: 600, height: 400}"
       />
     </cds-dialog>
     </div>
