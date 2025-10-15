@@ -37,44 +37,10 @@ export interface TimeSeriesData {
 * If you have a UTC/js timestamp, and want the day of week for a 
 * specfic timezone
 */
-function getWeekOfYear(date: Date) {
-  const currentDate = 
-    (typeof date === 'object') ? date : new Date();
-  const januaryFirst = 
-    new Date(currentDate.getFullYear(), 0, 1);
-  const daysToNextMonday = 
-    (januaryFirst.getDay() === 1) ? 0 : 
-      (7 - januaryFirst.getDay()) % 7;
-  const nextMonday = 
-    new Date(currentDate.getFullYear(), 0, 
-      januaryFirst.getDate() + daysToNextMonday);
-
-  return (currentDate < nextMonday) ? 52 : 
-    (currentDate > nextMonday ? Math.ceil(
-      (currentDate.getTime() - nextMonday.getTime()) / (24 * 3600 * 1000) / 7) : 1);
-}
-
-
-function getBeginningOfWeek(date: Date, timezone?: string): Date {
-  const zonedDate = timezone ? toZonedTime(date, timezone) : date;
-  const day = zonedDate.getDay(); // 0 (Sun) to 6 (Sat)
-  const weekStart = new Date(zonedDate);
-  weekStart.setDate(zonedDate.getDate() - day); // move back to sunday
-  weekStart.setHours(0, 0, 0, 0);
-  // want this to return the UTC time (so we can use the timestamp if we want)
-  return timezone ? fromZonedTime(weekStart, timezone) : weekStart;
-}
-
-function getEndOfWeek(date: Date, timezone?: string): Date {
-  const zonedDate = timezone ? toZonedTime(date, timezone) : date;
-  const day = zonedDate.getDay();
-  const weekEnd = new Date(zonedDate);
-  // Move to Saturday (day 6) then set end of day
-  weekEnd.setDate(zonedDate.getDate() + (6 - day));
-  weekEnd.setHours(23, 59, 59, 999);
-  return timezone ? fromZonedTime(weekEnd, timezone) : weekEnd;
-}
-
+import {
+  getBeginningOfWeek,
+  getWeekOfYear,
+} from '@/utils/calendar_utils';
 
 type Window = string ; // e.g, '1d', '3d', '1w' , 'weekly'
 
@@ -341,7 +307,7 @@ export class TimeSeriesFolder {
       
       // Week-based bins
       case 'weekOfMonth': return 5;            // max ~5 weeks in a month
-      case 'weekOfYear': return 53;            // max 53 weeks in a year
+      case 'weekOfYear': return 54;            // max 53 weeks in a year
       case 'weekOfSeason': return 14;          // max ~14 weeks in a season
       
       // Month-based bins
@@ -416,10 +382,10 @@ export class TimeSeriesFolder {
         return Math.floor((dayOfMonth - 1) / 7);                // 0–4
       }
       case 'weekOfYear': {
-        const yearStart = new Date(z.getFullYear(), 0, 1);
-        const dayOfYear = Math.floor((z.getTime() - yearStart.getTime()) / (1000 * 60 * 60 * 24));
-        return Math.floor(dayOfYear / 7);                       // 0–52
+        return getWeekOfYear(date); // this can be done approximately w/o the timezone
+        // i haven't tested, but in principle there could be some off-by one hour errors
       }
+      
       case 'weekOfSeason': {
         const month = z.getMonth();
         const season = Math.floor(((month + 1) / 3) % 4);
@@ -592,7 +558,7 @@ export class TimeSeriesFolder {
     const values: Record<number, FoldedAggValue> = {};
     const errors: Record<number, DataPointError> = {};
     const publicBins: Record<number, FoldBinContent> = {};
-    
+
     // loop over the groups and aggregate
     Object.values(binsRecord).forEach(bin => {
 

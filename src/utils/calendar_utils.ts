@@ -1,6 +1,6 @@
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 
-export const START_WEEK_ON_MONDAY = true;
+export const START_WEEK_ON_MONDAY = false;
 
 
 export function getBeginningOfWeek(date: Date, timezone?: string): Date {

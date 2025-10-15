@@ -479,6 +479,7 @@ const alignToBinCenter = computed(() => {
   if (selectedFoldingPeriod.value === 'weekdayWeekend') return false;
   if (includeBinPhase.value === false) return false;
   if (isHourBinned.value) return true;
+  if (selectedTimeBin.value === 'week' && selectedFoldingPeriod.value === 'year') return false;
   return true;
 });
 

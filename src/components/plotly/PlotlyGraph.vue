@@ -67,8 +67,7 @@ let errorTraces: number[] = [];
 const traceVisible = ref<Map<string, boolean>>(new Map());
 
 
-const filterNulls = ref(true);
-
+const filterNulls = ref(true);  
 function filterNullValues(data: PlotltGraphDataSet): PlotltGraphDataSet {
   // filter out any place where
   // data.x or data.y is null or undefined or NaN
@@ -76,11 +75,14 @@ function filterNullValues(data: PlotltGraphDataSet): PlotltGraphDataSet {
   const filteredY: number[] = [];
   const filteredLower: (number | null)[] = [];
   const filteredUpper: (number | null)[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const filteredCustomData: any[] = [];
   data.x.forEach((x, idx) => {
     const y = data.y[idx];
     if (x !== null && x !== undefined && y !== null && y !== undefined && !isNaN(y)) {
       filteredX.push(x);
       filteredY.push(y);
+      filteredCustomData.push(data.datasetOptions?.customdata ? data.datasetOptions.customdata[idx] : null);
       if (data.lower) {
         filteredLower.push(data.lower[idx] ?? null); // keep length consistent 
       }
@@ -91,6 +93,10 @@ function filterNullValues(data: PlotltGraphDataSet): PlotltGraphDataSet {
   });
   const result: PlotltGraphDataSet = {
     ...data,
+    datasetOptions: {
+      ...data.datasetOptions,
+      customdata: filteredCustomData,
+    },
     x: filteredX,
     y: filteredY,
     name: data.name
