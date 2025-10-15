@@ -28,8 +28,8 @@ const generateHash = (string) => {
 };
 
 const hashDataset = (data: PlotltGraphDataSet) => {
-  const hash = JSON.stringify(data.x) + JSON.stringify(data.y) +
-              JSON.stringify(data.lower) + JSON.stringify(data.upper) + JSON.stringify(data.errorType);
+  const hash = JSON.stringify(data.x) + JSON.stringify(data.y); 
+  //JSON.stringify(data.lower) + JSON.stringify(data.upper); // + JSON.stringify(data.errorType);
   return generateHash(hash).toString();
 };
 
@@ -152,7 +152,7 @@ function renderPlot() {
         array: data.upper as Datum[],
         arrayminus: data.lower as Datum[] | undefined,
         color: props.colors ? props.colors[index % props.colors.length] : 'red',
-        visible: data.errorType === 'bar',
+
         thickness: 1.5,
         width: 0,
         ...style,
@@ -190,12 +190,18 @@ function renderPlot() {
         datasetName,
         legendGroup,
       );
+
       max = Math.max(max, newMax);
 
       if (lower === null || upper === null) {
         console.error("Error creating error bands for dataset", index, data);
         return;
       }
+      
+      const errorBandsVisible = traceVisible.value.get(id) ? true : "legendonly";
+      lower['visible'] = errorBandsVisible;
+      upper['visible'] = errorBandsVisible;
+      
       plotlyData.push(lower);
       errorTraces.push(plotlyData.length - 1);
 
@@ -247,12 +253,12 @@ function renderPlot() {
         console.error("Could not find data ID for legend group", group);
         return true; 
       }
-      const currentlyVisible = traceVisible.value.get(dataId);
+      const currentlyVisible = traceVisible.value.get(dataId) ?? true;
       traceVisible.value.set(dataId, !currentlyVisible);
       // if currently visible and errors are visible set stlye the error traces too
       nextTick(() => { // next tick so that updated traceVisible is available
-        if (currentlyVisible && props.showErrors) {
-          updateErrorDisplay(true);
+        if (props.showErrors) {
+          updateErrorDisplay(!currentlyVisible);
         }
       });
       return true;
@@ -271,7 +277,7 @@ function updateErrorDisplay(visible: boolean) {
       const group = trace.legendgroup as string;
       const dataId = Object.keys(legendGroups).find(key => legendGroups[key] === group);
       if (dataId && traceVisible.value.get(dataId)) {
-        restyle(graph.value, { visible }, [traceIndex]);
+        restyle(graph.value, { visible: visible ? true : "legendonly" }, [traceIndex]);
       } 
     });
   }
