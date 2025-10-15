@@ -111,6 +111,7 @@
                 column
                 class="mb-3"
               >
+                {{ selectedFoldingPeriod }}
                 <v-chip
                   v-for="option in foldingPeriodOptions.filter(opt => validFoldingForData(opt.value as FoldingPeriodOptions))"
                   :key="option.value"
@@ -276,7 +277,13 @@
                 />
               </div>
             <div id="below-graph-stuff" class="mt-2 explainer-text">
-              If you don't see any data, please press the "Autoscale" <v-icon size="1.2em" style="margin-top:-0.1em;">mdi-arrow-expand-all</v-icon> button on the graph menu (visible when you hover over the graph)
+              <div v-if="aggregationWarning" id="aggregation-warning">
+                {{ aggregationWarning }}
+              </div>
+              If you don't see any data, please press the "Autoscale" 
+              <v-icon size="1.2em" style="margin-top:-0.1em;">mdi-arrow-expand-all</v-icon> 
+              button on the graph menu (visible when you hover over the graph), or try clicking the 
+              legend items to show/hide overlapping data. 
             </div>
             </v-card>
           </v-col>
@@ -365,6 +372,9 @@ function validFoldingForData(foldType: FoldingPeriodOptions): boolean {
   return dataDuration.value >= foldingPeriodDurations[foldType];
 }
 
+const aggregationWarning = ref('');
+
+
 // Time bin and folding period options
 const timeBinOptions: {title: string, value: TimeBinOptions}[] = [
   { title: 'Hour', value: 'hour' },
@@ -429,7 +439,7 @@ watch(selectedTimeBin, (newBin) => {
     // Set to first valid option
     const validPeriods = validCombinations[newBin];
     if (validPeriods.length > 0) {
-      selectedFoldingPeriod.value = validPeriods[0];
+      selectedFoldingPeriod.value = validPeriods.filter(validFoldingForData)[0];
     }
   }
 });
@@ -558,6 +568,16 @@ const foldedSelection = ref<null>(null);
 // Graph data for display - now a ref that gets manually updated
 const graphData = ref<PlotltGraphDataSet[]>([]);
 
+watch(foldedData, (newvValue) => {
+  // if there is only one bin present the user with an aggregation warning
+  if (newvValue && newvValue.bins && Object.keys(newvValue.bins).length <= 1) {
+    aggregationWarning.value = ("Warning: This combination of time bin and folding period results " +
+      "in only one bin. Please select a smaller time bin " + 
+      "or a different folding period if available. In most cases, it is recommend to select 'None' for the folding period.");
+  } else {
+    aggregationWarning.value = '';
+  }
+});
 
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -852,6 +872,11 @@ watch(() => props.selection, () => {
 
 <style scoped>
 
+#aggregation-warning {
+  color: red;
+  font-weight: bold;
+  margin-bottom: 0.5em;
+}
 
 
 
