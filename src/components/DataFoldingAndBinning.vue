@@ -806,7 +806,22 @@ function saveFolding() {
       useErrorBars: useErrorBars.value,
       raw: foldedData.value
     },
-    plotlyDatasets: [graphData.value[0] as PlotltGraphDataSet, graphData.value[1] as PlotltGraphDataSet]
+    plotlyDatasets: [
+      {
+        ...graphData.value[0],
+        datasetOptions: {
+          ...graphData.value[0].datasetOptions,
+          mode: 'markers',
+          // hovertemplate: '%{customdata|%Y-%m-%d %H:%M}<br>%{y:0.2e}±%{error_y.array:0.2e}<extra></extra>'
+        }
+      } as PlotltGraphDataSet,
+      {
+        ...graphData.value[1],
+        datasetOptions: {
+          mode: 'lines+markers'
+        }
+      } as PlotltGraphDataSet
+    ]
   };
   console.log(foldedSelection);
   emit('save', foldedSelection);
