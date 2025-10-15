@@ -407,7 +407,7 @@ const timezoneOptions = [
 
 // Reactive state
 const selectedTimeBin = ref<TimeBinOptions>('hour');
-const selectedFoldingPeriod = ref<FoldingPeriodOptions>('day');
+const selectedFoldingPeriod = ref<FoldingPeriodOptions>('none');
 const selectedMethod = ref<AggregationMethod>('mean');
 const selectedTimezone = ref('US/Eastern');
 const showErrors = ref(true);
@@ -415,7 +415,7 @@ const useSEM = ref(true);
 const useErrorBars = ref(false);
 
 const validCombinations: Record<TimeBinOptions, FoldingPeriodOptions[]> = {
-  'hour': ['day', 'week', 'year', 'weekdayWeekend'],
+  'hour': ['day', 'week', 'year', 'weekdayWeekend', 'none'],
   'day': ['week', 'year', 'weekdayWeekend', 'none'],
   'week': ['year', 'none'],
   'month': ['year', 'none'],
