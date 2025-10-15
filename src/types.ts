@@ -130,6 +130,7 @@ export interface PlotltGraphDataSet {
   upper?: (number | null)[];
   errorType?: 'bar' | 'band';
   name: string;
+  datasetOptions?: Record<string, unknown>; // Additional options that get folded into the Plotly dataset. mos often to contain 'customdata' and 'hovertemplate'
 }
 
 export interface MillisecondRange {

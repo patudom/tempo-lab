@@ -578,7 +578,7 @@ function foldedTimesSeriesToDataSet(foldedTimeSeries: FoldedTimeSeriesData): Omi
     upper.push(error?.upper ?? null);
   });
 
-  return { x, y, lower, upper, errorType: useErrorBars.value ? 'bar' : 'band'  };
+  return { x, y, lower, upper, errorType: useErrorBars.value ? 'bar' : 'band' };
 }
   
 function foldedTimeSeriesRawToDataSet(foldedTimeSeries: FoldedTimeSeriesData): Omit<PlotltGraphDataSet, 'name'> {
@@ -586,6 +586,7 @@ function foldedTimeSeriesRawToDataSet(foldedTimeSeries: FoldedTimeSeriesData): O
   const y: (number | null)[] = [];
   const lower: (number | null)[] = [];
   const upper: (number | null)[] = [];
+  const customdata: Date[] = [];
 
   // Check if this is a None-period fold type
   const isNonePeriod = ['hourOfNone', 'dayOfNone', 'weekOfNone', 'monthOfNone'].includes(foldedTimeSeries.foldType);
@@ -605,6 +606,7 @@ function foldedTimeSeriesRawToDataSet(foldedTimeSeries: FoldedTimeSeriesData): O
         // For regular fold types, use bin index with optional phase
         x.push(bins.bin + (includeBinPhase.value ? bins.binPhase[index] : 0));
       }
+      customdata.push(toZonedTime(new Date(bins.timestamps[index]), selectedTimezone.value));
       y.push(rv);
     });
     bins.lowers.forEach(low => {
@@ -615,7 +617,9 @@ function foldedTimeSeriesRawToDataSet(foldedTimeSeries: FoldedTimeSeriesData): O
     });
   });
   
-  return { x, y, lower, upper, errorType: 'bar' };
+  const hovertemplate = '%{customdata|%Y-%m-%d %H:%M}<br>%{y}<extra></extra>';
+  
+  return { x, y, lower, upper, errorType: 'bar', datasetOptions: { customdata, hovertemplate } };
 }
 
 // Function to update graph data
@@ -637,7 +641,7 @@ function updateGraphData() {
     (f as PlotltGraphDataSet).name = foldedDatasetName.value;
     data.push(f as PlotltGraphDataSet); // Summary folded data
   }
-  
+  console.log("Prepared graph data:", data);
   graphData.value = data;
   console.log("Graph data updated with", data.length, "datasets");
 }

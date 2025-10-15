@@ -90,6 +90,7 @@ function filterNullValues(data: PlotltGraphDataSet): PlotltGraphDataSet {
     }
   });
   const result: PlotltGraphDataSet = {
+    ...data,
     x: filteredX,
     y: filteredY,
     name: data.name
@@ -169,8 +170,9 @@ function renderPlot() {
       visible: traceVisible.value.get(id) ? true : "legendonly",
       ...errorOptions,
       ...props.dataOptions?.[index],
+      ...(data.datasetOptions ?? {}), // allow per-dataset options override
     };
-    
+
     plotlyData.push({
       x: data.x,
       y: data.y,
