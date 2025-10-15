@@ -600,7 +600,7 @@ import { atleast1d } from "../utils/atleast1d";
 import DateTimeRangeSelection from "../date_time_range_selection/DateTimeRangeSelection.vue";
 import AdvancedOperations from "./AdvancedOperations.vue";
 import { TimeRangeSelectionType } from "@/types/datetime";
-import PlotlyGraph from "./PlotlyGraph.vue";
+import PlotlyGraph from "./plotly/PlotlyGraph.vue";
 import CTextField from "./CTextField.vue";
 import DatasetCard from "./DatasetCard.vue";
 

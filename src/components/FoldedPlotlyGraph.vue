@@ -14,8 +14,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import PlotlyGraph, { type PlotlyGraphProps } from './PlotlyGraph.vue';
-import { mergeFoldTypeLayout } from './plotly_styles';
+import PlotlyGraph, { type PlotlyGraphProps } from './plotly/PlotlyGraph.vue';
+import { mergeFoldTypeLayout } from './plotly/plotly_styles';
 import type { FoldType } from '../esri/services/aggregation';
 import type { Datum } from 'plotly.js-dist-min';
 

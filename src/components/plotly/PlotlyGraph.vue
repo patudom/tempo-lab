@@ -14,7 +14,8 @@
 import { onMounted, ref, watch, nextTick } from "vue";
 import { v4 } from "uuid";
 import Plotly, { PlotlyHTMLElement, newPlot, restyle, type Data, type Datum, type PlotMouseEvent } from "plotly.js-dist-min";
-import type { PlotltGraphDataSet } from '../types';
+import type { PlotltGraphDataSet } from '../../types';
+import { createErrorBands } from "./plotly_graph_elements";
 
 // https://stackoverflow.com/a/7616484
 const generateHash = (string) => {
@@ -65,19 +66,6 @@ const legendGroups: Record<string, string> = {};
 let errorTraces: number[] = [];
 const traceVisible = ref<Map<string, boolean>>(new Map());
 
-function normalizeBadValue(v: number | null | undefined): number | null {
-  if (v === null || v === undefined || isNaN(v)) {
-    return null;
-  }
-  return v;
-}
-
-function nanMean(arr: (number | null)[]): number | null {
-  const validValues = arr.filter((v): v is number => v !== null && !isNaN(v));
-  if (validValues.length === 0) return null;
-  const sum = validValues.reduce((a, b) => a + b, 0);
-  return sum / validValues.length;
-}
 
 const filterNulls = ref(true);
 
@@ -163,7 +151,7 @@ function renderPlot() {
         array: data.upper as Datum[],
         arrayminus: data.lower as Datum[] | undefined,
         color: props.colors ? props.colors[index % props.colors.length] : 'red',
-        visible: true,
+        visible: data.errorType === 'bar',
         thickness: 1.5,
         width: 0,
         ...style,
@@ -193,60 +181,22 @@ function renderPlot() {
     // double checking to have valid types
     if (hasErrors && data.lower && data.upper && data.errorType == 'band' && props.showErrors) {
       console.log("Adding error traces for dataset", index);
-      const upperY: (number | null)[] = [];
-      const lowerY: (number | null)[] = [];
       
-      data.y.forEach((y, idx) => {
-        if (y === null) {
-          lowerY.push(null);
-          upperY.push(null);
-          return;
-        }
-        
-        if (data.upper === undefined) {
-          upperY.push(null);
-        } else {
-          const high = y + (data.upper[idx] ?? nanMean(data.upper) ?? 0);
-          // console.log(y, data.upper[idx] ?? nanMean(data.upper) ?? 0);
-          upperY.push(high);
-          max = Math.max(max, high !== null ? high : 0);
-        }
-        
-        if (data.lower === undefined) {
-          lowerY.push(null);
-        } else {
-          const low = y - (data.lower[idx] ?? nanMean(data.lower) ?? 0);
-          // console.log(y, data.lower[idx] ?? nanMean(data.lower) ?? 0);
-          lowerY.push(low);
-          
-        }
-        
-        
-      });
-      // console.log({lowerY, upperY});
-      const traceErrorOptions = {
-        x: data.x,
-        mode: "lines",
-        line: { width: 0 },
-        showlegend: false,
-        legendgroup: legendGroup,
-        name: datasetName,
-        marker: { color: props.colors ? props.colors[index % props.colors.length] : 'red' },
-        // visible: props.showErrors && traceVisible.value.get(id),
-      };
+      const {lower, upper} = createErrorBands(
+        data,
+        props.colors ? props.colors[index % props.colors.length] : 'red',
+        datasetName,
+        legendGroup,
+      );
 
-
-      plotlyData.push({
-        y: lowerY.map(normalizeBadValue),
-        ...traceErrorOptions
-      });
+      if (lower === null || upper === null) {
+        console.error("Error creating error bands for dataset", index, data);
+        return;
+      }
+      plotlyData.push(lower);
       errorTraces.push(plotlyData.length - 1);
 
-      plotlyData.push({
-        y: upperY.map(normalizeBadValue),
-        ...traceErrorOptions,
-        fill: "tonexty",
-      });
+      plotlyData.push(upper);
       errorTraces.push(plotlyData.length - 1);
     }
   });

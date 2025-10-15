@@ -12,39 +12,6 @@
       :selection="selection"
       @save="saveFolded"
     />
-    <!-- <v-toolbar v-if="false" flat>
-      <v-btn-toggle
-        v-model="mode"
-        class="ma-4"
-        variant="outlined"
-        density="compact"
-        color="primary"
-      >
-        <v-btn value="aggregate" >Bin the Data</v-btn>
-        <v-btn value="fold" >Fold the Data</v-btn>
-        <v-btn value="new" >New Generic Aggregation</v-btn>
-      </v-btn-toggle>
-    </v-toolbar>
-    <data-aggregation
-      v-if="mode === 'aggregate'"
-      v-model="dialogOpen"
-      :selection="selection"
-      @save="saveAggregation"
-    />
-      
-    <data-folding
-      v-if="mode === 'fold'"
-      v-model="dialogOpen"
-      :selection="selection"
-      @save="saveFolded"
-    />
-    
-    <new-data-generic-aggregation
-      v-if="mode === 'new'"
-      v-model="dialogOpen"
-      :selection="selection"
-      @save="saveFolded"
-    /> -->
   </v-dialog>
 
   
@@ -53,9 +20,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import type { UserDataset } from '../types';
-
-// import DataAggregation from './DataAggregation.vue';
-// import DataFolding from './DataFolding.vue';
 import NewDataGenericAggregation from './NewDataGenericAggregation.vue';
 
 interface DataAggregationProps {
