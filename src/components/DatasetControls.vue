@@ -332,13 +332,15 @@
                       >
                       </v-checkbox>
                       <template v-if="dataset.timeRange.type === 'folded' && dataset.plotlyDatasets">
-                        <plotly-graph
+                        <folded-plotly-graph
                           :datasets="dataset.plotlyDatasets"
                           :show-errors="showErrorBands"
                           :colors="[dataset.region.color, '#333']"
                           :data-options="[{mode: 'markers'}, {mode: 'lines+markers'}]"
                           :names="[`Original Data`, `Binned`]"
                           :layout-options="{width: 600, height: 400}"
+                          :fold-type="dataset.folded?.foldType"
+                          :timezones="dataset.folded?.timezone"
                         />
                       </template>
                       <template v-else>
@@ -474,12 +476,14 @@
         hide-details
       >
       </v-checkbox>
-      <plotly-graph
+      <folded-plotly-graph
         :datasets="no2foldedGraphData.length > 0 ? no2foldedGraphData : []"
         :show-errors="showErrorBands"
         :colors="no2foldedGraphData.map( v => v.color) ?? ['#FF5733', '#333']"
         :data-options="[{mode: 'lines+markers'}, {mode: 'lines+markers'}]"
         :layout-options="{width: 600, height: 400}"
+        :fold-type="no2foldedGraphData[0].foldType"
+        :timezones="no2foldedGraphData.map(v => v.timezone) ?? 'UTC'"
       />
     </cds-dialog>
 
@@ -502,12 +506,14 @@
         hide-details
       >
       </v-checkbox>
-      <plotly-graph
+      <folded-plotly-graph
         :datasets="o3foldedGraphData.length > 0 ? o3foldedGraphData : []"
         :show-errors="showErrorBands"
         :colors="o3foldedGraphData.map( v => v.color) ?? ['#FF5733', '#333']"
         :data-options="[{mode: 'lines+markers'}, {mode: 'lines+markers'}]"
         :layout-options="{width: 600, height: 400}"
+        :fold-type="o3foldedGraphData[0].foldType"
+        :timezones="o3foldedGraphData.map(v => v.timezone) ?? 'UTC'"
       />
     </cds-dialog>
 
@@ -530,12 +536,14 @@
         hide-details
       >
       </v-checkbox>
-      <plotly-graph
+      <folded-plotly-graph
         :datasets="hchofoldedGraphData.length > 0 ? hchofoldedGraphData : []"
         :show-errors="showErrorBands"
         :colors="hchofoldedGraphData.map( v => v.color) ?? ['#FF5733', '#333']"
         :data-options="[{mode: 'lines+markers'}, {mode: 'lines+markers'}]"
         :layout-options="{width: 600, height: 400}"
+        :fold-type="hchofoldedGraphData[0].foldType"
+        :timezones="hchofoldedGraphData.map(v => v.timezone) ?? 'UTC'"
       />
     </cds-dialog>
     </div>
@@ -604,9 +612,10 @@ import { atleast1d } from "../utils/atleast1d";
 import DateTimeRangeSelection from "../date_time_range_selection/DateTimeRangeSelection.vue";
 import AdvancedOperations from "./AdvancedOperations.vue";
 import { TimeRangeSelectionType } from "@/types/datetime";
-import PlotlyGraph from "./plotly/PlotlyGraph.vue";
+import FoldedPlotlyGraph from "./FoldedPlotlyGraph.vue";
 import CTextField from "./CTextField.vue";
 import DatasetCard from "./DatasetCard.vue";
+import { toZonedTime } from "date-fns-tz";
 
 type UnifiedRegionType = UnifiedRegion;
 
@@ -746,6 +755,14 @@ const hchoGraphData = computed(() =>{
   return datasets.value.filter(s => s.molecule.includes('hcho') && store.datasetHasSamples(s));
 });
 
+function _toZonedTime(date: number | Date | string, timezone): number | Date {
+  if (typeof date === 'number') {
+    date = new Date(date);
+  } else if (typeof date === 'string') {
+    date = new Date(date);
+  }
+  return toZonedTime(date, timezone);
+}
 
 const showfoldedNO2Graph = ref(false);
 const no2foldedGraphData = computed(() =>{
@@ -756,9 +773,11 @@ const no2foldedGraphData = computed(() =>{
       s.plotlyDatasets && 
       s.plotlyDatasets.length > 0
     );
-  return validFoldedDatasets.map(s => {
+  return validFoldedDatasets.map(s => {    
     return {
       ...s.plotlyDatasets![1],
+      foldType: s.folded?.foldType,
+      timezone: s.folded?.timezone,
       color: s.customColor || s.region.color,
     };
   }); // "!" tells TS that we know it's not undefined
@@ -776,6 +795,8 @@ const o3foldedGraphData = computed(() =>{
   return validFoldedDatasets.map(s => {
     return {
       ...s.plotlyDatasets![1],
+      foldType: s.folded?.foldType,
+      timezone: s.folded?.timezone,
       color: s.customColor || s.region.color,
     };
   }); // "!" tells TS that we know it's not undefined
@@ -793,6 +814,8 @@ const hchofoldedGraphData = computed(() =>{
   return validFoldedDatasets.map(s => {
     return {
       ...s.plotlyDatasets![1],
+      foldType: s.folded?.foldType,
+      timezone: s.folded?.timezone,
       color: s.customColor || s.region.color,
     };
   }); // "!" tells TS that we know it's not undefined

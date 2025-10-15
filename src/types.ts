@@ -159,7 +159,8 @@ export interface UserDataset {
   // Optional folded data payload (stored raw so we avoid circular import with aggregation.ts)
   // Shape expected: { foldType: string; values: Record<number, {value: number|null; bin: number}>; errors: Record<number, DataPointError>; bins?: unknown }
   // Used when timeRange.type === 'folded'
-  folded?: unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  folded?: any;
   // Direct plotly datasets (preferred for folded or synthetic selections)
   plotlyDatasets?: PlotltGraphDataSet[];
   // add two user editable properties

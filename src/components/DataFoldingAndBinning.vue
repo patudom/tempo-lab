@@ -262,6 +262,7 @@
                   :show-errors="showErrors"
                   :fold-type="selectedFoldType"
                   :colors="[selection?.region.color ?? 'blue', '#333']"
+                  :timezones="selectedTimezone"
                   :data-options="[
                     {mode: 'markers'}, // options for the original data
                     {mode: 'lines+markers'} // options for the folded data
@@ -778,16 +779,11 @@ function handlePointClick(value: {x: Plotly.Datum, y: number, customdata: unknow
 function saveFolding() {
   
   if (!canSave.value || !props.selection || !foldedData.value) return;
-  const oldAlignToBinCenter = alignToBinCenter.value;
-  // Ensure alignToBinCenter is false when saving, as we want to store raw bin indices
-  // alignToBinCenter.value = false;
   
-  // Precompute datasets so parent consumers don't need to transform again.
-  // We intentionally do NOT fabricate Dates for bins; x values remain numeric bin indices / phases.
-  const rawDataset = foldedTimeSeriesRawToDataSet(foldedData.value);
-  (rawDataset as PlotltGraphDataSet).name = props.selection.name || 'Original Data';
-  const summaryDataset = foldedTimesSeriesToDataSet(foldedData.value);
-  (summaryDataset as PlotltGraphDataSet).name = foldedDatasetName.value;
+  // const rawDataset = foldedTimeSeriesRawToDataSet(foldedData.value);
+  // (rawDataset as PlotltGraphDataSet).name = props.selection.name || 'Original Data';
+  // const summaryDataset = foldedTimesSeriesToDataSet(foldedData.value);
+  // (summaryDataset as PlotltGraphDataSet).name = foldedDatasetName.value;
 
   const foldedSelection: UserDataset = {
     id: v4(),
@@ -810,11 +806,11 @@ function saveFolding() {
       useErrorBars: useErrorBars.value,
       raw: foldedData.value
     },
-    plotlyDatasets: [rawDataset as PlotltGraphDataSet, summaryDataset as PlotltGraphDataSet]
+    plotlyDatasets: [graphData.value[0] as PlotltGraphDataSet, graphData.value[1] as PlotltGraphDataSet]
   };
   console.log(foldedSelection);
   emit('save', foldedSelection);
-  // alignToBinCenter.value = oldAlignToBinCenter;
+
   closeDialog();
 }
 

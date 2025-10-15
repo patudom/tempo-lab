@@ -1,6 +1,6 @@
 <template>
   <plotly-graph
-    :datasets="datasets"
+    :datasets="rezonedDatasets"
     :colors="colors"
     :show-errors="showErrors"
     :data-options="dataOptions"
@@ -18,12 +18,50 @@ import PlotlyGraph, { type PlotlyGraphProps } from './plotly/PlotlyGraph.vue';
 import { mergeFoldTypeLayout } from './plotly/plotly_styles';
 import type { FoldType } from '../esri/services/aggregation';
 import type { Datum } from 'plotly.js-dist-min';
+import { toZonedTime } from 'date-fns-tz';
+
+const browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+function cloneTimeFromLocalToBrowser(date: Date, timeZone: string): Date {
+  // Get the equivalent time in the target timezone
+  const zonedDate = toZonedTime(date, timeZone);
+  // Create a new date object in the local timezone with the same components
+  return new Date(
+    zonedDate.getFullYear(),
+    zonedDate.getMonth(),
+    zonedDate.getDate(),
+    zonedDate.getHours(),
+    zonedDate.getMinutes(),
+    zonedDate.getSeconds(),
+    zonedDate.getMilliseconds()
+  );
+}
 
 interface FoldedPlotlyGraphProps extends PlotlyGraphProps {
   foldType: FoldType;
+  timezones?: string | string[];
 }
 
 const props = defineProps<FoldedPlotlyGraphProps>();
+
+console.log('FoldedPlotlyGraph props:', props.datasets);
+
+const rezonedDatasets = computed(() => {
+  // do nothing if the timeseries isn't usind Date object
+  if (props.datasets.length === 0 || !(props.datasets[0].x[0] instanceof Date) || !props.timezones) {
+    return props.datasets;
+  }
+  return props.datasets.map((dataset, index) => {
+    const timezone = Array.isArray(props.timezones) ? props.timezones[index] : props.timezones;
+    const newX = dataset.x.map((x) => {
+      if (x instanceof Date) {
+        return cloneTimeFromLocalToBrowser(x, timezone ?? browserTimeZone);
+      }
+      return x;
+    });
+    return {...dataset, x: newX};
+  });
+});
 
 const emit = defineEmits<{
   (event: "click", value: {x: Datum, y: number, customdata: unknown}): void;
