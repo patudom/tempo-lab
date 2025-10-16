@@ -1,22 +1,21 @@
 <template>
   <div>
-    <v-select
-      v-model="selectedPrimSource"
-      :items="items"
-      label="Power Plants by Primary Source"
+    <v-checkbox
+      v-for="category in PLANT_CATEGORIES"
+
     >
-    </v-select>
+    </v-checkbox>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from "vue";
+import { computed, ref, watch, onMounted, type Ref } from "vue";
 import type { LayerSpecification, Map } from "maplibre-gl";
 
 import { 
   PrimSource,
-  RenewableSource,
-  TraditionalSource,
+  RenewableSources,
+  TraditionalSources,
 } from "@/assets/power_plants";
 
 interface Props {
@@ -26,18 +25,42 @@ interface Props {
 
 const props = defineProps<Props>();
 
-type PlantCategory = "Renewables" | "Fossil Fuels" | "All";
+const PLANT_CATEGORIES = ["Renewables", "Fossil Fuels"] as const;
+type PlantCategory = typeof PLANT_CATEGORIES[number];
 
-const selectedPrimSource = ref<PrimSource | PlantCategory>("All");
+const MODELS: Record<PrimSource, Ref<boolean>> = Object.values(PrimSource)
+  .reduce((obj, source) => ({ ...obj, [source]: ref(true) }), {} as Record<PrimSource, Ref<boolean>>);
+
+const CATEGORY_MODELS: Record<PlantCategory, Ref<boolean>[]> = {
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  Renewables: RenewableSources.map(source => MODELS[source]),
+  "Fossil Fuels": TraditionalSources.map(source => MODELS[source]),
+};
+
+function createCategoryModel(category: PlantCategory): Ref<boolean> {
+  return computed({
+    get() {
+      return CATEGORY_MODELS[category].every(r => r.value);
+    },
+    set(value: boolean) {
+      CATEGORY_MODELS[category].forEach(r => {
+        r.value = value;
+      });
+    }
+  });
+}
+
+type Selection = PrimSource | PlantCategory | "All";
+
+const selectedPrimSource = ref<Selection>("All");
 
 let layers: LayerSpecification[] = [];
-
-const items = ["All", "Renewables", "Fossil Fuels"].concat(Object.values(PrimSource));
 
 function onLayersChanged(newLayers: LayerSpecification[]) {
   layers = newLayers;
   applyPrimSourceFilter(selectedPrimSource.value);
 }
+
 
 onMounted(() => {
   props.map.on("styledata", () => {
@@ -64,7 +87,7 @@ onMounted(() => {
   applyPrimSourceFilter(selectedPrimSource.value);
 });
 
-function applyPrimSourceFilter(source: PrimSource | PlantCategory) {
+function applyPrimSourceFilter(source: Selection) {
   const layerIds = ["power-plants-layer", "power-plants-heatmap"];
   layerIds.forEach(id => {
     if (!props.map.getLayer(id)) { return; }
@@ -74,10 +97,10 @@ function applyPrimSourceFilter(source: PrimSource | PlantCategory) {
       props.map.setFilter(id, null);
       break;
     case "Renewables":
-      props.map.setFilter(id, ['in', ['get', 'PrimSource'], ['literal', Object.values(RenewableSource)]]);
+      props.map.setFilter(id, ['in', ['get', 'PrimSource'], ['literal', RenewableSources]]);
       break;
     case "Fossil Fuels":
-      props.map.setFilter(id, ['in', ['get', 'PrimSource'], ['literal', Object.values(TraditionalSource)]]);
+      props.map.setFilter(id, ['in', ['get', 'PrimSource'], ['literal', TraditionalSources]]);
       break;
     default:
       props.map.setFilter(id, ['==', ['get', 'PrimSource'], source]);
