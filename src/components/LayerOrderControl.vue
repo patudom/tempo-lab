@@ -4,7 +4,7 @@
     <draggable 
       v-model="displayOrder" 
       handle=".drag-handle"
-      @sort="(evt: SortableEndEvent) => handleEnd(evt)">
+    >
       <template #item="{ element, index }">
         <div>
           <div class="layer-order-row">
@@ -25,22 +25,11 @@
 
 
 <script setup lang="ts">
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { computed, type MaybeRef, toValue, toRef } from 'vue';
 import draggable from 'vuedraggable';
-import {
-  SortableChangeEvent,
-  SortableChooseEvent,
-  SortableCloneEvent,
-  SortableEndEvent,
-  SortableEmits,
-  SortableFilterEvent,
-  SortableStartEvent,
-  SortableOptions
-} from '@/types/sortablejs';
-import { useMaplibreLayerOrderControl } from "@/composables/useMaplibreLayerOrderControl";
 import M from 'maplibre-gl';
 
+import { useMaplibreLayerOrderControl } from "@/composables/useMaplibreLayerOrderControl";
 
 interface Props {
   mapRef: M.Map | null;
@@ -55,20 +44,12 @@ const mapRef = toRef(() => props.mapRef);
 interface Emits {
   (e: 'change', newOrder: string[]): void;
 }
-const emit = defineEmits<Emits>();
+const _emit = defineEmits<Emits>();
 console.log('LayerOrderControl props:', props);
 const { 
-  desiredOrder, 
   currentOrder, 
   controller 
 } = useMaplibreLayerOrderControl(mapRef, toValue(props.order), true);
-
-function ordersEqual(orderA: string[], orderB: string[]) {
-  if (orderA === orderB) { return true; }
-  if (orderA.length !== orderB.length) { return false; }
-
-  return orderA.every((el, idx) => el === orderB[idx]);
-}
 
 const displayOrder = computed({
   get(): string[] {
