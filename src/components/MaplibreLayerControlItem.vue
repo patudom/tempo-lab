@@ -42,37 +42,32 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { watch } from "vue";
 import type { Map } from "maplibre-gl";
 import { useMaplibreLayerOpacity } from "@/composables/useMaplibreLayerOpacity";
+import { useMaplibreLayerVisibility } from "@/composables/useMaplibreLayerVisibility";
 
 interface Props {
   layerId: string;
   map: Map;
   displayName?: string;
   initialOpacity?: number;
+  initialVisibility?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   initialOpacity: 1,
+  initialVisibility: true,
 });
-
-const visible = ref(true);
 
 let { opacity } = useMaplibreLayerOpacity(props.map, props.layerId, props.initialOpacity);
+let { visible } = useMaplibreLayerVisibility(props.map, props.layerId, props.initialVisibility);
 
-watch(visible, (nowVisible: boolean) => {
-  props.map.setLayoutProperty(
-    props.layerId,
-    "visibility",
-    nowVisible ? "visible" : "none",
-  );
-});
-
-// NB: If the props update, we need to make sure that the ref that we're using is still tracking the same layer
-// In particular, if the layer ID changes, without this the component can end up manipulating the opacity of the wrong layer!
-watch(() => [props.map, props.layerId, props.initialOpacity], ([map, layerId, initialOpacity]: [Map, string, number]) => {
-  const composable = useMaplibreLayerOpacity(map, layerId, initialOpacity);
-  opacity = composable.opacity;
-});
+// NB: If the props update, we need to make sure that the refs that we're using are still tracking the same layer
+// In particular, if the layer ID changes, without this the component can end up manipulating the wrong layer!
+watch(() => [props.map, props.layerId, props.initialOpacity, props.initialVisibility],
+  ([map, layerId, initialOpacity, initialVisibility]: [Map, string, number, boolean]) => {
+    opacity = useMaplibreLayerOpacity(map, layerId, initialOpacity).opacity;
+    visible = useMaplibreLayerVisibility(map, layerId, initialVisibility).visible;
+  });
 </script>
