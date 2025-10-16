@@ -208,12 +208,6 @@
         class="flex-grow-1"
         @molecule="(mol: MoleculeType) => { molecule = mol }"
       />
-      <LayerOrderControl 
-        class="flex-grow-0"
-        v-if="map"
-        :mapRef="map as Map | null" 
-        :order="['power-plants-heatmap', 'aqi-layer-aqi', 'esri-source']"
-        />
     </div>
   </div>
 </template>

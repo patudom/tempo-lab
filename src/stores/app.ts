@@ -33,7 +33,7 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
   const timeSliderUsedCount = ref(0);
   const opacitySliderUsedCount = ref(0);
 
-  const maps: Map[] = [];
+  const maps = ref<Map[]>([]);
 
   const selectionActive = ref<SelectionType>(null);
   const focusRegion = ref<UnifiedRegion | null>(null);
@@ -301,13 +301,13 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
   }
 
   function registerMap(map: Map) {
-    maps.push(map);
+    maps.value.push(map);
   }
 
   function deregisterMap(map: Map) {
-    const index = maps.findIndex(m => m === map);
+    const index = maps.value.findIndex(m => m === map);
     if (index > -1) {
-      maps.splice(index);
+      maps.value.splice(index);
     }
   }
 

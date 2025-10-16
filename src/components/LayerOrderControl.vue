@@ -3,12 +3,17 @@
   <ul>
     <draggable 
       v-model="currentOrder" 
+      handle=".drag-handle"
       @sort="(evt: SortableEndEvent) => handleEnd(evt)">
-      <template #item="{ element, index}">
-        <layer-control-item
-          :map="mapRef"
-        >
-        </layer-control-item>
+      <template #item="{ element }">
+        <div class="layer-order-row">
+          <span class="drag-handle">☰</span>
+          <layer-control-item
+            :map="mapRef"
+            :layer="mapRef?.getLayer(element)"
+          >
+          </layer-control-item>
+        </div>
       </template>
     </draggable>
   </ul>
@@ -80,4 +85,13 @@ li {
   cursor: move;
 }
 
+.drag-handle {
+  font-size: 20pt;
+}
+
+.layer-order-row {
+  display: flex;
+  flex-direction: row;
+  gap: 5px;
+}
 </style>

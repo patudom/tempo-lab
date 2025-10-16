@@ -51,7 +51,7 @@ import type { InitMapOptions, LatLngPair } from '@/types';
 import type { MapEventType, Listener } from 'maplibre-gl';
 import type { AvailableColorMaps } from "@/colormaps";
 
-import { useTempoStore } from "@/store/app";
+import { useTempoStore } from "@/stores/app";
 
 const store = useTempoStore();
 
