@@ -5,9 +5,10 @@
       v-model="currentOrder" 
       @sort="(evt: SortableEndEvent) => handleEnd(evt)">
       <template #item="{ element, index}">
-        <li :key="element">
-          {{ index }}: {{ element }}
-        </li>
+        <layer-control-item
+          :map="mapRef"
+        >
+        </layer-control-item>
       </template>
     </draggable>
   </ul>

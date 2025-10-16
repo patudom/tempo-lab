@@ -38,6 +38,9 @@
           :key="1"
         >
          <layer-order-control
+           v-for="(map, index) in maps"
+           :key="index"
+           :map="map"
          >
          </layer-order-control>
       </v-tabs-window>
@@ -63,6 +66,7 @@ const store = useTempoStore();
 const {
   accentColor,
   accentColor2,
+  maps,
 } = storeToRefs(store);
 
 const infoColor = "#092088";

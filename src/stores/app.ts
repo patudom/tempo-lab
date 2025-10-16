@@ -1,6 +1,7 @@
 import { defineStore, type StateTree } from "pinia";
 import { computed, ref, watch, toRaw } from "vue";
 import { v4 } from "uuid";
+import type { Map } from "maplibre-gl";
 import { isComputedRef } from "@/utils/vue";
 import { parse, stringify } from "zipson";
 
@@ -31,6 +32,8 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
   const playButtonClickedCount = ref(0);
   const timeSliderUsedCount = ref(0);
   const opacitySliderUsedCount = ref(0);
+
+  const maps: Map[] = [];
 
   const selectionActive = ref<SelectionType>(null);
   const focusRegion = ref<UnifiedRegion | null>(null);
@@ -297,6 +300,17 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
     regions.value.splice(index, 1);
   }
 
+  function registerMap(map: Map) {
+    maps.push(map);
+  }
+
+  function deregisterMap(map: Map) {
+    const index = maps.findIndex(m => m === map);
+    if (index > -1) {
+      maps.splice(index);
+    }
+  }
+
   return {
     accentColor,
     accentColor2,
@@ -310,6 +324,10 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
 
     homeState,
     initState,
+
+    maps,
+    registerMap,
+    deregisterMap,
 
     regions,
     regionsCreatedCount,

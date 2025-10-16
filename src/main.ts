@@ -18,6 +18,7 @@ import HeaderBar from "./components/HeaderBar.vue";
 import DatasetControls from "./components/DatasetControls.vue";
 import MapControls from "./components/MapControls.vue";
 import MapWithControls from "./components/MapWithControls.vue";
+import MaplibreLayerControlItem from "./components/MaplibreLayerControlItem.vue";
 
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { library } from "@fortawesome/fontawesome-svg-core";
@@ -102,6 +103,7 @@ createApp(TempoLite, {})
   .component('map-controls', MapControls)
   .component('map-with-controls', MapWithControls)
   .component("header-bar", HeaderBar)
+  .component('layer-control-item', MaplibreLayerControlItem)
 
   // Mount
   .mount("#app");

@@ -55,5 +55,4 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const { opacity } = useMaplibreLayerOpacity(props.map, props.layer.id, props.initialOpacity);
-
 </script>
