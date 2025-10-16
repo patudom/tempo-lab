@@ -37,13 +37,21 @@
           :value="1"
           :key="1"
         >
-           <layer-order-control
-             v-for="(map, index) in maps"
-             :key="index"
-             :mapRef="map"
-             :order="['power-plants-heatmap', 'aqi-layer-aqi', 'esri-source']"
-           >
-           </layer-order-control>
+          <div
+            v-for="(map, index) in maps"
+            :key="index"
+          >
+            <layer-order-control
+              :mapRef="map"
+              :order="['power-plants-heatmap', 'aqi-layer-aqi', 'esri-source']"
+            >
+            </layer-order-control>
+            <power-plants-filter-control
+              :map="map"
+              layer-id="power-plants-heatmap"
+            >
+            </power-plants-filter-control>
+          </div>
         </v-tabs-window-item>
       </v-tabs-window>
     </teleport>

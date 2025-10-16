@@ -1,4 +1,3 @@
-
 <template>
   <ul>
     <draggable 
@@ -30,6 +29,7 @@ import draggable from 'vuedraggable';
 import M from 'maplibre-gl';
 
 import { useMaplibreLayerOrderControl } from "@/composables/useMaplibreLayerOrderControl";
+import { capitalizeWords } from "@/utils/names";
 
 interface Props {
   mapRef: M.Map | null;
@@ -61,9 +61,7 @@ const displayOrder = computed({
 });
 
 function displayNameTransform(layerId: string): string {
-  return layerId.replace(/-/g, " ").replace(/\b(\w)/g, function(match) {
-    return match.toUpperCase();
-  });
+  return capitalizeWords(layerId.replace(/-/g, " "));
 }
 </script>
 
