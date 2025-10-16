@@ -256,7 +256,7 @@
                               v-bind="props"
                               size="x-small"
                               icon="mdi-table"
-                              :disabled="!dataset.samples"
+                              :disabled="!dataset.samples && !dataset.folded"
                               variant="plain"
                               @click="() => tableSelection = dataset"
                             ></v-btn>
@@ -644,6 +644,32 @@
       :selection="aggregationDataset"
       @save="handleAggregationSaved"
     />
+    
+    <v-dialog
+      v-model="showUserDatasetTable"
+      max-width="800px"
+      persistent
+    >
+      <v-card>
+        <v-toolbar
+          density="compact"
+        >
+          <v-toolbar-title text="Dataset Table View"></v-toolbar-title>
+          <v-spacer></v-spacer>
+          <v-btn
+            icon="mdi-close"
+            @click="showUserDatasetTable = false; tableSelection = null"
+          >
+          </v-btn>
+        </v-toolbar>
+        <v-card-text>
+          <user-dataset-table
+            v-if="tableSelection !== null"
+            :dataset="tableSelection"
+          />
+        </v-card-text>
+      </v-card>
+    </v-dialog>
 
   </div>
 
@@ -671,6 +697,7 @@ import DatasetCard from "./DatasetCard.vue";
 import { toZonedTime } from "date-fns-tz";
 import { allEqual } from "@/utils/array_operations/array_math";
 import { userDatasetToPlotly } from "@/utils/data_converters";
+import UserDatasetTable from "./UserDatasetTable.vue";
 
 type UnifiedRegionType = UnifiedRegion;
 
@@ -893,6 +920,15 @@ const hchofoldedGraphData = computed(() =>{
 }); 
 
 const showErrorBands = ref(true);
+
+const showUserDatasetTable = ref(false);
+watch(tableSelection, (newVal) => {
+  if (newVal) {
+    console.log('Table selection changed:', newVal);
+    showUserDatasetTable.value = true;
+  }
+});
+
 </script>
 
 <style scoped lang="less">

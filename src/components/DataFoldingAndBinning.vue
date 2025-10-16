@@ -325,8 +325,8 @@ const theColor = computed(() => {
   return props.selection?.customColor ?? (props.selection?.region.color ?? 'blue');
 });
 
-type TimeBinOptions = 'hour' | 'day' | 'week' | 'month';
-type FoldingPeriodOptions = 'day' | 'week' | 'year' | 'weekdayWeekend' | 'none';
+export type TimeBinOptions = 'hour' | 'day' | 'week' | 'month';
+export type FoldingPeriodOptions = 'day' | 'week' | 'year' | 'weekdayWeekend' | 'none';
 const MS_IN_HOUR = 3600000;
 const MS_IN_DAY = MS_IN_HOUR * 24;
 const MS_IN_WEEK = MS_IN_DAY * 7;
