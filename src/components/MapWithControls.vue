@@ -213,6 +213,7 @@
 </template>
 
 <script setup lang="ts">
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { computed, ref, toRaw, useTemplateRef, watch, type Ref, type WritableComputedRef } from "vue";
 import { useDisplay } from 'vuetify';
 import { storeToRefs } from "pinia";
@@ -328,9 +329,6 @@ watch(airQualityUrl, (newUrl) => {
 });
 
 
-import LayerOrderControl from "./LayerOrderControl.vue";
-
-
 const onMapReady = (m: Map) => {
   console.log('Map ready event received');
   map.value = m; // ESRI source already added by EsriMap
@@ -363,7 +361,7 @@ const onMapReady = (m: Map) => {
     'power-plants-heatmap': ['power-plants-layer'],
     'aqi-layer-aqi': ['aqi-layer-aqi-label']
   };
-  map.value.addControl(new MaplibreLayersControl(ignoredLayers,ignoredSources, shownLayers, linkedLayers), 'bottom-right');
+  // map.value.addControl(new MaplibreLayersControl(ignoredLayers,ignoredSources, shownLayers, linkedLayers), 'bottom-right');
   // pp.togglePowerPlants();
   updateRegionLayers(regions.value);
 };

@@ -2,17 +2,21 @@
 <template>
   <ul>
     <draggable 
-      v-model="currentOrder" 
+      v-model="displayOrder" 
       handle=".drag-handle"
       @sort="(evt: SortableEndEvent) => handleEnd(evt)">
-      <template #item="{ element }">
-        <div class="layer-order-row">
-          <span class="drag-handle">☰</span>
-          <layer-control-item
-            :map="mapRef"
-            :layer="mapRef?.getLayer(element)"
-          >
-          </layer-control-item>
+      <template #item="{ element, index }">
+        <div>
+          <div class="layer-order-row">
+            <span class="drag-handle">☰</span>
+            <layer-control-item
+              :map="mapRef"
+              :layer-id="element"
+              :display-name="displayNameTransform(element)"
+            >
+            </layer-control-item>
+          </div>
+          <hr v-if="index != currentOrder.length - 1" />
         </div>
       </template>
     </draggable>
@@ -22,7 +26,7 @@
 
 <script setup lang="ts">
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { ref, type Ref, type MaybeRef, watch, toValue, toRef } from 'vue';
+import { computed, type MaybeRef, toValue, toRef } from 'vue';
 import draggable from 'vuedraggable';
 import {
   SortableChangeEvent,
@@ -59,13 +63,27 @@ const {
   controller 
 } = useMaplibreLayerOrderControl(mapRef, toValue(props.order), true);
 
-function handleEnd(evt: SortableEndEvent) {
-  if (controller) {
-    console.log(evt.item);
-    controller.moveActualLayerByIndex(evt.oldIndex!, evt.newIndex!);
-  }
+function ordersEqual(orderA: string[], orderB: string[]) {
+  if (orderA === orderB) { return true; }
+  if (orderA.length !== orderB.length) { return false; }
+
+  return orderA.every((el, idx) => el === orderB[idx]);
 }
 
+const displayOrder = computed({
+  get(): string[] {
+    return currentOrder.value.slice().reverse();
+  },
+  set(value: string[]) {
+    controller?.setManagedOrder(value.slice().reverse());
+  }
+});
+
+function displayNameTransform(layerId: string): string {
+  return layerId.replace(/-/g, " ").replace(/\b(\w)/g, function(match) {
+    return match.toUpperCase();
+  });
+}
 </script>
 
 
@@ -83,10 +101,15 @@ li {
   padding: 8px 12px;
   border-bottom: 1px solid #eee;
   cursor: move;
+  margin: 10px 0;
 }
 
 .drag-handle {
   font-size: 20pt;
+
+  &:hover {
+    cursor: grab;
+  }
 }
 
 .layer-order-row {

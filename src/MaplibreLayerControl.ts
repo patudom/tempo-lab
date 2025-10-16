@@ -31,7 +31,7 @@ import './styles/maplibre-layer-control.css'; // added
 // }
 
 function setLayerOpacity(map: Map, layerId: string, opacity: number) {
-  const layer = map.getLayer(layerId)!;
+  const layer = map.getLayer(layerId);
   if (!layer) {
     console.warn('Layer not found:', layerId);
     return;
