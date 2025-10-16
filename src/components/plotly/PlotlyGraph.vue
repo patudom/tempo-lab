@@ -118,7 +118,7 @@ function renderPlot() {
   
   const plotlyData: Data[] = [];
   if (props.datasets.length === 0) {
-    console.log("No data provided for timeseries graph");
+    console.error("No data provided for timeseries graph");
     return;
   }
   
@@ -148,7 +148,6 @@ function renderPlot() {
     
     
     const errorOptions = {} as Record<'error_y',Plotly.ErrorBar>;
-    console.log(index, data.errorType);
     // https://plotly.com/javascript/error-bars/
     if (props.showErrors && data.errorType === 'bar') {
       const style = (props.errorBarStyles && props.errorBarStyles[index]) || {};
@@ -165,7 +164,6 @@ function renderPlot() {
       };
       
     }
-    console.log("Error options", errorOptions);
     const datasetName = data.name || props.names?.[index] || `Dataset ${index + 1}`;
     const dataTraceOptions = {
       mode: "lines+markers",
@@ -188,7 +186,6 @@ function renderPlot() {
     const hasErrors = data.lower && data.upper && data.lower.length === data.y.length && data.upper.length === data.y.length;
     // double checking to have valid types
     if (hasErrors && data.lower && data.upper && data.errorType == 'band' && props.showErrors) {
-      console.log("Adding error traces for dataset", index);
       
       const {lower, upper, max: newMax} = createErrorBands(
         data,
@@ -236,7 +233,6 @@ function renderPlot() {
         }
         const date = datumToDate(point.x);
         if (date !== null) {
-          console.log("Clicked point", point);
           emit("click", {x: point.x, y: point.y as number, customdata: point.customdata} );
         }
       });

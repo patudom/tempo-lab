@@ -353,10 +353,20 @@
                         />
                       </template>
                       <template v-else>
-                        <timeseries-graph
-                          :data="dataset ? [dataset] : []"
-                          :show-errors="showErrorBands"
+                        <plotly-graph
+                          :datasets="dataset ? [userDatasetToPlotly(dataset, true)] : []"
+                          :colors="[dataset.customColor || dataset.region.color]"
+                          show-errors
+                          :data-options="[{mode: 'lines+markers'}]"
+                          :names="dataset.name ? [dataset.name] : undefined"
+                          :layout-options="{
+                            width: 600, 
+                            height: 400,
+                            // https://plotly.com/javascript/reference/layout/xaxis/#layout-xaxis-title-text
+                            xaxis: {title: {text: 'Local Time for Region'}},
+                            }"
                         />
+                          
                       </template>
                     </cds-dialog>
                     <v-dialog
@@ -410,9 +420,17 @@
         hide-details
       >
       </v-checkbox>
-      <timeseries-graph
-        :data="no2GraphData.length > 0 ? no2GraphData : []"
+      <plotly-graph
+        :datasets="no2GraphData.map(d => userDatasetToPlotly(d, true))"
+        :colors="no2GraphData.map(d => d.customColor || d.region.color)"
         :show-errors="showErrorBands"
+        :data-options="no2GraphData.map(() => ({mode: 'lines+markers'}))"
+        :names="no2GraphData.map(d => d.name ?? '')"
+        :layout-options="{
+          width: 600, 
+          height: 400,
+          xaxis: {title: {text: 'Local Time for Region'}},
+        }"
       />
     </cds-dialog>
 
@@ -435,9 +453,17 @@
         hide-details
       >
       </v-checkbox>
-      <timeseries-graph
-        :data="o3GraphData.length > 0 ? o3GraphData : []"
+      <plotly-graph
+        :datasets="o3GraphData.map(d => userDatasetToPlotly(d, true))"
+        :colors="o3GraphData.map(d => d.customColor || d.region.color)"
         :show-errors="showErrorBands"
+        :data-options="o3GraphData.map(() => ({mode: 'lines+markers'}))"
+        :names="o3GraphData.map(d => d.name ?? '')"
+        :layout-options="{
+          width: 600, 
+          height: 400,
+          xaxis: {title: {text: 'Local Time for Region'}},
+        }"
       />
     </cds-dialog>
     
@@ -460,9 +486,17 @@
         hide-details
       >
       </v-checkbox>
-      <timeseries-graph
-        :data="hchoGraphData.length > 0 ? hchoGraphData : []"
+      <plotly-graph
+        :datasets="hchoGraphData.map(d => userDatasetToPlotly(d, true))"
+        :colors="hchoGraphData.map(d => d.customColor || d.region.color)"
         :show-errors="showErrorBands"
+        :data-options="hchoGraphData.map(() => ({mode: 'lines+markers'}))"
+        :names="hchoGraphData.map(d => d.name ?? '')"
+        :layout-options="{
+          width: 600, 
+          height: 400,
+          xaxis: {title: {text: 'Local Time for Region'}},
+        }"
       />
     </cds-dialog>
     
@@ -630,11 +664,13 @@ import { atleast1d } from "../utils/atleast1d";
 import DateTimeRangeSelection from "../date_time_range_selection/DateTimeRangeSelection.vue";
 import AdvancedOperations from "./AdvancedOperations.vue";
 import { TimeRangeSelectionType } from "@/types/datetime";
+import PlotlyGraph from "./plotly/PlotlyGraph.vue";
 import FoldedPlotlyGraph from "./FoldedPlotlyGraph.vue";
 import CTextField from "./CTextField.vue";
 import DatasetCard from "./DatasetCard.vue";
 import { toZonedTime } from "date-fns-tz";
 import { allEqual } from "@/utils/array_operations/array_math";
+import { userDatasetToPlotly } from "@/utils/data_converters";
 
 type UnifiedRegionType = UnifiedRegion;
 
