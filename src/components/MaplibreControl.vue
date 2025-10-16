@@ -16,7 +16,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, toRef, ref, onMounted } from "vue";
+import { toRef, ref, onMounted } from "vue";
 import type { LayerSpecification, Map } from "maplibre-gl";
 
 import MaplibreLayerControlItem from "@/components/MaplibreLayerControlItem.vue";
