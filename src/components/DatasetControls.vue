@@ -1,5 +1,5 @@
 <template>
-  <div id="dataset-sections">
+  <div id="dataset-sections" :style="cssVars">
     <h2>Investigate Patterns with Time</h2>
     <div id="add-region-time">
       <v-expansion-panels
@@ -28,7 +28,6 @@
             <date-time-range-selection
               v-if="createTimeRangeActive"
               :current-date="singleDateSelected"
-              :selected-timezone="selectedTimezone"
               :allowed-dates="uniqueDays"
               @ranges-change="handleDateTimeRangeSelectionChange"
             />
@@ -38,7 +37,7 @@
                 <v-list-item
                   v-for="(timeRange, index) in timeRanges"
                   :key="index"
-                  :title="timeRange.name === 'Displayed Day' ? `Displayed Day: ${ formatTimeRange(timeRange.range) }` : formatTimeRange(timeRange.range)"
+                  :title="timeRange.name === 'Displayed Day' ? `Displayed Day: ${ formatTimeRange(timeRange.range) }` : (timeRange.name ?? formatTimeRange(timeRange.range))"
                   style="background-color: #444444"
                 >
 
@@ -162,40 +161,17 @@
           <div class="my-selections" v-if="datasets.length>0" style="margin-top: 1em;">
 
             <h4>My Datasets</h4>
-            <v-list>
-              <v-hover
-                v-slot="{ isHovering, props }"
-                v-for="dataset in datasets"
-                :key="dataset.id"
+            
+            <dataset-card
+              :datasets="datasets"
+              :turn-on-selection="allDatasetSelection"
+              v-model:selected-datasets="selectedDatasets"
               >
-                <v-list-item
-                  v-bind="props"
-                  :ref="(el) => datasetRowRefs[dataset.id] = el"
-                  class="selection-item my-2"
-                  :style="{ 'background-color': dataset.region.color }"
-                  :ripple="touchscreen"
-                  @click="() => {
-                    if (touchscreen) {
-                      openSelection = (openSelection == dataset.id) ? null : dataset.id;
-                    }
-                  }"
-                  lines="two"
-                >
-                  <template #default>
-                    <div>
-                      <v-chip size="small">{{ dataset.region.name }}</v-chip>
-                      <v-chip size="small">{{ moleculeName(dataset.molecule) }}</v-chip>
-                      <v-chip v-if="dataset.timeRange" size="small" class="text-caption">
-                        {{ dataset.timeRange.description }}
-                      </v-chip>
-                      <v-chip v-if="dataset.timeRange" size="small" class="text-caption">
-                        {{ dataset.timeRange?.type ?? 'no type' }}
-                      </v-chip>
-                    </div>
+              <template #action-row="{ isHovering, dataset }">
                     <div
                       v-if="(dataset.loading || !dataset.samples)  && !(dataset.timeRange?.type === 'folded' && dataset.plotlyDatasets)"
                       class="dataset-loading"
-                    >
+                    > <hr/>
                       <v-progress-linear
                         :class="['dataset-loading-progress', !(dataset.loading && dataset.samples) ? 'dataset-loading-failed' : '']"
                         :active="dataset.loading || !dataset.samples"
@@ -214,6 +190,7 @@
                         </template>
                       </v-progress-linear>
                       <div v-if="!(dataset.loading || dataset.samples || dataset.plotlyDatasets)">
+                        <hr/>
                         <v-tooltip
                           text="Failure info"
                           location="top"
@@ -274,7 +251,7 @@
                               v-bind="props"
                               size="x-small"
                               icon="mdi-table"
-                              :disabled="!dataset.samples"
+                              :disabled="!dataset.samples && !dataset.folded"
                               variant="plain"
                               @click="() => tableSelection = dataset"
                             ></v-btn>
@@ -296,7 +273,7 @@
                           </template>
                         </v-tooltip>
                         <v-tooltip
-                          v-if="dataset.timeRange.type === 'pattern' || dataset.timeRange.type === 'daterange'"
+                          v-if="dataset.timeRange.type === 'pattern' || dataset.timeRange.type === 'daterange' || dataset.timeRange.type === 'monthrange'"
                           text="Aggregate Data"
                           location="top"
                         >
@@ -308,6 +285,20 @@
                               :disabled="!dataset.samples"
                               variant="plain"
                               @click="() => openAggregationDialog(dataset)"
+                            ></v-btn>
+                          </template>
+                        </v-tooltip>
+                        <v-tooltip
+                          text="Edit Dataset Name/Color"
+                          location="top"
+                        >
+                          <template #activator="{ props }">
+                            <v-btn
+                              v-bind="props"
+                              size="x-small"
+                              icon="mdi-pencil"
+                              variant="plain"
+                              @click="() => handleEditDataset(dataset)"
                             ></v-btn>
                           </template>
                         </v-tooltip>
@@ -345,18 +336,32 @@
                       >
                       </v-checkbox>
                       <template v-if="dataset.timeRange.type === 'folded' && dataset.plotlyDatasets">
-                        <plotly-graph
+                        <folded-plotly-graph
                           :datasets="dataset.plotlyDatasets"
                           :show-errors="showErrorBands"
-                          :colors="[dataset.region.color, '#333']"
+                          :colors="[dataset.customColor ?? dataset.region.color, '#333']"
                           :data-options="[{mode: 'markers'}, {mode: 'lines+markers'}]"
+                          :names="[`Original Data`, `Binned`]"
+                          :layout-options="{width: 600, height: 400}"
+                          :fold-type="dataset.folded?.foldType"
+                          :timezones="dataset.folded?.timezone"
                         />
                       </template>
                       <template v-else>
-                        <timeseries-graph
-                          :data="dataset ? [dataset] : []"
-                          :show-errors="showErrorBands"
+                        <plotly-graph
+                          :datasets="dataset ? [userDatasetToPlotly(dataset, true)] : []"
+                          :colors="[dataset.customColor || dataset.region.color]"
+                          show-errors
+                          :data-options="[{mode: 'lines+markers'}]"
+                          :names="dataset.name ? [dataset.name] : undefined"
+                          :layout-options="{
+                            width: 600, 
+                            height: 400,
+                            // https://plotly.com/javascript/reference/layout/xaxis/#layout-xaxis-title-text
+                            xaxis: {title: {text: 'Local Time for Region'}},
+                            }"
                         />
+                          
                       </template>
                     </cds-dialog>
                     <v-dialog
@@ -383,10 +388,14 @@
                       </v-card>
                     </v-dialog>
                   </template>
-                </v-list-item>
-              </v-hover>
-            </v-list>
+            </dataset-card>
           </div>
+          <div v-if="datasets.some(s => s.timeRange.type === 'folded')" class="pa-2 mb-2 explainer-text">
+            Note: You can only overlay datasets with the same molecule and fold type.
+          </div>
+          <v-btn color="#ffcc33" size="small" :block="false" @click="allDatasetSelection = !allDatasetSelection">
+            {{ allDatasetSelection ? 'Cancel Selection' : 'Select Datasets to Graph' }}
+          </v-btn>
         </template>
       </v-expansion-panel>
     </v-expansion-panels>
@@ -412,9 +421,17 @@
         hide-details
       >
       </v-checkbox>
-      <timeseries-graph
-        :data="no2GraphData.length > 0 ? no2GraphData : []"
+      <plotly-graph
+        :datasets="no2GraphData.map(d => userDatasetToPlotly(d, true))"
+        :colors="no2GraphData.map(d => d.customColor || d.region.color)"
         :show-errors="showErrorBands"
+        :data-options="no2GraphData.map(() => ({mode: 'lines+markers'}))"
+        :names="no2GraphData.map(d => d.name ?? '')"
+        :layout-options="{
+          width: 600, 
+          height: 400,
+          xaxis: {title: {text: 'Local Time for Region'}},
+        }"
       />
     </cds-dialog>
 
@@ -437,9 +454,17 @@
         hide-details
       >
       </v-checkbox>
-      <timeseries-graph
-        :data="o3GraphData.length > 0 ? o3GraphData : []"
+      <plotly-graph
+        :datasets="o3GraphData.map(d => userDatasetToPlotly(d, true))"
+        :colors="o3GraphData.map(d => d.customColor || d.region.color)"
         :show-errors="showErrorBands"
+        :data-options="o3GraphData.map(() => ({mode: 'lines+markers'}))"
+        :names="o3GraphData.map(d => d.name ?? '')"
+        :layout-options="{
+          width: 600, 
+          height: 400,
+          xaxis: {title: {text: 'Local Time for Region'}},
+        }"
       />
     </cds-dialog>
     
@@ -462,11 +487,28 @@
         hide-details
       >
       </v-checkbox>
-      <timeseries-graph
-        :data="hchoGraphData.length > 0 ? hchoGraphData : []"
+      <plotly-graph
+        :datasets="hchoGraphData.map(d => userDatasetToPlotly(d, true))"
+        :colors="hchoGraphData.map(d => d.customColor || d.region.color)"
         :show-errors="showErrorBands"
+        :data-options="hchoGraphData.map(() => ({mode: 'lines+markers'}))"
+        :names="hchoGraphData.map(d => d.name ?? '')"
+        :layout-options="{
+          width: 600, 
+          height: 400,
+          xaxis: {title: {text: 'Local Time for Region'}},
+        }"
       />
     </cds-dialog>
+    
+    <div 
+      v-if="!allEqual(no2foldedGraphData.map(v => v.foldType)) || 
+            !allEqual(o3foldedGraphData.map(v => v.foldType)) || 
+            !allEqual(hchofoldedGraphData.map(v => v.foldType))"
+      class="mixed-foldType-warning pa-2 ma-2 text-large text-red explainer-text"
+    >
+    Warning: Be sure to only select datasets that have the same type of fold. It is not possible to overlay different FoldTypes.
+    </div>
     
     <v-btn v-if="no2foldedGraphData.length > 0" @click="showfoldedNO2Graph = true">
       Show Folded NO₂ Data
@@ -487,11 +529,14 @@
         hide-details
       >
       </v-checkbox>
-      <plotly-graph
+      <folded-plotly-graph
         :datasets="no2foldedGraphData.length > 0 ? no2foldedGraphData : []"
         :show-errors="showErrorBands"
-        :colors="['#FF5733', '#333']"
-        :data-options="[{mode: 'markers'}, {mode: 'lines+markers'}]"
+        :colors="no2foldedGraphData.map( v => v.color) ?? ['#FF5733', '#333']"
+        :data-options="[{mode: 'lines+markers'}, {mode: 'lines+markers'}]"
+        :layout-options="{width: 600, height: 400}"
+        :fold-type="no2foldedGraphData[0].foldType"
+        :timezones="no2foldedGraphData.map(v => v.timezone) ?? 'UTC'"
       />
     </cds-dialog>
 
@@ -514,11 +559,14 @@
         hide-details
       >
       </v-checkbox>
-      <plotly-graph
+      <folded-plotly-graph
         :datasets="o3foldedGraphData.length > 0 ? o3foldedGraphData : []"
         :show-errors="showErrorBands"
-        :colors="['#FF5733', '#333']"
-        :data-options="[{mode: 'markers'}, {mode: 'lines+markers'}]"
+        :colors="o3foldedGraphData.map( v => v.color) ?? ['#FF5733', '#333']"
+        :data-options="[{mode: 'lines+markers'}, {mode: 'lines+markers'}]"
+        :layout-options="{width: 600, height: 400}"
+        :fold-type="o3foldedGraphData[0].foldType"
+        :timezones="o3foldedGraphData.map(v => v.timezone) ?? 'UTC'"
       />
     </cds-dialog>
 
@@ -541,11 +589,14 @@
         hide-details
       >
       </v-checkbox>
-      <plotly-graph
+      <folded-plotly-graph
         :datasets="hchofoldedGraphData.length > 0 ? hchofoldedGraphData : []"
         :show-errors="showErrorBands"
-        :colors="['#FF5733', '#333']"
-        :data-options="[{mode: 'markers'}, {mode: 'lines+markers'}]"
+        :colors="hchofoldedGraphData.map( v => v.color) ?? ['#FF5733', '#333']"
+        :data-options="[{mode: 'lines+markers'}, {mode: 'lines+markers'}]"
+        :layout-options="{width: 600, height: 400}"
+        :fold-type="hchofoldedGraphData[0].foldType"
+        :timezones="hchofoldedGraphData.map(v => v.timezone) ?? 'UTC'"
       />
     </cds-dialog>
     </div>
@@ -574,36 +625,82 @@
 
         </v-dialog>
         
+      <v-dialog
+        v-model="showDatasetEditor"
+      >
+        <user-dataset-editor
+          v-if="currentlyEditingDataset !== null"
+          v-model="currentlyEditingDataset" 
+          :name-only="datasetEditorNameOnly"
+          @complete="() => {
+            showDatasetEditor = false;
+            currentlyEditingDataset = null;
+          }"
+          />
+        </v-dialog>
+        
     <!-- Data Aggregation Dialog -->
     <advanced-operations
       v-model="showAggregationDialog"
       :selection="aggregationDataset"
       @save="handleAggregationSaved"
     />
+    
+    <v-dialog
+      v-model="showUserDatasetTable"
+      max-width="800px"
+      persistent
+    >
+      <v-card>
+        <v-toolbar
+          density="compact"
+        >
+          <v-toolbar-title text="Dataset Table View"></v-toolbar-title>
+          <v-spacer></v-spacer>
+          <v-btn
+            icon="mdi-close"
+            @click="showUserDatasetTable = false; tableSelection = null"
+          >
+          </v-btn>
+        </v-toolbar>
+        <v-card-text>
+          <user-dataset-table
+            v-if="tableSelection !== null"
+            :dataset="tableSelection"
+          />
+        </v-card-text>
+      </v-card>
+    </v-dialog>
 
   </div>
 
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { storeToRefs } from "pinia";
 import { v4 } from "uuid";
 import { supportsTouchscreen } from "@cosmicds/vue-toolkit";
 
 import type { MillisecondRange, TimeRange, UserDataset, UnifiedRegion } from "../types";
 import { useTempoStore } from "../stores/app";
-import { moleculeName, MOLECULE_OPTIONS } from "../esri/utils";
+import { MOLECULE_OPTIONS } from "../esri/utils";
 import { areEquivalentTimeRanges, formatTimeRange } from "../utils/timeRange";
 import { atleast1d } from "../utils/atleast1d";
 
 import DateTimeRangeSelection from "../date_time_range_selection/DateTimeRangeSelection.vue";
 import AdvancedOperations from "./AdvancedOperations.vue";
 import { TimeRangeSelectionType } from "@/types/datetime";
-import PlotlyGraph from "./PlotlyGraph.vue";
+import PlotlyGraph from "./plotly/PlotlyGraph.vue";
+import FoldedPlotlyGraph from "./FoldedPlotlyGraph.vue";
 import CTextField from "./CTextField.vue";
+import DatasetCard from "./DatasetCard.vue";
+import { toZonedTime } from "date-fns-tz";
+import { allEqual } from "@/utils/array_operations/array_math";
+import { userDatasetToPlotly } from "@/utils/data_converters";
+import UserDatasetTable from "./UserDatasetTable.vue";
 
-type UnifiedRegionType = UnifiedRegion<typeof backend.value>;
+type UnifiedRegionType = UnifiedRegion;
 
 const store = useTempoStore();
 const {
@@ -614,11 +711,17 @@ const {
   datasets,
   timeRanges,
   singleDateSelected,
-  selectedTimezone,
   uniqueDays,
   selectionActive,
   focusRegion,
 } = storeToRefs(store);
+
+const cssVars = computed(() => {
+  return {
+    '--accent-color': accentColor.value,
+    '--accent-color-2': accentColor2.value,
+  };
+});
 
 function plotlyDragPredicate(element: HTMLElement): boolean {
   return element.closest(".plotly") === null;
@@ -630,6 +733,7 @@ const openPanels = ref<number[]>([]);
 const openGraphs = ref<Record<string,boolean>>({});
 const openSelection = ref<string | null>(null);
 const tableSelection = ref<UserDataset | null>(null);
+const currentlyEditingDataset = ref<UserDataset | null>(null);
 
 const createTimeRangeActive = ref(false);
 const createDatasetActive = ref(false);
@@ -647,14 +751,25 @@ function openAggregationDialog(selection: UserDataset) {
   showAggregationDialog.value = true;
 }
 function handleAggregationSaved(aggregatedSelection: UserDataset) {
+  aggregatedSelection.name = `${aggregatedSelection.name} ${datasets.value.length + 1}`;
   store.addDataset(aggregatedSelection, false); // no need to fetch anything
   showAggregationDialog.value = false;
   aggregationDataset.value = null;
 }
 
 function handleDatasetCreated(dataset: UserDataset) {
+  dataset.name = `Dataset ${datasets.value.length + 1}`; // give it a default name
   store.addDataset(dataset);
   createDatasetActive.value = false;
+}
+
+import UserDatasetEditor from "./UserDatasetEditor.vue";
+const showDatasetEditor = ref(false);
+const datasetEditorNameOnly = ref(false);
+function handleEditDataset(dataset: UserDataset, nameOnly = false) {
+  datasetEditorNameOnly.value = nameOnly;
+  currentlyEditingDataset.value = dataset;
+  showDatasetEditor.value = true;
 }
 
 function removeDataset(dataset: UserDataset) {
@@ -664,35 +779,18 @@ function removeDataset(dataset: UserDataset) {
   delete datasetRowRefs[dataset.id];
 }
 
-function handleDateTimeRangeSelectionChange(timeRanges: MillisecondRange[], selectionType: TimeRangeSelectionType) {
+function handleDateTimeRangeSelectionChange(timeRanges: MillisecondRange[], selectionType: TimeRangeSelectionType, customName: string) {
   if (!Array.isArray(timeRanges) || timeRanges.length === 0) {
     console.error('No time ranges received from DateTimeRangeSelection');
     return;
   }
+  console.log(`Received ${timeRanges.length} time ranges of type ${selectionType} and name ${customName}`);
   const normalized = atleast1d(timeRanges);
   // No dedup tracking now
-  // Build description based on selection type
-  let descriptionBase = 'Custom';
-  switch (selectionType) {
-  case 'weekday':
-    descriptionBase = 'Weekday Pattern';
-    break;
-  case 'daterange':
-    descriptionBase = 'Date Range';
-    break;
-  case 'singledate':
-    descriptionBase = 'Single Date';
-    break;
-  case 'pattern':
-    descriptionBase = 'Pattern';
-    break;
-  }
-  const formatted = formatTimeRange(normalized);
-  const description = `${descriptionBase} (${formatted})`;
   const tr: TimeRange = {
     id: v4(),
-    name: formatted,
-    description,
+    name: customName,
+    description: customName,
     range: normalized.length === 1 ? normalized[0] : normalized,
     type: selectionType,
   };
@@ -742,6 +840,25 @@ const hchoGraphData = computed(() =>{
   return datasets.value.filter(s => s.molecule.includes('hcho') && store.datasetHasSamples(s));
 });
 
+function _toZonedTime(date: number | Date | string, timezone): number | Date {
+  if (typeof date === 'number') {
+    date = new Date(date);
+  } else if (typeof date === 'string') {
+    date = new Date(date);
+  }
+  return toZonedTime(date, timezone);
+}
+
+const allDatasetSelection = ref(false);
+const selectedDatasets = ref<string[]>([]);
+watch(allDatasetSelection, (newVal) => {
+  if (!newVal) {
+    selectedDatasets.value = [];
+  }
+});
+watch(selectedDatasets, (newVal) => {
+  console.log('Selected datasets changed:', newVal);
+});
 
 const showfoldedNO2Graph = ref(false);
 const no2foldedGraphData = computed(() =>{
@@ -750,9 +867,17 @@ const no2foldedGraphData = computed(() =>{
       s => s.molecule.includes('no2') && 
       s.timeRange?.type === 'folded' && 
       s.plotlyDatasets && 
-      s.plotlyDatasets.length > 0
+      s.plotlyDatasets.length > 0 &&
+      selectedDatasets.value.includes(s.id)
     );
-  return validFoldedDatasets.map(s => s.plotlyDatasets![1]); // "!" tells TS that we know it's not undefined
+  return validFoldedDatasets.map(s => {    
+    return {
+      ...s.plotlyDatasets![1],
+      foldType: s.folded?.foldType,
+      timezone: s.folded?.timezone,
+      color: s.customColor || s.region.color,
+    };
+  }); // "!" tells TS that we know it's not undefined
 });
 
 const showfoldedO3Graph = ref(false);
@@ -762,9 +887,17 @@ const o3foldedGraphData = computed(() =>{
       s => s.molecule.includes('o3') && 
       s.timeRange?.type === 'folded' && 
       s.plotlyDatasets && 
-      s.plotlyDatasets.length > 0
+      s.plotlyDatasets.length > 0 &&
+      selectedDatasets.value.includes(s.id)
     );
-  return validFoldedDatasets.map(s => s.plotlyDatasets![1]); // "!" tells TS that we know it's not undefined
+  return validFoldedDatasets.map(s => {
+    return {
+      ...s.plotlyDatasets![1],
+      foldType: s.folded?.foldType,
+      timezone: s.folded?.timezone,
+      color: s.customColor || s.region.color,
+    };
+  }); // "!" tells TS that we know it's not undefined
 }); 
 
 const showfoldedHCHOGraph = ref(false);
@@ -774,12 +907,29 @@ const hchofoldedGraphData = computed(() =>{
       s => s.molecule.includes('hcho') && 
       s.timeRange?.type === 'folded' && 
       s.plotlyDatasets && 
-      s.plotlyDatasets.length > 0
+      s.plotlyDatasets.length > 0 &&
+      selectedDatasets.value.includes(s.id)
     );
-  return validFoldedDatasets.map(s => s.plotlyDatasets![1]); // "!" tells TS that we know it's not undefined
+  return validFoldedDatasets.map(s => {
+    return {
+      ...s.plotlyDatasets![1],
+      foldType: s.folded?.foldType,
+      timezone: s.folded?.timezone,
+      color: s.customColor || s.region.color,
+    };
+  }); // "!" tells TS that we know it's not undefined
 }); 
 
 const showErrorBands = ref(true);
+
+const showUserDatasetTable = ref(false);
+watch(tableSelection, (newVal) => {
+  if (newVal) {
+    console.log('Table selection changed:', newVal);
+    showUserDatasetTable.value = true;
+  }
+});
+
 </script>
 
 <style scoped lang="less">
@@ -811,5 +961,33 @@ const showErrorBands = ref(true);
 .h3-panel-titles .v-expansion-panel-title {
   font-size: 1.17em;
   font-weight: bold;
+}
+</style>
+
+<style>
+.explainer-text {
+  border-radius: 5px;
+  padding: 5px;
+  padding-inline-start: 10px;
+  background-color: rgb(var(--v-theme-surface-bright));
+  font-size: 0.8em;
+  color: rgb(var(--v-theme-on-surface-bright));
+  
+}
+
+.explainer-text hr {
+  border: none;
+  border-top: 1px solid rgb(var(--v-theme-on-surface-bright));
+  margin-inline: 0;
+  margin-block: 1em;
+}
+
+.explainer-text dt {
+  font-weight: bold;
+}
+
+.explainer-text dd {
+  margin-left: 0;
+  margin-bottom: 8px;
 }
 </style>

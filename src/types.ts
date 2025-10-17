@@ -123,12 +123,19 @@ export interface DataPointError {
 }
 
 // Dataset shape for PlotlyGraph (date-less or numeric x values allowed)
-export interface DataSet {
+export interface PlotltGraphDataSet {
   x: (number | Date | string | null)[]; // Plotly Datum subset
   y: (number | null)[];
   lower?: (number | null)[];
   upper?: (number | null)[];
   errorType?: 'bar' | 'band';
+  name: string;
+  datasetOptions?: {
+    mode?: string;
+    hovertemplate?: string;
+    customdata?: (number | Date | string | null)[];
+    [key: string]: unknown;
+  }; // Options that get folded into the Plotly dataset
 }
 
 export interface MillisecondRange {
@@ -144,6 +151,8 @@ export interface TimeRange {
   type: string; 
 }
 
+
+
 export interface UserDataset {
   id: string;
   loading?: boolean;
@@ -157,9 +166,24 @@ export interface UserDataset {
   // Optional folded data payload (stored raw so we avoid circular import with aggregation.ts)
   // Shape expected: { foldType: string; values: Record<number, {value: number|null; bin: number}>; errors: Record<number, DataPointError>; bins?: unknown }
   // Used when timeRange.type === 'folded'
-  folded?: unknown;
+  folded?: {
+    timeBin: string,
+    foldingPeriod: string,
+    foldType: string,
+    method: string,
+    timezone: string,
+    useSEM: boolean,
+    includeBinPhase: boolean,
+    alignToBinCenter: boolean,
+    useErrorBars: boolean,
+    raw: unknown,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } | any,
   // Direct plotly datasets (preferred for folded or synthetic selections)
-  plotlyDatasets?: DataSet[];
+  plotlyDatasets?: PlotltGraphDataSet[];
+  // add two user editable properties
+  name?: string; // user editable
+  customColor?: string; // user editable
 }
 
 export interface SelectionHandler<EventType, SelectionInfo> {

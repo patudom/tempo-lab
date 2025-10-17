@@ -11,8 +11,11 @@ import type {
   EsriImageServiceSpec,
 } from '../types';
 import type { AggValue, DataPointError, MillisecondRange } from "../../types";
-import {nanmean, diff} from './array_math';
+import {nanmean, diff} from '../../utils/array_operations/array_math';
 import { EsriSampler } from './sampling';
+
+import { TimeRangeOffsetter } from './TimeRangeOffsetter';
+import tz_lookup from '@photostructure/tz-lookup';
 
 // ============================================================================
 // TYPES
@@ -108,46 +111,18 @@ function stringifyEsriGetSamplesParameters(params: {
   return new URLSearchParams(options);
 }
 
-// ============================================================================
-// TEMPO DATA SERVICE
-// ============================================================================
 
-export class TempoDataService {
-  private baseUrl: string;
-  private variable: Variables;
-  private metadataCache: EsriImageServiceSpec | null = null;
+class ImageServiceServiceMetadata {
+  url: string;
+  metadataCache: EsriImageServiceSpec | null = null;
   private _loadingMetadata: boolean = false;
   
-  constructor(baseUrl: string, variable: Variables = "NO2_Troposphere") {
-    this.baseUrl = baseUrl;
-    this.variable = variable;
-    this.updateMetadataCache();
+  constructor(url: string) {
+    this.url = url;
   }
-
-  // ============================================================================
-  // CONFIGURATION
-  // ============================================================================
-
-  setVariable(variable: Variables): void {
-    this.variable = variable;
-  }
-
-  getVariable(): Variables {
-    return this.variable;
-  }
-
-  setBaseUrl(baseUrl: string): void {
-    if (this.baseUrl === baseUrl) return;
-    this.baseUrl = baseUrl;
-    this.updateMetadataCache();
-  }
-
-  getBaseUrl(): string {
-    return this.baseUrl;
-  }
-
+  
   private async _getServiceMetadata(): Promise<EsriImageServiceSpec> {
-    const url = `${this.baseUrl}?f=json`;
+    const url = `${this.url}?f=json`;
     return fetch(url)
       .then((response) => {
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -203,6 +178,123 @@ export class TempoDataService {
     }
     return this.updateMetadataCache();
   }
+  
+  async waitForCache(): Promise<ImageServiceServiceMetadata> {
+    await this.withMetadataCache();
+    return this;
+  }
+  
+  
+  get timeRange(): [number, number] | null {
+    if (this.metadataCache && this.metadataCache.timeInfo && this.metadataCache.timeInfo.timeExtent) {
+      return [this.metadataCache.timeInfo.timeExtent[0], this.metadataCache.timeInfo.timeExtent[1]];
+    }
+    return null;
+  }
+  
+  get extent(): RectBounds | null {
+    if (this.metadataCache && this.metadataCache.extent) {
+      return {
+        xmin: this.metadataCache.extent.xmin,
+        ymin: this.metadataCache.extent.ymin,
+        xmax: this.metadataCache.extent.xmax,
+        ymax: this.metadataCache.extent.ymax,
+      };
+    }
+    return null;
+  } 
+  
+  get spatialReference(): number | null {
+    if (this.metadataCache && this.metadataCache.spatialReference) {
+      return this.metadataCache.spatialReference.wkid || null;
+    }
+    return null;
+  }
+  
+  clippedToTimeExtent(timeRange: MillisecondRange): [MillisecondRange, boolean] {
+    const serviceTimeRange = this.timeRange;
+    if (!serviceTimeRange) return [timeRange, false];
+    const start = Math.max(timeRange.start, serviceTimeRange[0]);
+    const end = Math.min(timeRange.end, serviceTimeRange[1]);
+    const clipped = start !== timeRange.start || end !== timeRange.end;
+    return [{ start, end }, clipped];
+  }
+  
+  // 
+}
+
+
+// ============================================================================
+// TEMPO DATA SERVICE
+// ============================================================================
+
+export class TempoDataService extends ImageServiceServiceMetadata {
+  private _baseUrls: string | string[] = [];
+  private requestUrl: string = '';
+  private variable: Variables | string;
+  private metas = new Map<string, ImageServiceServiceMetadata>();
+  
+  constructor(baseUrl: string | string[], variable: Variables | string = "NO2_Troposphere") {
+    super(Array.isArray(baseUrl) ? baseUrl[0] : baseUrl);
+    this._baseUrls = baseUrl;
+    if (!Array.isArray(this._baseUrls)) {
+      this.requestUrl = this._baseUrls;
+    } else {
+      this.requestUrl = this._baseUrls[this._baseUrls.length - 1];
+    }
+    this.baseUrlArray.forEach((url) => {
+      this.metas.set(url, new ImageServiceServiceMetadata(url));
+    });
+    
+    this.variable = variable;
+    this.updateMetadataCache();
+  }
+
+  
+  get baseUrlArray(): string[] {
+    return Array.isArray(this._baseUrls) ? this._baseUrls : [this._baseUrls];
+  }
+  
+  // updateMetadataCache(): void {
+  //   this.baseUrlArray.forEach((url) => {
+  //     if (!this.metas.has(url)) {
+  //       this.metas.set(url, new ImageServiceServiceMetadata(url));
+  //     }
+  //   });
+  // }
+
+  // ============================================================================
+  // CONFIGURATION
+  // ============================================================================
+
+  setVariable(variable: Variables | string): void {
+    this.variable = variable;
+  }
+
+  getVariable(): Variables | string {
+    return this.variable;
+  }
+
+  setBaseUrl(baseUrl: string): void {
+    if (this.baseUrl === baseUrl) return;
+    this.baseUrl = baseUrl;
+    this.updateMetadataCache();
+  }
+  
+  get baseUrl(): string {
+    return this.url;
+  }
+  
+  set baseUrl(value: string) {
+    if (this.url === value) return;
+    this.url = value;
+    this.updateMetadataCache();
+  }
+
+  getBaseUrl(): string {
+    return this.baseUrl;
+  }
+
   
 
   // ============================================================================
@@ -264,7 +356,7 @@ export class TempoDataService {
         locationId: sample.locationId,
         geometryType: this.isRectBounds(geometry) ? 'rectangle' : 'point' as 'rectangle' | 'point'
       })); // this is a CEsriTimeseries[]
-      console.log(`Fetched ${processedSamples.length} samples for time range ${timeRange.start}-${timeRange.end}`);
+      console.log(`Fetched ${processedSamples.length} samples for time range ${new Date(timeRange.start)}-${new Date(timeRange.end)}`);
       return {
         samples: processedSamples,
         metadata: {
@@ -439,6 +531,19 @@ export class TempoDataService {
     };
   }
   
+  getRegionCenter(geometry: RectBounds | PointBounds): { lat: number; lon: number } {
+    if (this.isRectBounds(geometry)) {
+      return {
+        lat: (geometry.ymin + geometry.ymax) / 2,
+        lon: (geometry.xmin + geometry.xmax) / 2
+      };
+    } else { // It's a point
+      return {
+        lat: geometry.y,
+        lon: geometry.x
+      };
+    }
+  }
   /**
    * Fetch and aggragate any valid geometry data (rectangle or point)
    */
@@ -447,6 +552,20 @@ export class TempoDataService {
     timeRanges: TimeRanges,
     options: FetchOptions = {}
   ): Promise<TimeSeriesData> {
+    
+    const { lat: centerLat, lon: centerLon } = this.getRegionCenter(geometry);
+    const timezone = tz_lookup(centerLat, centerLon);
+    console.log(`Determined timezone for geometry (${centerLat.toFixed(2)}, ${centerLon.toFixed(2)}): ${timezone}`);
+    
+    // Convert UTC time ranges to local time ranges for this timezone
+    const offsetter = new TimeRangeOffsetter(timezone);
+    const timeRangesArray = Array.isArray(timeRanges) ? timeRanges : [timeRanges];
+    const localTimeRanges = offsetter.offsetRanges(timeRangesArray);
+    
+    console.log(`Offset ${timeRangesArray.length} UTC time range(s) to ${timezone}`);
+    console.log('UTC ranges:', timeRangesArray);
+    console.log('Local ranges:', localTimeRanges);
+    
     if (this.isRectBounds(geometry) && this.meta) {
       const sampler = new EsriSampler(this.meta, geometry);
       const sampleCount = options.sampleCount || 30;
@@ -454,7 +573,7 @@ export class TempoDataService {
       options.sampleCount = sampler.getSamplingSpecificationFromSampleCount(sampleCount).count;
       console.log(`Using sample count: ${options.sampleCount}`);
     }
-    const rawData = await this.fetchSamples(geometry, timeRanges, options);
+    const rawData = await this.fetchSamples(geometry, localTimeRanges, options);
     const stats = this.getTimeSeriesStatistics(rawData);
     console.log(`Data is sampled from ${stats.numUniqueLocations} unique locations with a total of ${stats.totalValues} values.`);
     

@@ -269,6 +269,46 @@ export class MaplibreLayersControl implements IControl {
     return label;
   }
   
+  _createFireIntensityFilter() {
+    const container = document.createElement('div');
+    container.classList.add('mlc-fire-filter');
+    
+    // range input from 0 to 4000 in log steps
+    const label = document.createElement('label') as HTMLLabelElement;
+    label.textContent = 'Fire Intensity (FRP)';
+    label.htmlFor = 'fire-intensity-filter';
+    
+    const input = document.createElement('input') as HTMLInputElement;
+    input.type = 'range';
+    input.id = 'fire-intensity-filter';
+    input.min = '0';
+    input.max = '100';
+    input.step = '1';
+    input.value = '100';
+    
+    const valueDisplay = document.createElement('span');
+    valueDisplay.id = 'fire-intensity-value';
+    valueDisplay.textContent = '0';
+    
+    input.addEventListener('input', () => {
+      const val = parseInt(input.value);
+      valueDisplay.textContent = val.toString();
+      if (this._map) {
+        if (val === 0) {
+          this._map.setFilter('hms-layer', null);
+        } else {
+          this._map.setFilter('hms-layer', ['>=', ['get', 'FRP'], val]);
+        }
+      }
+    });
+    
+    container.appendChild(label);
+    container.appendChild(input);
+    container.appendChild(valueDisplay);
+    
+    return container;
+  }
+  
   onLayersChanged(layers: LayerSpecification[]) {
     this._layers = layers;
     if (this._container) {
@@ -278,6 +318,7 @@ export class MaplibreLayersControl implements IControl {
       const elements = this.filteredLayers.map(layer => this._createLayerItem(layer));
       elements.forEach(el => this._container?.appendChild(el));
       this._container.appendChild(this._createPrimsSourceFilterElement());
+      this._container.appendChild(this._createFireIntensityFilter());
       // re-apply filter to current layers
       this._applyPrimSourceFilter();
     }
@@ -292,6 +333,7 @@ export class MaplibreLayersControl implements IControl {
     this._container.id = 'maplibre-layer-control';
     elements.forEach(el => this._container?.appendChild(el));
     this._container.appendChild(this._createPrimsSourceFilterElement());
+    this._container.appendChild(this._createFireIntensityFilter());
     
     map.on('styledata', () => {
       // check if layers changed

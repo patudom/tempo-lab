@@ -17,7 +17,7 @@ export function addPowerPlants(map: Ref<Map | null> | null) {
   const powerPlantsVisible = ref(true);
   const loading = ref(false);
   let loadPromise: Promise<GeoJSON.FeatureCollection> | null = null;
-  let usingHeatmap = false;
+  // let usingHeatmap = false;
 
   function togglePowerPlants(vis?: boolean | undefined) {
     if (!map || !map.value) return;
@@ -111,13 +111,26 @@ export function addPowerPlants(map: Ref<Map | null> | null) {
         "circle-color": [
           "match",
           ["get", "PrimSource"],
-          'coal', '#4B0082',
-          'natural gas', '#FF8C00',
-          'nuclear', '#FFD700',
-          'hydro', '#1E90FF',
-          'wind', '#00FF00',
-          'solar', '#FFA500',
-          /* other */ '#808080'
+          
+          // Traditional Sources (Black, Gray, Brown)
+          'coal',          '#1f2937', // Very Dark Slate/Black
+          'petroleum',     '#4b5563', // Dark Gray (Keeping Dark Gray for Petroleum)
+          'natural gas',   '#6b7280', // Medium Gray
+          
+          // Renewable Sources (Bright & Cool Hues)
+          'solar',         '#facc15', // Bright Amber/Gold (☀️ Sunnier Color)
+          'wind',          '#34d399', // Bright Cyan/Teal
+          'hydroelectric', '#1e40af', // Deep Blue (Water)
+          'geothermal',    '#047857', // Dark Teal
+          'biomass',       '#92400e', // Dark Brown (Reassigned)
+          
+          // Storage & Unique Sources (Magenta, Purple, Light Blue)
+          'nuclear',       '#d946ef', // Bright Magenta
+          'batteries',     '#a78bfa', // Medium Purple
+          'pumped storage', '#60a5fa', // Light Blue
+          
+          // Fallback
+          /* other */ '#e5e7eb' // Lightest Gray
           
         ],
         "circle-opacity": 1,
@@ -125,7 +138,7 @@ export function addPowerPlants(map: Ref<Map | null> | null) {
         "circle-stroke-color": "#ffffff"
       },
     });
-    ////
+    //
     
     let currentFeatureCoordinates = undefined;
     
@@ -192,7 +205,7 @@ export function addPowerPlants(map: Ref<Map | null> | null) {
       id: powerPlantsHeatmapLayerId,
       type: 'heatmap',
       source: powerPlantsSourceId,
-      maxzoom: 5,
+      // maxzoom: 5,
       paint: {
         "heatmap-radius": [
           'interpolate',
@@ -240,34 +253,36 @@ export function addPowerPlants(map: Ref<Map | null> | null) {
           ...createHeatmapColorMap('viridis', [0.1, 0.2, 0.4, 0.6, 0.8, 1], 0.05) // aweful by default
         ],
         // only fade at the zoom limit
-        "heatmap-opacity": [
-          'interpolate',
-          ['linear'],
-          ['zoom'],
-          4.9, // zoom = 4.9
-          1, // opacity = 1 @ zoom = 4.9
-          5, // zoom = 5
-          0 // opacity = 0 @ zoom = 5
-        ],
+        "heatmap-opacity": 0.8,
+        // "heatmap-opacity": [
+        //   'interpolate',
+        //   ['linear'],
+        //   ['zoom'],
+        //   4.9, // zoom = 4.9
+        //   1, // opacity = 1 @ zoom = 4.9
+        //   5, // zoom = 5
+        //   0 // opacity = 0 @ zoom = 5
+        // ],
       }
 
     });
     
-    addLayer({minzoom: 5}); // add the point layer on top of the heatmap
+    // addLayer({minzoom: 5}); // add the point layer on top of the heatmap
     
-    usingHeatmap = true;
+    // usingHeatmap = true;
     
-    map.value.on('idle', () => {
-      if (!isValidMap(map)) return;
-      if (usingHeatmap) {
-        if (map.value.getLayer(powerPlantsLayerId) && map.value.getLayer(powerPlantsHeatmapLayerId)) {
-          const heatmapVis = map.value.getLayoutProperty(powerPlantsHeatmapLayerId, 'visibility');
-          map.value.setLayoutProperty(powerPlantsLayerId, 'visibility', heatmapVis);
+    /** we don't need to sync visibility, we will handle these two independently **/
+    // map.value.on('idle', () => {
+    //   if (!isValidMap(map)) return;
+    //   if (usingHeatmap) {
+    //     if (map.value.getLayer(powerPlantsLayerId) && map.value.getLayer(powerPlantsHeatmapLayerId)) {
+    //       const heatmapVis = map.value.getLayoutProperty(powerPlantsHeatmapLayerId, 'visibility');
+    //       map.value.setLayoutProperty(powerPlantsLayerId, 'visibility', heatmapVis);
           
-        }
-      }
+    //     }
+    //   }
       
-    }); 
+    // }); 
     
   }
   

@@ -252,6 +252,7 @@ body {
 // Some Golden Layout adjustments
 .lm_content {
   background: rgb(var(--v-theme-background));
+  overflow-y: auto!important;
 }
 
 .lm_splitter {

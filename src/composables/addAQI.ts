@@ -275,7 +275,7 @@ export function addQUI(url: string, options: UseKMLOptions = {}): AQILayer {
           ['get', 'marker-color'],
           '#808080'
         ],
-        'circle-stroke-color': '#444444',
+        'circle-stroke-color': '#969696ff',
         'circle-stroke-width': 1,
         'circle-opacity': 0.8
       },

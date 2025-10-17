@@ -17,16 +17,9 @@ import {
 } from 'date-fns-tz';
 import {
   nan2null,
-  nanmean,
-  nanstandardError,
-  nanstdev,
-  nansum,
-  nanmin,
-  nanmax,
-  nanRootMeanSquare,
-} from "./array_math";
-import { Period } from "vuetify/lib/components/VTimePicker/VTimePicker";
+} from "../../utils/array_operations/array_math";
 
+import { aggregateData } from "../../utils/array_operations/aggregator";
 
 export interface TimeSeriesData {
   values: Record<number, AggValue>;
@@ -44,44 +37,10 @@ export interface TimeSeriesData {
 * If you have a UTC/js timestamp, and want the day of week for a 
 * specfic timezone
 */
-function getWeekOfYear(date: Date) {
-  const currentDate = 
-    (typeof date === 'object') ? date : new Date();
-  const januaryFirst = 
-    new Date(currentDate.getFullYear(), 0, 1);
-  const daysToNextMonday = 
-    (januaryFirst.getDay() === 1) ? 0 : 
-      (7 - januaryFirst.getDay()) % 7;
-  const nextMonday = 
-    new Date(currentDate.getFullYear(), 0, 
-      januaryFirst.getDate() + daysToNextMonday);
-
-  return (currentDate < nextMonday) ? 52 : 
-    (currentDate > nextMonday ? Math.ceil(
-      (currentDate.getTime() - nextMonday.getTime()) / (24 * 3600 * 1000) / 7) : 1);
-}
-
-
-function getBeginningOfWeek(date: Date, timezone?: string): Date {
-  const zonedDate = timezone ? toZonedTime(date, timezone) : date;
-  const day = zonedDate.getDay(); // 0 (Sun) to 6 (Sat)
-  const weekStart = new Date(zonedDate);
-  weekStart.setDate(zonedDate.getDate() - day); // move back to sunday
-  weekStart.setHours(0, 0, 0, 0);
-  // want this to return the UTC time (so we can use the timestamp if we want)
-  return timezone ? fromZonedTime(weekStart, timezone) : weekStart;
-}
-
-function getEndOfWeek(date: Date, timezone?: string): Date {
-  const zonedDate = timezone ? toZonedTime(date, timezone) : date;
-  const day = zonedDate.getDay();
-  const weekEnd = new Date(zonedDate);
-  // Move to Saturday (day 6) then set end of day
-  weekEnd.setDate(zonedDate.getDate() + (6 - day));
-  weekEnd.setHours(23, 59, 59, 999);
-  return timezone ? fromZonedTime(weekEnd, timezone) : weekEnd;
-}
-
+import {
+  getBeginningOfWeek,
+  getWeekOfYear,
+} from '@/utils/calendar_utils';
 
 type Window = string ; // e.g, '1d', '3d', '1w' , 'weekly'
 
@@ -176,59 +135,25 @@ export class TimeSeriesResampler {
       const timestamp = parseInt(groupId); // this is the UTC for the start of the group
 
       const groupValues = groupData.values.map(d => d.value);
-      let aggregatedValue: number | null;
       
-      switch (this.method) {
-        case 'mean':
-          aggregatedValue = nanmean(groupValues);
-          break;
-        case 'min':
-          aggregatedValue = nanmin(groupValues);
-          break;
-        case 'max':
-          aggregatedValue = nanmax(groupValues);
-          break;
-        default:
-          aggregatedValue = nanmean(groupValues);
-      }
+      // Prepare error arrays for aggregateData (using uppers since errors are symmetric)
+      const errorValues = this.includeCalibrationUncertainty && groupData.errors.length > 0
+        ? groupData.errors.map(e => e.upper)
+        : undefined;
       
-      values[timestamp] = { value: aggregatedValue, date: new Date(timestamp) };
+      // Map error method from 'sem'/'std' to aggregateData's format
+      const errorFunc = this.errorMethod === 'sem' ? 'standardError' : 'stdev';
       
-      const standardError = this.errorMethod === 'sem' ? nanstandardError(groupValues) : (nanstdev(groupValues) || 0);
-      if (!standardError) {
-        console.error(
-          'Standard error is null for group', 
-          formatInTimeZone(new Date(timestamp), this.timezone ?? 'UTC', "yyyy-mm-dd"), 
-          'with values', groupValues);
-      }
-
-      if (this.includeCalibrationUncertainty && groupData.errors.length > 0) {
-        const lowers = groupData.errors.map(e => e.lower).filter(v => v !== null) as number[];
-        const uppers = groupData.errors.map(e => e.upper).filter(v => v !== null) as number[];
-        
-        const newLower = nanRootMeanSquare(lowers);
-        const newUpper = nanRootMeanSquare(uppers);
-        
-        errors[timestamp] = {
-          lower: nan2null(nanRootMeanSquare([standardError, newLower])),
-          upper: nan2null(nanRootMeanSquare([standardError, newUpper]))
-        };
-      } else {
-        errors[timestamp] = { lower: nan2null(standardError), upper: nan2null(standardError) };
-      }
+      // Use aggregateData (errors are symmetric, so we reuse the result)
+      const result = aggregateData(groupValues, errorValues, this.method, errorFunc);
+      
+      values[timestamp] = { value: result.value, date: new Date(timestamp) };
+      errors[timestamp] = { 
+        lower: result.error, 
+        upper: result.error 
+      };
+      
       // end of loop over groups
-    }
-    
-    // DEBUG ONLY: this loop should never have to do anything
-    for (const ts in errors) {
-      if (errors[ts].lower !== null && isNaN(errors[ts].lower!)) {
-        console.error('Error lower is NaN for timestamp. Setting to null.', ts, errors[ts]);
-        errors[ts].lower = null;
-      }
-      if (errors[ts].upper !== null && isNaN(errors[ts].upper!)) {
-        console.error('Error upper is NaN for timestamp. Setting to null.', ts, errors[ts]);
-        errors[ts].upper = null;
-      }
     }
     
     return {
@@ -245,10 +170,35 @@ export class TimeSeriesResampler {
 
 
 export type FoldType = 
+    // Original fold types
     'hourOfDay' | 
     'dayOfWeek' | 
     'hourOfWeek'|
-    'weekdayWeekend';
+    'dayOfWeekdayWeekend' |
+    // Hour-based bins
+    'hourOfWeek' |    // hour bins, folded over a week (0-167)
+    'hourOfMonth' |   // hour bins, folded over a month (0-743 max)
+    'hourOfYear' |    // hour bins, folded over a year (0-8783 max)
+    'hourOfSeason' |  // hour bins, folded over a season (0-2183 max)
+    // Day-based bins
+    'dayOfWeek' |     // day bins, folded over a week (0-6)
+    'dayOfMonth' |    // day bins, folded over a month (0-30 max)
+    'dayOfYear' |     // day bins, folded over a year (0-365)
+    'dayOfSeason' |   // day bins, folded over a season (0-91 max)
+    // Week-based bins
+    'weekOfMonth' |   // week bins, folded over a month (0-4 max)
+    'weekOfYear' |    // week bins, folded over a year (0-52)
+    'weekOfSeason' |  // week bins, folded over a season (0-13 max)
+    // Month-based bins
+    'monthOfYear' |   // month bins, folded over a year (0-11)
+    'monthOfSeason'|  // month bins, folded over a season (0-2)
+    // None-period bins (simple binning with dates, no folding)
+    'hourOfNone' |    // hour bins with no folding (x-axis shows dates)
+    'dayOfNone' |     // day bins with no folding (x-axis shows dates)
+    'weekOfNone' |    // week bins with no folding (x-axis shows dates)
+    'monthOfNone' |   // month bins with no folding (x-axis shows dates)
+    // Others
+    'hourOfWeekdayWeekend'; // shows hours of the weekday, and hour of the weekend
 
 export interface FoldBinContent {
   bin: number;
@@ -281,11 +231,17 @@ export function sortfoldBinContent(bin: FoldBinContent): FoldBinContent {
   };
 }
 
+function altFloorHour(date: Date): Date {
+  const msPerHour = 3600000; // milliseconds in an hour
+  return new Date(Math.round(date.getTime() / msPerHour) * msPerHour);
+}
+
 export type Seasons = 'DJF' | 'MAM' | 'JJA' | 'SON'; // meteorological seasons
 
 export interface FoldedAggValue {
   value: number | null;
   bin: number; // 0–23, 0–6, or 0–167 depending on fold
+  date?: Date; // actual date for None-period bins (hourOfNone, dayOfNone, etc.)
 }
 
 interface InternalBin {
@@ -336,46 +292,234 @@ export class TimeSeriesFolder {
   // convenience to get the number of bins
   private _binCount(): number {
     switch (this.foldType) {
+      // Hour-based bins
       case 'hourOfDay': return 24;
+      case 'hourOfWeek': return 24 * 7;        // 168
+      case 'hourOfMonth': return 24 * 31;      // 744 (max for 31-day month)
+      case 'hourOfYear': return 24 * 366;      // 8784 (max for leap year)
+      case 'hourOfSeason': return 24 * 92;     // 2208 (max ~92 days)
+      
+      // Day-based bins
       case 'dayOfWeek': return 7;
-      case 'hourOfWeek': return 24*7;
-      case 'weekdayWeekend': return 2;
+      case 'dayOfMonth': return 31;            // max days in a month
+      case 'dayOfYear': return 366;            // max for leap year
+      case 'dayOfSeason': return 92;           // max ~92 days in a season
+      
+      // Week-based bins
+      case 'weekOfMonth': return 5;            // max ~5 weeks in a month
+      case 'weekOfYear': return 54;            // max 53 weeks in a year
+      case 'weekOfSeason': return 14;          // max ~14 weeks in a season
+      
+      // Month-based bins
+      case 'monthOfYear': return 12;
+      case 'monthOfSeason': return 3;          // 3 months per season
+      
+      // None-period bins (use timestamps as keys, so no fixed count)
+      case 'hourOfNone':
+      case 'dayOfNone':
+      case 'weekOfNone':
+      case 'monthOfNone':
+        return Infinity;  // no fixed bin count for None-period types
+      
+      // Special cases
+      case 'dayOfWeekdayWeekend': return 2;
+      case 'hourOfWeekdayWeekend': return 48; // 0-23 for weekday, 24-48 for weekend
+      
+      default:
+        console.error('Unknown fold type:', this.foldType);
+        return 1;
     }
   }
   
   // instead of a groupId we just need the bin index
   private _binIndex(date: Date): number {
     const z = this._getZonedDate(date);
+    
     switch (this.foldType) {
-      case 'hourOfDay': return z.getHours();                 // 0–23
-      case 'dayOfWeek': return z.getDay();                   // 0–6
-      case 'hourOfWeek': return z.getDay() * 24 + z.getHours(); // 0–167
-      case 'weekdayWeekend': return (z.getDay() % 6 > 0) ? 1 : 0; // 1=weekday, 0=weekend
+      // Hour-based bins
+      case 'hourOfDay': 
+        return altFloorHour(z).getHours();                                    // 0–23
+      case 'hourOfWeek': 
+        return z.getDay() * 24 + altFloorHour(z).getHours();                  // 0–167
+      case 'hourOfMonth': 
+        return (z.getDate() - 1) * 24 + altFloorHour(z).getHours();           // 0–743
+      case 'hourOfYear': {
+        const yearStart = new Date(z.getFullYear(), 0, 1);
+        const dayOfYear = Math.floor((z.getTime() - yearStart.getTime()) / (1000 * 60 * 60 * 24));
+        return dayOfYear * 24 + altFloorHour(z).getHours();                   // 0–8783
+      }
+      case 'hourOfSeason': {
+        const month = z.getMonth();
+        const season = Math.floor(((month + 1) / 3) % 4);       // 0-3 for DJF, MAM, JJA, SON
+        const seasonStartMonths = [11, 2, 5, 8];                // Dec, Mar, Jun, Sep
+        const yearOff = season === 0 ? 1 : 0;
+        const seasonStart = new Date(z.getFullYear() - yearOff, seasonStartMonths[season], 1);
+        const dayOfSeason = Math.floor((z.getTime() - seasonStart.getTime()) / (1000 * 60 * 60 * 24));
+        return dayOfSeason * 24 + altFloorHour(z).getHours();                 // 0–2207
+      }
+      
+      // Day-based bins
+      case 'dayOfWeek': 
+        return z.getDay();                                      // 0–6
+      case 'dayOfMonth': 
+        return z.getDate() - 1;                                 // 0–30
+      case 'dayOfYear': {
+        const yearStart = new Date(z.getFullYear(), 0, 1);
+        return Math.floor((z.getTime() - yearStart.getTime()) / (1000 * 60 * 60 * 24)); // 0–365
+      }
+      case 'dayOfSeason': {
+        const month = z.getMonth();
+        const season = Math.floor(((month + 1) / 3) % 4);
+        const seasonStartMonths = [11, 2, 5, 8];
+        const yearOff = season === 0 ? 1 : 0;
+        const seasonStart = new Date(z.getFullYear() - yearOff, seasonStartMonths[season], 1);
+        return Math.floor((z.getTime() - seasonStart.getTime()) / (1000 * 60 * 60 * 24)); // 0–91
+      }
+      
+      // Week-based bins
+      case 'weekOfMonth': {
+        const dayOfMonth = z.getDate();
+        return Math.floor((dayOfMonth - 1) / 7);                // 0–4
+      }
+      case 'weekOfYear': {
+        return getWeekOfYear(date); // this can be done approximately w/o the timezone
+        // i haven't tested, but in principle there could be some off-by one hour errors
+      }
+      
+      case 'weekOfSeason': {
+        const month = z.getMonth();
+        const season = Math.floor(((month + 1) / 3) % 4);
+        const seasonStartMonths = [11, 2, 5, 8];
+        const yearOff = season === 0 ? 1 : 0;
+        const seasonStart = new Date(z.getFullYear() - yearOff, seasonStartMonths[season], 1);
+        const dayOfSeason = Math.floor((z.getTime() - seasonStart.getTime()) / (1000 * 60 * 60 * 24));
+        return Math.floor(dayOfSeason / 7);                     // 0–13
+      }
+      
+      // Month-based bins
+      case 'monthOfYear': 
+        return z.getMonth();                                    // 0–11
+      case 'monthOfSeason': {
+        const month = z.getMonth();
+        const season = Math.floor(((month + 1) / 3) % 4);
+        const seasonStartMonths = [11, 2, 5, 8];
+        const seasonStartMonth = seasonStartMonths[season];
+        // Calculate month offset within season
+        if (season === 0) { // DJF
+          return month === 11 ? 0 : month + 1;                  // Dec=0, Jan=1, Feb=2
+        } else {
+          return (month - seasonStartMonth + 12) % 12;          // 0–2
+        }
+      }
+      
+      // None-period bins (return timestamp of bin start, like resampler)
+      case 'hourOfNone': {
+        // const zBinStart = new Date(z);
+        // zBinStart.setMinutes(0, 0, 0);
+        const zBinStart = altFloorHour(z);
+        return (this.timezone ? fromZonedTime(zBinStart, this.timezone) : zBinStart).getTime();
+      }
+      case 'dayOfNone': {
+        const zBinStart = new Date(z);
+        zBinStart.setHours(0, 0, 0, 0);
+        return (this.timezone ? fromZonedTime(zBinStart, this.timezone) : zBinStart).getTime();
+      }
+      case 'weekOfNone': {
+        const weekStart = getBeginningOfWeek(date, this.timezone);
+        return weekStart.getTime();
+      }
+      case 'monthOfNone': {
+        const zBinStart = new Date(z);
+        zBinStart.setDate(1);
+        zBinStart.setHours(0, 0, 0, 0);
+        return (this.timezone ? fromZonedTime(zBinStart, this.timezone) : zBinStart).getTime();
+      }
+      
+      // Special cases
+      case 'dayOfWeekdayWeekend': 
+        return (z.getDay() % 6 > 0) ? 0 : 1;                    // 1=weekend, 0=weekday
+        
+      case 'hourOfWeekdayWeekend': {
+        const isWeekend = (z.getDay() % 6 === 0);                // true if weekend
+        return isWeekend ? (24 + altFloorHour(z).getHours()) : altFloorHour(z).getHours();  // 0-23 for weekday, 24-47 for weekend
+      }
+      
+      default:
+        console.error('Unknown fold type:', this.foldType);
+        return 0;
     }
   }
   
   private _binPhase(date: Date): number {
     const z = this._getZonedDate(date);
+    const minutes = z.getMinutes();
+    const seconds = z.getSeconds();
+    const milliseconds = z.getMilliseconds();
+    
     switch (this.foldType) {
-      case 'hourOfDay': return z.getMinutes() / 60 + z.getSeconds() / 3600; // fraction of hour
-      case 'dayOfWeek': return (z.getHours() + z.getMinutes() / 60 + z.getSeconds() / 3600) / 24; // fraction of day
-      case 'hourOfWeek': return (z.getMinutes() / 60 + z.getSeconds() / 3600) ; // fraction of hour
-      case 'weekdayWeekend': return 0;  // this is a binary choice, no phase
+      // Hour-based bins - return fraction of hour
+      case 'hourOfDay':
+      case 'hourOfWeek':
+      case 'hourOfMonth':
+      case 'hourOfYear':
+      case 'hourOfSeason':
+      case 'hourOfNone':
+        return -((minutes / 60 + seconds / 3600 + milliseconds / 3600000 ) - 0.5); // fraction of hour
+      
+      // Day-based bins - return fraction of day (as hours)
+      case 'dayOfWeek':
+      case 'dayOfMonth':
+      case 'dayOfYear':
+      case 'dayOfSeason':
+      case 'dayOfNone': {
+        const hourOfDay = z.getHours() + minutes / 60 + seconds / 3600;
+        return hourOfDay / 24; // fraction of day
+      }
+      
+      // Week-based bins - return fraction of week (as days)
+      case 'weekOfMonth':
+      case 'weekOfYear':
+      case 'weekOfSeason':
+      case 'weekOfNone': {
+        const dayOfWeek = z.getDay();
+        const hourOfDay = z.getHours() + minutes / 60 + seconds / 3600;
+        return (dayOfWeek + hourOfDay / 24) / 7; // fraction of week
+      }
+      
+      // Month-based bins - return fraction of month (as days)
+      case 'monthOfYear':
+      case 'monthOfSeason':
+      case 'monthOfNone': {
+        const dayOfMonth = z.getDate() - 1; // 0-based
+        const hourOfDay = z.getHours() + minutes / 60 + seconds / 3600;
+        const daysInMonth = new Date(z.getFullYear(), z.getMonth() + 1, 0).getDate();
+        return (dayOfMonth + hourOfDay / 24) / daysInMonth; // fraction of month
+      }
+      
+      // Special cases
+      case 'dayOfWeekdayWeekend': 
+        return 0;  // binary choice, no phase
+        
+      case 'hourOfWeekdayWeekend': {
+        // Return fraction of hour (0-1) to match other hour-based bins
+        return minutes / 60 + seconds / 3600 + milliseconds / 3600000;
+      }
+      
+      default:
+        console.error('Unknown fold type:', this.foldType);
+        return 0;
     }
   }
   
   foldData(timeseries: Prettify<TimeSeriesData>): FoldedTimeSeriesData {
     
-    // the data and the error are in the same order
-    const data = Object.values(timeseries.values) as Prettify<AggValue>[]; // AggValue[]
-    const error = Object.values(timeseries.errors); // DataPointError[] | undefined
-    
     const binCount = this._binCount();
-    const binsRecord: Record<number, InternalBin> = {};
+    const binsRecord: Record<number, Prettify<InternalBin>> = {};
     
+    // bundle data and errors into bins
+    // it includes the timestamps, and raw/cleaned valued
     Object.entries(timeseries.values).forEach(([ts,d]) => {
       const binIndex = this._binIndex(d.date);
-      console.log('Folding date', d.date, 'to bin index', binIndex, 'with fold type', this.foldType);
       if (binIndex == null || binIndex < 0 || binIndex >= binCount) {
         console.error('Invalid bin index', binIndex, 'for date', d.date, 'with fold type', this.foldType);
         return;
@@ -407,69 +551,43 @@ export class TimeSeriesFolder {
       
     });
 
+    // Check if this is a None-period fold type
+    const isNonePeriod = ['hourOfNone', 'dayOfNone', 'weekOfNone', 'monthOfNone'].includes(this.foldType);
+
     // these will be the time-aggregated values
     const values: Record<number, FoldedAggValue> = {};
     const errors: Record<number, DataPointError> = {};
     const publicBins: Record<number, FoldBinContent> = {};
-    
-    // loop over the groups
+
+    // loop over the groups and aggregate
     Object.values(binsRecord).forEach(bin => {
-      // const bin = binsRecord[binKey];
+
       const { bin: binIndex, numericValues, calibrationErrors, rawValues, timestamps } = bin;
-      const groupValues = numericValues;
       
-      let aggregatedValue: number | null;
+      // Prepare error arrays for aggregateData (using uppers since errors are symmetric)
+      const errorValues = this.includeCalibrationUncertainty && calibrationErrors.length > 0
+        ? calibrationErrors.map(e => e.upper)
+        : undefined;
       
-      switch (this.method) {
-        case 'mean':
-          aggregatedValue = nanmean(groupValues);
-          break;
-        case 'min':
-          aggregatedValue = nanmin(groupValues);
-          break;
-        case 'max':
-          aggregatedValue = nanmax(groupValues);
-          break;
-        default:
-          aggregatedValue = nanmean(groupValues);
-      }
+      // Map error method from 'sem'/'std' to aggregateData's format
+      const errorFunc = this.errorMethod === 'sem' ? 'standardError' : 'stdev';
       
-      // we just want to keep the bin index as the "timestamp"
-      // so use obviously wrong date
-      values[binIndex] = { value: aggregatedValue, bin: binIndex };
+      // Use aggregateData (errors are symmetric, so we reuse the result)
+      const result = aggregateData(rawValues, errorValues, this.method, errorFunc);
       
-      const dispersionMeasure = this.errorMethod === 'sem' 
-        ? nanstandardError(groupValues) 
-        : (nanstdev(groupValues) || 0);
+      // For None-period bins, binIndex is a timestamp, convert to Date
+      const binDate = isNonePeriod ? new Date(binIndex) : undefined;
       
-      if (this.includeCalibrationUncertainty && calibrationErrors.length > 0) {
-        const lowers = calibrationErrors.map(e => e.lower).filter(v => v !== null) as number[];
-        const uppers = calibrationErrors.map(e => e.upper).filter(v => v !== null) as number[];
-        
-        const newLower = nanRootMeanSquare(lowers);
-        const newUpper = nanRootMeanSquare(uppers);
-        
-        errors[binIndex] = {
-          lower: nan2null(nanRootMeanSquare([dispersionMeasure, newLower])),
-          upper: nan2null(nanRootMeanSquare([dispersionMeasure, newUpper]))
-        };
-      } else {
-        errors[binIndex] = { lower: nan2null(dispersionMeasure), upper: nan2null(dispersionMeasure) };
-      }
+      values[binIndex] = { 
+        value: result.value, 
+        bin: binIndex,
+        date: binDate
+      };
       
-      // DEBUG ONLY: this loop should never have to do anything
-      for (const ts in errors) {
-        if (errors[ts].lower !== null && isNaN(errors[ts].lower)) {
-          console.error('Error lower is NaN for timestamp. Setting to null.', ts, errors[ts]);
-          errors[ts].lower = null;
-        }
-        if (errors[ts].upper !== null && isNaN(errors[ts].upper)) {
-          console.error('Error upper is NaN for timestamp. Setting to null.', ts, errors[ts]);
-          errors[ts].upper = null;
-        }
-      }
-      
-      
+      errors[binIndex] = { 
+        lower: result.error, 
+        upper: result.error 
+      };
       
       // expose the full bin contents
       publicBins[binIndex] = {

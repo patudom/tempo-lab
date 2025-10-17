@@ -19,10 +19,11 @@
           density="compact"
         />
         <v-radio 
-          label="Weekday Pattern" 
-          value="weekday"
+          label="Months Range" 
+          value="monthrange"
           density="compact"
         />
+
         <v-radio 
           label="Pattern (Days × Times)" 
           value="pattern"
@@ -30,13 +31,127 @@
         />
       </v-radio-group>
 
-      <!-- Weekday Pattern Section -->
+
+
+      <!-- Date Range Section -->
       <v-expand-transition>
-        <div v-if="selectionType === 'weekday'" class="weekday-pattern-section">
-          <!-- Reference Date -->
+        <div v-if="selectionType === 'daterange'" class="date-range-section">
+          <!-- Date Range Picker -->
+            <div class="mb-4">
+              <label class="text-subtitle-2 mb-2 d-block">Pick Date Range</label>
+              <date-picker
+                range
+                :multi-calendars="{solo: true}"
+                ref="dateRangeCalendar"
+                :model-value="dateRangeArray"
+                @internal-model-change="handleDateRangeChange"
+                :allowed-dates="allowedDates"
+                :format="(d) => d.map(formatDateDisplay).join(' - ')"
+                :teleport="true"
+                :enable-time-picker="false"
+                dark
+                :year-range="[allowedDates ? allowedDates[0].getFullYear() : 2023, allowedDates ? allowedDates[allowedDates.length - 1].getFullYear() : new Date().getFullYear()]"
+              />
+          </div>
+        </div>
+      </v-expand-transition>
+
+      <!-- Pattern Section (Multi-day, Multi-time) -->
+      <v-expand-transition>
+        <div v-if="selectionType === 'pattern'" class="pattern-section">
+          <!-- Days of Week Multi-toggle -->
           <div class="mb-4">
-            <label class="text-subtitle-2 mb-2 d-block">Reference Date</label>
+            <label class="text-subtitle-2 mb-2 d-block">Days of Week</label>
+            <!-- just do labeled checkboxes -->
+            <label v-for="(day, idx) in dayOptions" :key="idx" class="mr-3" style="text-wrap: nowrap;">
+              <input 
+                type="checkbox" 
+                :value="day.value" 
+                v-model="selectedDays" 
+              />
+              <span class="ml-1">{{ day.title.slice(0,3) }}</span>
+            </label>
+          </div>
+          <div class="mb-4 simple-patterns">
+            <!-- weekdays -->
+            <v-btn 
+              size="x-small" 
+              variant="outlined" 
+              class="mr-2 mb-2"
+              @click="selectedDays = [1,2,3,4,5]"
+            >Weekdays</v-btn>
+            <!-- weekends -->
+            <v-btn 
+              size="x-small" 
+              variant="outlined" 
+              class="mr-2 mb-2"
+              @click="selectedDays = [0,6]"
+            >Weekends</v-btn>
+            <!-- full weeek -->
+            <v-btn 
+              size="x-small" 
+              variant="outlined" 
+              class="mr-2 mb-2"
+              @click="selectedDays = [0,1,2,3,4,5,6]"
+            >Full Week</v-btn>
+            <!-- clear -->
+            <v-btn 
+              size="x-small" 
+              variant="outlined" 
+              class="mr-2 mb-2"
+              @click="selectedDays = []"
+            >Clear</v-btn>
+          </div>
+
+          <!-- Times Multi-select -->
+          <div class="mb-4">
+            <div class="mt-2 dtrs-flex-time-box">
+              <v-combobox
+                v-model="selectedTimes"
+                :items="timeOptions"
+                label="Add/select times"
+                multiple
+                chips
+                closable-chips
+                density="compact"
+                variant="outlined"
+                hide-details
+                hint="24h format HH:MM (e.g., 09:00, 14:30)"
+                persistent-hint
+                @update:model-value="normalizeTimes"
+              />
+              
+              <div class="pm-wrapper">
+                <input
+                  id="dtrs-time-plus-minus"
+                  type="checkbox"
+                  v-model="timePlusMinus"
+                  :true-value="11.9999"
+                  :false-value="0.49999"
+                />
+                <label for="dtrs-time-plus-minus">All Day</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Instances -->
+          <div>
+            <v-number-input
+              v-model="instancesBack"
+              label="Number of Weeks"
+              :rules="instanceRules"
+              :min="1"
+              :max="104"
+              density="compact"
+              variant="outlined"
+              control-variant="split"
+            />
+          </div>
+          <!-- Reference Date -->
+          <div class="mb-2">
+            <label>going back from</label>
             <date-picker
+              class="reference-date-picker"
               ref="weekdayCalendar"
               :model-value="weekdayStartDateObj"
               @internal-model-change="handleWeekdayDateChange"
@@ -48,183 +163,6 @@
               :teleport="true"
               dark
               :year-range="[allowedDates ? allowedDates[0].getFullYear() : 2023, allowedDates ? allowedDates[allowedDates.length - 1].getFullYear() : new Date().getFullYear()]"
-            />
-          </div>
-
-          <!-- Day of Week Selection -->
-          <div class="mb-4">
-            <v-select
-              v-model="selectedDayOfWeek"
-              :items="dayOptions"
-              label="Day of Week"
-              prepend-inner-icon="mdi-calendar-week"
-              density="compact"
-              variant="outlined"
-              hide-details
-            />
-          </div>
-
-          <!-- Time Selection -->
-          <div class="mb-4">
-            <label class="text-subtitle-2 mb-2 d-block">Time</label>
-            <div class="d-flex align-center ga-2">
-              <input
-                v-model="selectedTime"
-                type="time"
-                class="time-input"
-              />
-              <v-chip size="small" color="primary" variant="tonal">
-                {{ selectedTimezone }}
-              </v-chip>
-              <!-- add time plus minus number input. use +- icon and should step in .5 hour increments -->
-              
-              <input 
-                v-model="timePlusMinus"
-                type="number"
-                min="-12"
-                max="12"
-                step="0.5"
-                class="time-input"
-                style="width: 80px;"
-                placeholder="± hours"
-              />
-            </div>
-          </div>
-
-          <!-- Number of Instances -->
-          <div class="mb-4">
-            <v-number-input
-              v-model="instancesBack"
-              label="Number of Instances"
-              :rules="instanceRules"
-              :min="1"
-              :max="104"
-              density="compact"
-              variant="outlined"
-              control-variant="split"
-            />
-          </div>
-        </div>
-      </v-expand-transition>
-
-      <!-- Date Range Section -->
-      <v-expand-transition>
-        <div v-if="selectionType === 'daterange'" class="date-range-section">
-          <!-- Start Date -->
-          <div class="mb-4">
-            <label class="text-subtitle-2 mb-2 d-block">Start Date</label>
-            <date-picker
-              ref="startDateCalendar"
-              :model-value="startDateObj"
-              @internal-model-change="handleStartDateChange"
-              :allowed-dates="allowedDates"
-              :max-date="endDateObj ?? new Date()"
-              :format="formatDateDisplay"
-              :preview-format="formatDateDisplay"
-              text-input
-              :teleport="true"
-              dark
-              :year-range="[allowedDates ? allowedDates[0].getFullYear() : 2023, allowedDates ? allowedDates[allowedDates.length - 1].getFullYear() : new Date().getFullYear()]"
-            />
-          </div>
-
-          <!-- End Date -->
-          <div class="mb-4">
-            <label class="text-subtitle-2 mb-2 d-block">End Date</label>
-            <date-picker
-              ref="endDateCalendar"
-              :model-value="endDateObj"
-              @internal-model-change="handleEndDateChange"
-              :allowed-dates="allowedDates"
-              :min-date="startDateObj ?? new Date(0)"
-              :format="formatDateDisplay"
-              :preview-format="formatDateDisplay"
-              text-input
-              :teleport="true"
-              dark
-              :year-range="[allowedDates ? allowedDates[0].getFullYear() : 2023, allowedDates ? allowedDates[allowedDates.length - 1].getFullYear() : new Date().getFullYear()]"
-            />
-          </div>
-        </div>
-      </v-expand-transition>
-
-      <!-- Pattern Section (Multi-day, Multi-time) -->
-      <v-expand-transition>
-        <div v-if="selectionType === 'pattern'" class="pattern-section">
-          <!-- Days of Week Multi-toggle -->
-          <div class="mb-4">
-            <label class="text-subtitle-2 mb-2 d-block">Days of Week</label>
-            <!-- <v-btn-toggle
-              v-model="selectedDays"
-              multiple
-              density="compact"
-              class=""
-            >
-              <v-btn
-                v-for="(day, idx) in dayOptions"
-                :key="idx"
-                :value="day.value"
-                variant="tonal"
-                size="small"
-              >{{ day.title.slice(0,1) }}</v-btn>
-            </v-btn-toggle> -->
-            <!-- just do labeled checkboxes -->
-            <label v-for="(day, idx) in dayOptions" :key="idx" class="mr-3" style="text-wrap: nowrap;">
-              <input 
-                type="checkbox" 
-                :value="day.value" 
-                v-model="selectedDays" 
-              />
-              <span class="ml-1">{{ day.title.slice(0,3) }}</span>
-            </label>
-          </div>
-
-          <!-- Times Multi-select -->
-          <div class="mb-4">
-            <label class="text-subtitle-2 mb-2 d-block">Times</label>
-            <v-combobox
-              v-model="selectedTimes"
-              :items="timeOptions"
-              label="Add/select times"
-              multiple
-              chips
-              closable-chips
-              density="compact"
-              variant="outlined"
-              hide-details
-              hint="24h format HH:MM (e.g., 09:00, 14:30)"
-              persistent-hint
-              @update:model-value="normalizeTimes"
-            />
-            <div class="mt-2">
-              <v-chip size="small" color="primary" variant="tonal">
-                {{ selectedTimezone }}
-              </v-chip>
-              <span class="ml-2 text-caption">± hours</span>
-              <input 
-                v-model="timePlusMinus"
-                type="number"
-                min="-12"
-                max="12"
-                step="0.5"
-                class="time-input"
-                style="width: 80px;"
-                placeholder="± hours"
-              />
-            </div>
-          </div>
-
-          <!-- Instances -->
-          <div class="mb-4">
-            <v-number-input
-              v-model="instancesBack"
-              label="Number of Instances"
-              :rules="instanceRules"
-              :min="1"
-              :max="104"
-              density="compact"
-              variant="outlined"
-              control-variant="split"
             />
           </div>
         </div>
@@ -251,6 +189,74 @@
           </div>
         </div>
       </v-expand-transition>
+      
+      <!-- Month Selection -->
+      <v-expand-transition>
+        <div v-if="selectionType === 'monthrange'" class="month-selection-section">
+          <div class="mb-4">
+            <div  v-for="month in monthNames" :key="month" class="d-inline-block">
+            <label class="mr-3" style="text-wrap: nowrap;" for="dtrs-month-{{ month }}"></label>
+              <input 
+                id="dtrs-month-{{ month }}"
+                type="checkbox" 
+                :value="monthNames.indexOf(month)" 
+                v-model="selectedMonths" 
+              />
+              <span class="ml-1">{{ month }}</span>
+            </div>
+          </div>
+          
+          <div class="mb-4">
+            <div v-for="year in possibleYears" :key="year" class="d-inline-block">
+            <label  class="mr-3" style="text-wrap: nowrap;" for="dtrs-year-{{ year }}"></label>
+              <input 
+                id="dtrs-year-{{ year }}"
+                type="checkbox" 
+                :value="year" 
+                v-model="selectedYears" 
+              />
+              <span class="ml-1">{{ year }}</span>
+            </div>
+            
+          </div>
+          
+          <div class="mb-4 simple-patterns">
+            <!-- winter, spring, summer, fall -->
+            <v-btn 
+              size="x-small" 
+              variant="outlined" 
+              class="mr-2 mb-2"
+              @click="selectedMonths = [11,0,1]"
+            >Winter</v-btn>
+            <v-btn 
+              size="x-small" 
+              variant="outlined" 
+              class="mr-2 mb-2"
+              @click="selectedMonths = [2,3,4]"
+            >Spring</v-btn>
+            <v-btn 
+              size="x-small" 
+              variant="outlined" 
+              class="mr-2 mb-2"
+              @click="selectedMonths = [5,6,7]"
+            >Summer</v-btn>
+            <v-btn 
+              size="x-small" 
+              variant="outlined" 
+              class="mr-2 mb-2"
+              @click="selectedMonths = [8,9,10]"
+            >Fall</v-btn>
+            <!-- clear -->
+            <v-btn 
+              size="x-small" 
+              variant="outlined" 
+              class="mr-2 mb-2"
+              @click="selectedMonths = []"
+            >Clear Months</v-btn>
+          </div>
+        </div>
+      </v-expand-transition>
+      
 
       <!-- Update Custom Range Button -->
       <v-btn
@@ -263,14 +269,6 @@
         Confirm Selection 
       </v-btn>
 
-      <!-- Timeline Visualization -->
-      <!-- <v-divider class="my-4" />
-      
-      <TimelineVisualization
-        :ranges="ranges"
-        :selected-timezone="selectedTimezone"
-        :mode="selectionType"
-      /> -->
     </v-card-text>
   </v-card>
 </template>
@@ -283,12 +281,13 @@ import '@vuepic/vue-datepicker/dist/main.css';
 import { useTimezone } from '../composables/useTimezone';
 import { useDateTimeSelector } from './useDateTimeSelector';
 import type { MillisecondRange, TimeRangeSelectionType } from '../types/datetime';
+import { formatTimeRange } from "@/utils/timeRange";
+
 
 // === INTERFACES === 
 // === PROPS ===
 const props = defineProps<{
   currentDate: Date;
-  selectedTimezone: string;
   defaultStartDate?: Date;
   defaultEndDate?: Date;
   allowedDates?: Date[];
@@ -297,22 +296,20 @@ const props = defineProps<{
 
 // === EMITS ===
 const emit = defineEmits<{
-  'ranges-change': [ranges: MillisecondRange[], selectionType: TimeRangeSelectionType]
+  'ranges-change': [ranges: MillisecondRange[], selectionType: TimeRangeSelectionType, customName: string];
 }>();
 
 // === COMPOSABLE SETUP ===
 // Create refs for the current date and timezone to pass to the composable
 const currentDateRef = ref(props.currentDate);
-const timezoneRef = ref(props.selectedTimezone);
-
+// Using UTC for time range generation - will be offset to local timezone when fetching data
+const timezoneRef = ref('UTC');
 // Initialize timezone handling
 const { setToMidnight, setToEndOfDay, formatDateDisplay } = useTimezone(timezoneRef);
 
 // Initialize the datetime selector composable with optional parameters
 const {
   selectionType,
-  selectedDayOfWeek,
-  selectedTime,
   instancesBack,
   timePlusMinus,
   weekdayStartDate,
@@ -322,6 +319,9 @@ const {
   setStartTimestamp: setStartTimestampInternal,
   setEndTimestamp: setEndTimestampInternal,
   dayNames,
+  monthNames,
+  selectedMonths,
+  selectedYears,
   generateMillisecondRanges,
   // single date additions
   singleDate,
@@ -330,7 +330,8 @@ const {
   // pattern additions
   selectedDays,
   selectedTimes,
-  generatePatternRanges
+  generatePatternRanges,
+  generateMonthRanges,
 } = useDateTimeSelector({
   currentDate: currentDateRef,
   selectedTimezone: timezoneRef
@@ -338,8 +339,8 @@ const {
 
 // === REFS ===
 const weekdayCalendar = ref();
-const startDateCalendar = ref();
-const endDateCalendar = ref();
+// const startDateCalendar = ref();
+// const endDateCalendar = ref();
 const singleDateCalendar = ref();
 
 // === PICKER STATE ===
@@ -372,6 +373,14 @@ const timeOptions = ref<string[]>(Array.from({ length: 15 }, (_, h) => `${String
 //   return hours.map(h => `${String(h).padStart(2, '0')}:00`);
 // });
 
+const possibleYears = computed(() => {
+  const dates = props.allowedDates ?? [2024];
+  if (dates.length === 0) return [2023, new Date().getFullYear()];
+  const years = dates.map(d => d.getFullYear());
+  // Deduplicate and sort
+  return [...new Set(years)].sort((a, b) => a - b);
+});
+
 // Day options for v-select
 const dayOptions = computed(() => 
   dayNames.map((day, index) => ({ title: day, value: index }))
@@ -387,6 +396,37 @@ const instanceRules = computed(() => [
   (v: number) => v >= 1 && v <= 104 || 'Must be between 1 and 104 (2 years)'
 ]);
 
+const customTimeRangeName = computed((): string => {
+  
+  if (selectionType.value === 'singledate') {
+    
+    return `${singleDateObj.value ? formatDateDisplay(singleDateObj.value) : 'No date selected'}`;
+    
+  } else if (selectionType.value === 'pattern') {
+    
+    // string to describe the pattern
+    const dayNamesSelected = selectedDays.value.map(d => dayNames[d].slice(0,3)).join(',');
+    const timesSelected = selectedTimes.value.join(', ');
+    return `Pattern: [${dayNamesSelected}] × [${timesSelected}] ± ${Math.abs(timePlusMinus.value)}h  (${formatTimeRange(generatePatternRanges())})`;
+    
+  } else if (selectionType.value === 'monthrange') {
+    
+    const monthNamesSelected = selectedMonths.value.map(m => monthNames[m].slice(0,3)).join(', ');
+    const yearsSelected = selectedYears.value.join(', ');
+    
+    return `Months: [${monthNamesSelected}] in [${yearsSelected}] (${formatTimeRange(generatePatternRanges())})`;
+    
+  } else if (selectionType.value === 'daterange') {
+    
+    return `${startDateObj.value ? formatDateDisplay(startDateObj.value) : 'No start date'} - ${endDateObj.value ? formatDateDisplay(endDateObj.value) : 'No end date'}`;
+    
+  } else {
+    
+    return 'Unrecognized selection type';
+  }
+    
+});
+
 // === METHODS ===
 // Update custom range button handler
 function updateCustomRange() {
@@ -395,10 +435,12 @@ function updateCustomRange() {
     currentRanges = generateSingleDateRange();
   } else if (selectionType.value === 'pattern') {
     currentRanges = generatePatternRanges();
+  } else if (selectionType.value === 'monthrange') {
+    currentRanges = generateMonthRanges();
   } else {
     currentRanges = generateMillisecondRanges();
   }
-  emit('ranges-change', currentRanges, selectionType.value);
+  emit('ranges-change', currentRanges, selectionType.value, customTimeRangeName.value);
 }
 
 // Date change handlers
@@ -420,7 +462,7 @@ function handleStartDateChange(value: Date) {
       // Convert to timestamp and update composable
       const timestamp = setToMidnight(value);
       setStartTimestampInternal(timestamp);
-      startDateCalendar.value?.closeMenu();
+      // startDateCalendar.value?.closeMenu();
     }
   }
 }
@@ -432,7 +474,33 @@ function handleEndDateChange(value: Date) {
       // Convert to timestamp and update composable
       const timestamp = setToEndOfDay(value);
       setEndTimestampInternal(timestamp);
-      endDateCalendar.value?.closeMenu();
+      // endDateCalendar.value?.closeMenu();
+    }
+  }
+}
+
+
+const dateRangeArray = computed<Date[] | null>(() => {
+  if (startDateObj.value && endDateObj.value) {
+    return [startDateObj.value, endDateObj.value];
+  }
+  return null;
+});
+const dateRangeCalendar = ref();
+function handleDateRangeChange(value: Date[]) {
+  if (value && value.length === 2) {
+    const [start, end] = value;
+    let changed = false;
+    if (start.getTime() !== startDateObj.value?.getTime()) {
+      handleStartDateChange(start);
+      changed = true;
+    }
+    if (end.getTime() !== endDateObj.value?.getTime()) {
+      handleEndDateChange(end);
+      changed = true;
+    }
+    if (changed) {
+      dateRangeCalendar.value?.closeMenu();
     }
   }
 }
@@ -514,10 +582,6 @@ watch(() => props.currentDate, (newDate) => {
   currentDateRef.value = newDate;
 });
 
-watch(() => props.selectedTimezone, (newTimezone) => {
-  timezoneRef.value = newTimezone;
-});
-
 // Keep weekdayStartDateObj in sync with the composable's weekdayStartDate
 watch(() => weekdayStartDate.value, (newDateString) => {
   const newDate = newDateString ? new Date(newDateString + 'T00:00:00') : null;
@@ -575,4 +639,30 @@ watch(() => endDate.value, (newTimestamp) => {
   border-color: rgb(var(--v-theme-primary));
   box-shadow: 0 0 0 2px rgba(var(--v-theme-primary), 0.2);
 }
+
+.dtrs-flex-time-box {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: center;
+}
+
+.pm-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
+.pm-wrapper > span {
+  font-size: 1.2em;
+  line-height: 1;
+}
+
+.reference-date-picker {
+  /*Font sizes*/
+    --dp-font-size: 0.8rem; /*Default font-size*/
+    --dp-preview-font-size: 0.7rem; /*Font size of the date preview in the action row*/
+}
+
 </style>
