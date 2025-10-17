@@ -18,9 +18,10 @@
     </v-checkbox>
     <v-checkbox
       v-for="source in Object.keys(MODELS)"
-      v-model="MODELS[source]"
+      v-model="selectedSources"
       :key="source"
       :label="source"
+      :value="source"
       density="compact"
       hide-details
     >
@@ -50,48 +51,37 @@ const categoryModels = PLANT_CATEGORIES.map((category => createCategoryModel(cat
 type PlantCategory = typeof PLANT_CATEGORIES[number];
 
 
+const selectedSources = ref<PrimSource[]>(Object.values(PrimSource));
 const MODELS = ref<Record<PrimSource, Ref<boolean>>>(Object.values(PrimSource)
   .reduce((obj, source) => ({ ...obj, [source]: ref(true) }), {} as Record<PrimSource, Ref<boolean>>));
 
+let _allValue = true;
 const allModel = computed({
   get() {
-    return true;
-    // return categoryModels.every(r => r.value) && Object.values(MODELS).every(r => r.value);
+    return _allValue;
   },
-  set(_value: boolean) {
-    // Object.values(MODELS).forEach(r => {
-    //   r.value = value;
-    // });
+  set(value: boolean) {
+    _allValue = value;
   }
 });
 
-const MODELS_BY_CATEGORY: Record<PlantCategory, Ref<boolean>[]> = {
+const SOURCES_BY_CATEGORY: Record<PlantCategory, readonly PrimSource[]> = {
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  Renewables: RenewableSources.map(source => MODELS[source]),
-  "Fossil Fuels": TraditionalSources.map(source => MODELS[source]),
+  Renewables: RenewableSources,
+  "Fossil Fuels": TraditionalSources,
 };
 
-console.log(MODELS);
-console.log(MODELS_BY_CATEGORY);
-
-function createCategoryModel(category: PlantCategory): Ref<boolean> {
-  return computed({
-    get() {
-      console.log(category);
-      console.log(MODELS_BY_CATEGORY[category]);
-      console.log(MODELS_BY_CATEGORY[category].every(r => r.value));
-      return true;
-      // return MODELS_BY_CATEGORY[category].every(r => r.value);
-    },
-    set(value: boolean) {
-      MODELS_BY_CATEGORY[category].forEach(r => {
-        console.log(`Setting to ${value}`);
-        r.value = value;
-      });
-    }
-  });
+function onCategoryChange(category: PlantCategory, value: boolean) {
+  if (value) {
+    SOURCES_BY_CATEGORY[category].forEach(source => {
+      if (!selectedSources.value.includes(source)) {
+        selectedSources.value.push(source);
+      }
+    });
+  } else {
+    selectedSources.value = selectedSources.value.filter(item => !SOURCES_BY_CATEGORY[category].includes(item));
+  }
 }
-
 
 type Selection = PrimSource | PlantCategory | "All";
 
@@ -151,7 +141,4 @@ function applyPrimSourceFilter(source: Selection) {
     
   });
 }
-
-watch(selectedPrimSource, applyPrimSourceFilter);
-
 </script>
