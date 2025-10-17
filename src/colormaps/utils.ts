@@ -41,7 +41,14 @@ export function colormap(cmap: AllAvailableColorMaps, cmin: number, cmax: number
   return [Math.round(r*255),Math.round(g*255),Math.round(b*255)];
 }
 
-
+export function sampleColormap(cmap: AllAvailableColorMaps, steps: number): number[][] {
+  const colors: number[][] = [];
+  for (let i = 0; i < steps; i++) {
+    const t = i / (steps - 1);
+    colors.push(colormap(cmap, 0, 1, t));
+  }
+  return colors;
+}
 
 // should return an array of values that is compatible with the "heatmap-color" property of a heatmap layer
 // So it will be an array like: [0, 'color1', 0.2, 'color2', 0.4, 'color3', ..., 1, 'colorN']

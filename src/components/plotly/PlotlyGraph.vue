@@ -14,7 +14,8 @@
 import { onMounted, ref, watch, nextTick } from "vue";
 import { v4 } from "uuid";
 import Plotly, { PlotlyHTMLElement, newPlot, restyle, type Data, type Datum, type PlotMouseEvent } from "plotly.js-dist-min";
-import type { DataSet } from '../types';
+import type { PlotltGraphDataSet } from '../../types';
+import { createErrorBands } from "./plotly_graph_elements";
 
 // https://stackoverflow.com/a/7616484
 const generateHash = (string) => {
@@ -26,21 +27,24 @@ const generateHash = (string) => {
   return hash;
 };
 
-const hashDataset = (data: DataSet) => {
-  const hash = JSON.stringify(data.x) + JSON.stringify(data.y) +
-              JSON.stringify(data.lower) + JSON.stringify(data.upper) + JSON.stringify(data.errorType);
+const hashDataset = (data: PlotltGraphDataSet) => {
+  const hash = JSON.stringify(data.x) + JSON.stringify(data.y); 
+  //JSON.stringify(data.lower) + JSON.stringify(data.upper); // + JSON.stringify(data.errorType);
   return generateHash(hash).toString();
 };
 
-interface TimeseriesProps {
-  datasets: DataSet[];
+export interface PlotlyGraphProps {
+  datasets: PlotltGraphDataSet[];
   colors?: string[];
   showErrors?: boolean;
   dataOptions?: Partial<Data>[];
   errorBarStyles?: (Partial<Plotly.ErrorOptions> | null)[];
+  names?: string[];
+  layoutOptions?: Partial<Plotly.Layout>;
+  configOptions?: Partial<Plotly.Config>;
 }
 
-const props = defineProps<TimeseriesProps>();
+const props = defineProps<PlotlyGraphProps>();
 
 const id = `timeseries-${v4()}`;
 
@@ -49,7 +53,7 @@ const graph = ref<HTMLDivElement | null>(null);
 
 const emit = defineEmits<{
   // Datum is from type of x in DataSet
-  (event: "click", value: {x: Datum, y: number}): void;
+  (event: "click", value: {x: Datum, y: number, customdata: unknown}): void;
 }>();
 
 function datumToDate(datum: Datum): Date | null {
@@ -62,34 +66,23 @@ const legendGroups: Record<string, string> = {};
 let errorTraces: number[] = [];
 const traceVisible = ref<Map<string, boolean>>(new Map());
 
-function normalizeBadValue(v: number | null | undefined): number | null {
-  if (v === null || v === undefined || isNaN(v)) {
-    return null;
-  }
-  return v;
-}
 
-function nanMean(arr: (number | null)[]): number | null {
-  const validValues = arr.filter((v): v is number => v !== null && !isNaN(v));
-  if (validValues.length === 0) return null;
-  const sum = validValues.reduce((a, b) => a + b, 0);
-  return sum / validValues.length;
-}
-
-const filterNulls = ref(true);
-
-function filterNullValues(data: DataSet): DataSet {
+const filterNulls = ref(true);  
+function filterNullValues(data: PlotltGraphDataSet): PlotltGraphDataSet {
   // filter out any place where
   // data.x or data.y is null or undefined or NaN
   const filteredX: Datum[] = [];
   const filteredY: number[] = [];
   const filteredLower: (number | null)[] = [];
   const filteredUpper: (number | null)[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const filteredCustomData: any[] = [];
   data.x.forEach((x, idx) => {
     const y = data.y[idx];
     if (x !== null && x !== undefined && y !== null && y !== undefined && !isNaN(y)) {
       filteredX.push(x);
       filteredY.push(y);
+      filteredCustomData.push(data.datasetOptions?.customdata ? data.datasetOptions.customdata[idx] : null);
       if (data.lower) {
         filteredLower.push(data.lower[idx] ?? null); // keep length consistent 
       }
@@ -98,9 +91,15 @@ function filterNullValues(data: DataSet): DataSet {
       }
     }
   });
-  const result: DataSet = {
+  const result: PlotltGraphDataSet = {
+    ...data,
+    datasetOptions: {
+      ...data.datasetOptions,
+      customdata: filteredCustomData,
+    },
     x: filteredX,
     y: filteredY,
+    name: data.name
   };
   if (data.lower) {
     result.lower = filteredLower;
@@ -119,7 +118,7 @@ function renderPlot() {
   
   const plotlyData: Data[] = [];
   if (props.datasets.length === 0) {
-    console.log("No data provided for timeseries graph");
+    console.error("No data provided for timeseries graph");
     return;
   }
   
@@ -149,9 +148,8 @@ function renderPlot() {
     
     
     const errorOptions = {} as Record<'error_y',Plotly.ErrorBar>;
-    console.log(index, data.errorType);
     // https://plotly.com/javascript/error-bars/
-    if (data.errorType === 'bar') {
+    if (props.showErrors && data.errorType === 'bar') {
       const style = (props.errorBarStyles && props.errorBarStyles[index]) || {};
       errorOptions['error_y'] = {
         type: 'data',
@@ -159,25 +157,26 @@ function renderPlot() {
         array: data.upper as Datum[],
         arrayminus: data.lower as Datum[] | undefined,
         color: props.colors ? props.colors[index % props.colors.length] : 'red',
-        visible: true,
+
         thickness: 1.5,
-        width: 3,
+        width: 0,
         ...style,
       };
       
     }
-    console.log("Error options", errorOptions);
+    const datasetName = data.name || props.names?.[index] || `Dataset ${index + 1}`;
     const dataTraceOptions = {
       mode: "lines+markers",
       legendgroup: legendGroup,
       showlegend: true,
-      name: `Dataset ${index + 1}`,
+      name: datasetName,
       marker: { color: props.colors ? props.colors[index % props.colors.length] : 'red' },
       visible: traceVisible.value.get(id) ? true : "legendonly",
       ...errorOptions,
       ...props.dataOptions?.[index],
+      ...(data.datasetOptions ?? {}), // allow per-dataset options override
     };
-    
+
     plotlyData.push({
       x: data.x,
       y: data.y,
@@ -186,80 +185,45 @@ function renderPlot() {
     
     const hasErrors = data.lower && data.upper && data.lower.length === data.y.length && data.upper.length === data.y.length;
     // double checking to have valid types
-    if (hasErrors && data.lower && data.upper && data.errorType !== 'bar') {
-      console.log("Adding error traces for dataset", index);
-      const upperY: (number | null)[] = [];
-      const lowerY: (number | null)[] = [];
+    if (hasErrors && data.lower && data.upper && data.errorType == 'band' && props.showErrors) {
       
-      data.y.forEach((y, idx) => {
-        if (y === null) {
-          lowerY.push(null);
-          upperY.push(null);
-          return;
-        }
-        
-        if (data.upper === undefined) {
-          upperY.push(null);
-        } else {
-          const high = y + (data.upper[idx] ?? nanMean(data.upper) ?? 0);
-          // console.log(y, data.upper[idx] ?? nanMean(data.upper) ?? 0);
-          upperY.push(high);
-          max = Math.max(max, high !== null ? high : 0);
-        }
-        
-        if (data.lower === undefined) {
-          lowerY.push(null);
-        } else {
-          const low = y - (data.lower[idx] ?? nanMean(data.lower) ?? 0);
-          // console.log(y, data.lower[idx] ?? nanMean(data.lower) ?? 0);
-          lowerY.push(low);
-          
-        }
-        
-        
-      });
-      // console.log({lowerY, upperY});
-      const traceErrorOptions = {
-        x: data.x,
-        mode: "lines",
-        line: { width: 0 },
-        showlegend: false,
-        legendgroup: legendGroup,
-        name: `Dataset ${index + 1}`,
-        marker: { color: props.colors ? props.colors[index % props.colors.length] : 'red' },
-        // visible: props.showErrors && traceVisible.value.get(id),
-      };
+      const {lower, upper, max: newMax} = createErrorBands(
+        data,
+        props.colors ? props.colors[index % props.colors.length] : 'red',
+        datasetName,
+        legendGroup,
+      );
 
+      max = Math.max(max, newMax);
 
-      plotlyData.push({
-        y: lowerY.map(normalizeBadValue),
-        ...traceErrorOptions
-      });
+      if (lower === null || upper === null) {
+        console.error("Error creating error bands for dataset", index, data);
+        return;
+      }
+      
+      const errorBandsVisible = traceVisible.value.get(id) ? true : "legendonly";
+      lower['visible'] = errorBandsVisible;
+      upper['visible'] = errorBandsVisible;
+      
+      plotlyData.push(lower);
       errorTraces.push(plotlyData.length - 1);
 
-      plotlyData.push({
-        y: upperY.map(normalizeBadValue),
-        ...traceErrorOptions,
-        fill: "tonexty",
-      });
+      plotlyData.push(upper);
       errorTraces.push(plotlyData.length - 1);
     }
   });
 
   const paddingFactor = 1.1;
   const axisMax = Math.max(1, paddingFactor * max);
-  // get width of parent element .plot-container.plotly
-  const width = document.querySelector('.plot-container.plotly')?.clientWidth ?? 600;
   const layout: Partial<Plotly.Layout> = {
-    width: width,
-    height: 400,
     yaxis: {
       title: { text: "Molecules / cm<sup>2</sup>" },
       range: [0, axisMax],
     },
+    ...(props.layoutOptions || {}),
   };
 
-  newPlot(graph.value ?? id, plotlyData, layout).then((el: PlotlyHTMLElement) => {
+  newPlot(graph.value ?? id, plotlyData, layout, {...props.configOptions}).then((el: PlotlyHTMLElement) => {
     plot.value = el;
     el.on("plotly_click", (data: PlotMouseEvent) => {
       data.points.forEach(point => {
@@ -269,7 +233,7 @@ function renderPlot() {
         }
         const date = datumToDate(point.x);
         if (date !== null) {
-          emit("click", {x: point.x, y: point.y as number} );
+          emit("click", {x: point.x, y: point.y as number, customdata: point.customdata} );
         }
       });
     });
@@ -291,12 +255,12 @@ function renderPlot() {
         console.error("Could not find data ID for legend group", group);
         return true; 
       }
-      const currentlyVisible = traceVisible.value.get(dataId);
+      const currentlyVisible = traceVisible.value.get(dataId) ?? true;
       traceVisible.value.set(dataId, !currentlyVisible);
       // if currently visible and errors are visible set stlye the error traces too
       nextTick(() => { // next tick so that updated traceVisible is available
-        if (currentlyVisible && props.showErrors) {
-          updateErrorDisplay(true);
+        if (props.showErrors) {
+          updateErrorDisplay(!currentlyVisible, group);
         }
       });
       return true;
@@ -304,7 +268,7 @@ function renderPlot() {
   });
 }
 
-function updateErrorDisplay(visible: boolean) {
+function updateErrorDisplay(visible: boolean, legendGroup?: string) {
   if (graph.value) {
     errorTraces.forEach((traceIndex) => {
       const trace = plot.value?.data[traceIndex];
@@ -313,9 +277,11 @@ function updateErrorDisplay(visible: boolean) {
       // eslint-disable-next-line 
       // @ts-ignore legend group should exist. but guard anyway
       const group = trace.legendgroup as string;
+      if (group === undefined) return;
+      if (legendGroup && group !== legendGroup) return;
       const dataId = Object.keys(legendGroups).find(key => legendGroups[key] === group);
       if (dataId && traceVisible.value.get(dataId)) {
-        restyle(graph.value, { visible }, [traceIndex]);
+        restyle(graph.value, { visible: visible ? true : "legendonly" }, [traceIndex]);
       } 
     });
   }
@@ -327,7 +293,7 @@ onMounted(() => {
 });
 
 
-watch(() => props.showErrors, updateErrorDisplay);
+watch(() => props.showErrors, renderPlot);
 
 watch(() => props.datasets, (_newData, _oldData) => {
   console.log("Data prop changed, re-rendering plot");
@@ -337,8 +303,8 @@ watch(() => props.datasets, (_newData, _oldData) => {
 </script>
 
 <style scoped>
-.timeseries:not(:empty) {
-  width: 600px;
-  height: 400px;
+.js-plotly-plot  {
+  min-width: 30px;
 }
+
 </style>

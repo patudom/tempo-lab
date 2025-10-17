@@ -2,7 +2,8 @@
 <template>
   <ul>
     <draggable 
-      v-model="currentOrder" 
+      :model-value="reversedOrder" 
+      
       @sort="(evt: SortableEndEvent) => handleEnd(evt)">
       <template #item="{ element, index}">
         <li :key="element">
@@ -16,7 +17,7 @@
 
 <script setup lang="ts">
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { ref, type Ref, type MaybeRef, watch, toValue, toRef } from 'vue';
+import { ref, type Ref, type MaybeRef, watch, toValue, toRef, computed } from 'vue';
 import draggable from 'vuedraggable';
 import {
   SortableChangeEvent,
@@ -40,6 +41,8 @@ interface Props {
 const props = defineProps<Props>();
 const mapRef = toRef(() => props.mapRef);
 
+
+
 // https://vuejs.org/guide/typescript/composition-api.html#typing-component-emits
 
 interface Emits {
@@ -53,10 +56,17 @@ const {
   controller 
 } = useMaplibreLayerOrderControl(mapRef, toValue(props.order), true);
 
+const reversedOrder = computed(() => {
+  return [...toValue(currentOrder)].reverse();
+});
+
+
 function handleEnd(evt: SortableEndEvent) {
   if (controller) {
     console.log(evt.item);
-    controller.moveActualLayerByIndex(evt.oldIndex!, evt.newIndex!);
+    const actualOldIndex = currentOrder.value.length - 1 - evt.oldIndex!;
+    const actualNewIndex = currentOrder.value.length - 1 - evt.newIndex!;
+    controller.moveActualLayerByIndex(actualOldIndex, actualNewIndex);
   }
 }
 
@@ -72,6 +82,7 @@ ul {
   border: 1px solid #ccc;
   border-radius: 4px;
   height: fit-content;
+  display: flex;
 }
 li {
   padding: 8px 12px;
