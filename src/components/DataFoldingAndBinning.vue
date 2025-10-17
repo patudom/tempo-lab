@@ -326,22 +326,24 @@ const theColor = computed(() => {
 });
 
 export type TimeBinOptions = 'hour' | 'day' | 'week' | 'month';
-export type FoldingPeriodOptions = 'day' | 'week' | 'year' | 'weekdayWeekend' | 'none';
+export type FoldingPeriodOptions = 'day' | 'week' | 'month' | 'year' | 'weekdayWeekend' | 'none';
 const MS_IN_HOUR = 3600000;
 const MS_IN_DAY = MS_IN_HOUR * 24;
 const MS_IN_WEEK = MS_IN_DAY * 7;
+const MS_IN_MONTH = MS_IN_DAY * 28; // to avoid invalidating February
 const MS_IN_YEAR = MS_IN_DAY * 365.25;
 
 const timeBinDurations: Record<TimeBinOptions, number> = {
   'hour': MS_IN_HOUR,
   'day': MS_IN_DAY,
   'week': MS_IN_WEEK,
-  'month': MS_IN_YEAR / 12, // average month length
+  'month': MS_IN_MONTH, 
 };
 
 const foldingPeriodDurations: Record<FoldingPeriodOptions, number> = {
   'day': MS_IN_DAY,
   'week': MS_IN_WEEK,
+  'month' : MS_IN_MONTH,
   'year': MS_IN_YEAR,
   'weekdayWeekend': MS_IN_WEEK, // weekend is part of week
   'none': 0,
@@ -390,6 +392,7 @@ const timeBinOptions: {title: string, value: TimeBinOptions}[] = [
 const allFoldingPeriodOptions: {title: string, value: FoldingPeriodOptions}[] = [
   { title: 'Day', value: 'day' },
   { title: 'Week', value: 'week' },
+  { title: 'Month', value: 'month' },
   { title: 'Year', value: 'year' },
   { title: 'Weekend/Weekday', value: 'weekdayWeekend' },
   { title: 'None (Simple Binning)', value: 'none' },
@@ -429,9 +432,9 @@ const useSEM = ref(true);
 const useErrorBars = ref(false);
 
 const validCombinations: Record<TimeBinOptions, FoldingPeriodOptions[]> = {
-  'hour': ['day', 'week', 'year', 'weekdayWeekend', 'none'],
-  'day': ['week', 'year', 'weekdayWeekend', 'none'],
-  'week': ['year', 'none'],
+  'hour': ['day', 'week', 'month', 'year', 'weekdayWeekend', 'none'],
+  'day': ['week', 'month', 'year', 'weekdayWeekend', 'none'],
+  'week': ['month', 'year', 'none'],
   'month': ['year', 'none'],
 };
 const isValidCombination = (period: FoldingPeriodOptions, bin: TimeBinOptions) => {
