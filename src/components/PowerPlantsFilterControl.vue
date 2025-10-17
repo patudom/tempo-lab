@@ -1,8 +1,28 @@
 <template>
   <div>
     <v-checkbox
-      v-for="category in PLANT_CATEGORIES"
-
+      v-model="allModel"
+      label="All"
+      density="compact"
+      hide-details
+    >
+    </v-checkbox>
+    <v-checkbox
+      v-for="(category, index) in PLANT_CATEGORIES"
+     :key="category"
+     v-model="categoryModels[index]"
+     :label="category"
+      density="compact"
+      hide-details
+    >
+    </v-checkbox>
+    <v-checkbox
+      v-for="source in Object.keys(MODELS)"
+      v-model="MODELS[source]"
+      :key="source"
+      :label="source"
+      density="compact"
+      hide-details
     >
     </v-checkbox>
   </div>
@@ -26,29 +46,52 @@ interface Props {
 const props = defineProps<Props>();
 
 const PLANT_CATEGORIES = ["Renewables", "Fossil Fuels"] as const;
+const categoryModels = PLANT_CATEGORIES.map((category => createCategoryModel(category)));
 type PlantCategory = typeof PLANT_CATEGORIES[number];
 
-const MODELS: Record<PrimSource, Ref<boolean>> = Object.values(PrimSource)
-  .reduce((obj, source) => ({ ...obj, [source]: ref(true) }), {} as Record<PrimSource, Ref<boolean>>);
 
-const CATEGORY_MODELS: Record<PlantCategory, Ref<boolean>[]> = {
+const MODELS = ref<Record<PrimSource, Ref<boolean>>>(Object.values(PrimSource)
+  .reduce((obj, source) => ({ ...obj, [source]: ref(true) }), {} as Record<PrimSource, Ref<boolean>>));
+
+const allModel = computed({
+  get() {
+    return true;
+    // return categoryModels.every(r => r.value) && Object.values(MODELS).every(r => r.value);
+  },
+  set(_value: boolean) {
+    // Object.values(MODELS).forEach(r => {
+    //   r.value = value;
+    // });
+  }
+});
+
+const MODELS_BY_CATEGORY: Record<PlantCategory, Ref<boolean>[]> = {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   Renewables: RenewableSources.map(source => MODELS[source]),
   "Fossil Fuels": TraditionalSources.map(source => MODELS[source]),
 };
 
+console.log(MODELS);
+console.log(MODELS_BY_CATEGORY);
+
 function createCategoryModel(category: PlantCategory): Ref<boolean> {
   return computed({
     get() {
-      return CATEGORY_MODELS[category].every(r => r.value);
+      console.log(category);
+      console.log(MODELS_BY_CATEGORY[category]);
+      console.log(MODELS_BY_CATEGORY[category].every(r => r.value));
+      return true;
+      // return MODELS_BY_CATEGORY[category].every(r => r.value);
     },
     set(value: boolean) {
-      CATEGORY_MODELS[category].forEach(r => {
+      MODELS_BY_CATEGORY[category].forEach(r => {
+        console.log(`Setting to ${value}`);
         r.value = value;
       });
     }
   });
 }
+
 
 type Selection = PrimSource | PlantCategory | "All";
 
