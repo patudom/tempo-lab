@@ -51,6 +51,9 @@ import type { InitMapOptions, LatLngPair } from '@/types';
 import type { MapEventType, Listener } from 'maplibre-gl';
 import type { AvailableColorMaps } from "@/colormaps";
 
+import { useTempoStore } from "@/stores/app";
+
+const store = useTempoStore();
 
 const props = defineProps({
   mapID: { type: String, required: true },
@@ -164,6 +167,15 @@ watch(esriTimesteps, (newSteps, old) => {
 });
 
 watch(() => renderOptions.value.colormap, cmap => emit("colormap", cmap));
+
+watch(map, (newMap, oldMap) => {
+  if (oldMap) {
+    store.deregisterMap(oldMap);
+  }
+  if (newMap) {
+    store.registerMap(newMap);
+  }
+});
 
 const singleDateSelected = computed(() => {
   // a date object with the current day

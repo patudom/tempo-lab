@@ -208,18 +208,13 @@
         class="flex-grow-1"
         @molecule="(mol: MoleculeType) => { molecule = mol }"
       />
-      <LayerOrderControl 
-        class="flex-grow-0"
-        v-if="map"
-        :mapRef="map as Map | null" 
-        :order="['power-plants-heatmap', 'power-plants-layer', 'aqi-layer-aqi', 'hms-layer', 'Population Density', 'esri-source']"
-        />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, toRef, toRaw, useTemplateRef, watch, type Ref, type WritableComputedRef } from "vue";
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { computed, ref, toRaw, useTemplateRef, watch, type Ref, type WritableComputedRef } from "vue";
 import { useDisplay } from 'vuetify';
 import { storeToRefs } from "pinia";
 import { MapBoxFeature, MapBoxFeatureCollection, MapBoxFeatureType, MapBoxForwardGeocodingOptions, geocodingInfoForSearch } from "@cosmicds/vue-toolkit";
@@ -239,6 +234,8 @@ import { usePointSelection } from "@/composables/maplibre/usePointSelection";
 import { COLORS } from "@/utils/color";
 import { EsriSampler } from "@/esri/services/sampling";
 import { useMultiMarker } from '@/composables/maplibre/useMultiMarker';
+
+import { setLayerVisibility } from "@/maplibre_controls";
 
 import EsriMap from "@/components/EsriMap.vue";
 import MapColorbarWrap from "@/components/MapColorbarWrap.vue";
@@ -324,88 +321,22 @@ const aqiLayer = addQUI(airQualityUrl.value, {
   propertyToShow: 'aqi', 
   labelMinZoom: 5, 
   layerName: 'aqi', 
-  visible: false,
+  visible: true,
   showLabel: true, 
   showPopup: true });
-  
-
 
 // Ensure date/url changes trigger a reload, even if initial load failed
 watch(airQualityUrl, (newUrl) => {
   aqiLayer.setUrl(newUrl).catch(() => {/* ignore */});
 });
 
-import { addHMSFire } from '@/composables/addHMSFire';
-// https://satepsanone.nesdis.noaa.gov/pub/FIRE/web/HMS/Fire_Points/KML/2025/09/hms_fire20250925.kml
-
-const hmsLayer = addHMSFire(toRef(() => store.singleDateSelected), {
-  layerName: 'hms-layer',
-  showPopup: true,
-  visible: false,
-});
-
-import { useEsriImageServiceLayer } from "@/composables/useEsriMapLayer";
-const gpw4url = 'https://gis.earthdata.nasa.gov/image/rest/services/gpw-v4/gpw_v4_population_density_adjusted_to_2015_unwpp_country_totals_rev11/ImageServer';
-import { sampleColormap } from "@/colormaps/utils";
-const populationLayerOptions = {};
-populationLayerOptions['visible'] = false;
-populationLayerOptions['clickValue'] = true;
-populationLayerOptions['renderingRule'] = { 
-  "rasterFunctionArguments": { 
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    "Colormap": [
-      ...sampleColormap('haline_r', 7).map((rgb, i) => [i + 1, ...rgb]),
-    ], 
-    // https://developers.arcgis.com/rest/services-reference/enterprise/raster-function-objects/#remap
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    "Raster": { 
-      "rasterFunctionArguments": { 
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        "InputRanges": [
-          0.0001, 0.9901,           // 1
-          0.9901, 5.0001,          // 2
-          5.0001, 25.0001,         // 3
-          25.0001, 250.0001,       // 4
-          250.0001, 1000.0001,     // 5
-          1000.0001, 5000.0001,    // 6
-          5000.0001, 50000.0001,    // 7
-        ], 
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        "OutputValues": [1, 2, 3, 4, 5, 6, 7], 
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        "NoDataRanges": [0, 0],
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        "replacementValue": 0,
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        "AllowUnmatched": false,
-      }, 
-      "rasterFunction": "Remap", "variableName": "Raster" 
-    } 
-  }, 
-  "rasterFunction": "Colormap" 
-};
-
-const popLayer = useEsriImageServiceLayer(
-  gpw4url,
-  'Population Density',
-  1,
-  1593576000000,
-  populationLayerOptions,
-);
-
-
-import LayerOrderControl from "./LayerOrderControl.vue";
-
 
 const onMapReady = (m: Map) => {
   console.log('Map ready event received');
   map.value = m; // ESRI source already added by EsriMap
   pp.addheatmapLayer();
-  pp.addLayer();
-  pp.togglePowerPlants(false);
+  // pp.togglePowerPlants(false);
   aqiLayer.addToMap(m);
-  hmsLayer.addToMap(m);
-  popLayer.addEsriSource(m);
   // Only move if target layer exists (avoid errors if initial KML load failed)
   try {
     if (m.getLayer('kml-layer-aqi')) {
@@ -415,29 +346,8 @@ const onMapReady = (m: Map) => {
     // ignore
   }
   
-  const ignoredSources = [
-    'carto',  // the basemap
-    'stamen-toner-labels',  // road labels
-    'coastline-custom',  // coastlines
-    'states-custom', // state boundaries
-  ];
-  // idk what the background layer actually is
-  const ignoredLayers = ['background'];
-  const shownLayers = [
-    'esri-source',
-    'power-plants-layer',
-    'power-plants-heatmap',
-    'aqi-layer-aqi',
-    'hms-layer',
-    'Population Density',
-  ];
-  const linkedLayers = {
-    // 'power-plants-layer': ['power-plants-heatmap'],
-    'aqi-layer-aqi': ['aqi-layer-aqi-label'],
-    'hms-layer': ['hms-layer-circle', 'hms-layer-symbol'],
-  };
-  map.value.addControl(new MaplibreLayersControl(ignoredLayers,ignoredSources, shownLayers, linkedLayers), 'bottom-right');
-  // pp.togglePowerPlants();
+  aqiLayer.layerVisible.value = false;
+  pp.togglePowerPlants(false);
   updateRegionLayers(regions.value);
 };
 
@@ -916,11 +826,6 @@ watch(focusRegion, region => {
     opacity: 0.7;
     width: fit-content;
   }
-}
-
-.hms-popup {
-  background-color: white;
-  color: black;
 }
 
 @import "@/styles/maplibre-layer-control.css";

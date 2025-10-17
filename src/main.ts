@@ -18,6 +18,9 @@ import HeaderBar from "./components/HeaderBar.vue";
 import DatasetControls from "./components/DatasetControls.vue";
 import MapControls from "./components/MapControls.vue";
 import MapWithControls from "./components/MapWithControls.vue";
+import LayerOrderControl from "./components/LayerOrderControl.vue";
+import MaplibreLayerControlItem from "./components/MaplibreLayerControlItem.vue";
+import PowerPlantsFilterControl from "./components/PowerPlantsFilterControl.vue";
 
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { library } from "@fortawesome/fontawesome-svg-core";
@@ -102,6 +105,9 @@ createApp(TempoLite, {})
   .component('map-controls', MapControls)
   .component('map-with-controls', MapWithControls)
   .component("header-bar", HeaderBar)
+  .component('layer-control-item', MaplibreLayerControlItem)
+  .component('layer-order-control', LayerOrderControl)
+  .component('power-plants-filter-control', PowerPlantsFilterControl)
 
   // Mount
   .mount("#app");

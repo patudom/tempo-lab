@@ -31,7 +31,7 @@ import './styles/maplibre-layer-control.css'; // added
 // }
 
 function setLayerOpacity(map: Map, layerId: string, opacity: number) {
-  const layer = map.getLayer(layerId)!;
+  const layer = map.getLayer(layerId);
   if (!layer) {
     console.warn('Layer not found:', layerId);
     return;
@@ -324,8 +324,6 @@ export class MaplibreLayersControl implements IControl {
     }
   }
   
-  
-
   onAdd(map: Map): HTMLElement {
     this._map = map;
     this._layers = map.getStyle().layers;
