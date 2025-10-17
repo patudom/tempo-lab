@@ -211,7 +211,7 @@ export const foldTypeStyles: Record<FoldType, Partial<Layout>> = {
       title: { text: 'Day Type' },
       tickmode: 'array',
       tickvals: [0, 1],
-      ticktext: ['Weekend', 'Weekday']
+      ticktext: ['Weekday', 'Weekend']
     }
   },
   
