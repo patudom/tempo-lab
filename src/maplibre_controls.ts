@@ -57,6 +57,12 @@ export function getLayerOpacity(map: Map, layerId: string): number {
   return isNumeric(op) ? (op as unknown as number) : 1;
 } 
 
+export function getLayerVisibility(map: Map, layerId: string): boolean {
+  // NB: If this hasn't been explicitly set yet, the layer is visible but the
+  // value returned by `getLayoutProperty` is undefined, so we can't do `=== "visible"`
+  return map.getLayoutProperty(layerId, "visibility") !== "none";
+}
+
 export function setLayerVisibility(map: Map, layerId: string, visible: boolean) {
   map.setLayoutProperty(
     layerId,

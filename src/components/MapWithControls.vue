@@ -235,6 +235,8 @@ import { COLORS } from "@/utils/color";
 import { EsriSampler } from "@/esri/services/sampling";
 import { useMultiMarker } from '@/composables/maplibre/useMultiMarker';
 
+import { setLayerVisibility } from "@/maplibre_controls";
+
 import EsriMap from "@/components/EsriMap.vue";
 import MapColorbarWrap from "@/components/MapColorbarWrap.vue";
 
@@ -344,25 +346,8 @@ const onMapReady = (m: Map) => {
     // ignore
   }
   
-  const ignoredSources = [
-    'carto',  // the basemap
-    'stamen-toner-labels',  // road labels
-    'coastline-custom',  // coastlines
-    'states-custom', // state boundaries
-  ];
-  // idk what the background layer actually is
-  const ignoredLayers = ['background'];
-  const shownLayers = [
-    'esri-source',
-    'power-plants-heatmap',
-    'aqi-layer-aqi'
-  ];
-  const linkedLayers = {
-    'power-plants-heatmap': ['power-plants-layer'],
-    'aqi-layer-aqi': ['aqi-layer-aqi-label']
-  };
-  // map.value.addControl(new MaplibreLayersControl(ignoredLayers,ignoredSources, shownLayers, linkedLayers), 'bottom-right');
-  // pp.togglePowerPlants();
+  aqiLayer.layerVisible.value = false;
+  pp.togglePowerPlants(false);
   updateRegionLayers(regions.value);
 };
 
