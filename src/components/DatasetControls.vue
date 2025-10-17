@@ -161,12 +161,7 @@
           <div class="my-selections" v-if="datasets.length>0" style="margin-top: 1em;">
 
             <h4>My Datasets</h4>
-            <div v-if="datasets.some(s => s.timeRange.type === 'folded')" class="pa-2 mb-2 explainer-text">
-              Note: You can only overlay datasets with the same molecule and fold type.
-            </div>
-            <v-btn color="#ffcc33" size="small" :block="false" @click="allDatasetSelection = !allDatasetSelection">
-              {{ allDatasetSelection ? 'Cancel Selection' : 'Select Datasets to Graph' }}
-            </v-btn>
+            
             <dataset-card
               :datasets="datasets"
               :turn-on-selection="allDatasetSelection"
@@ -401,6 +396,12 @@
     </div>
 
     <div class="d-flex flex-wrap flex-row ma-2 align-center justify-center ga-1">
+      <div v-if="datasets.some(s => s.timeRange.type === 'folded')" class="pa-2 mb-2 explainer-text">
+        Note: You can only overlay datasets with the same molecule and fold type.
+      </div>
+      <v-btn color="#ffcc33" size="small" :block="false" @click="allDatasetSelection = !allDatasetSelection">
+        {{ allDatasetSelection ? 'Cancel Selection' : 'Select Datasets to Graph' }}
+      </v-btn>
     <v-btn v-if="no2GraphData.length > 0" @click="showNO2Graph = true">
       Show NO₂ Graph
     </v-btn>
