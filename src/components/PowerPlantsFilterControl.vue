@@ -1,6 +1,10 @@
 <template>
-  <v-expansion-panels multiple>
-    <div>
+  <v-expansion-panels
+    class="power-plant-filter-controls"
+    multiple
+  >
+    <div class="global-filters">
+      <div>Global Filters</div>
       <v-btn
        @click="handleGlobalSelect(true)"
       >All</v-btn>
@@ -131,3 +135,16 @@ function applyPrimSourceFilter(sources: PrimSource[]) {
   });
 }
 </script>
+
+<style scoped lang="less">
+.power-plant-filter-controls {
+  border: 1px solid white;
+  border-radius: 5px;
+  margin: 5px;
+  width: unset;
+}
+
+.global-filters {
+  padding: 5px 0;
+}
+</style>
