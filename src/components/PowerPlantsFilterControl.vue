@@ -1,36 +1,41 @@
 <template>
-  <div>
-    <v-checkbox
-      v-model="allModel"
-      label="All"
-      density="compact"
-      hide-details
-    >
-    </v-checkbox>
-    <v-checkbox
+  <v-expansion-panels multiple>
+    <div>
+      <v-btn
+       @click="handleGlobalSelect(true)"
+      >All</v-btn>
+      <v-btn
+        @click="handleGlobalSelect(false)"
+      >None</v-btn>
+    </div>
+    <v-expansion-panel
       v-for="(category, index) in PLANT_CATEGORIES"
-     :key="category"
-     v-model="categoryModels[index]"
-     :label="category"
-      density="compact"
-      hide-details
+      :key="index"
+      :title="category"
     >
-    </v-checkbox>
-    <v-checkbox
-      v-for="source in Object.keys(MODELS)"
-      v-model="selectedSources"
-      :key="source"
-      :label="source"
-      :value="source"
-      density="compact"
-      hide-details
-    >
-    </v-checkbox>
-  </div>
+      <template #text>
+        <v-btn
+          @click="handleCategoryGlobalSelect(category, true)"
+        >All</v-btn>
+        <v-btn
+          @click="handleCategoryGlobalSelect(category, false)"
+        >None</v-btn>
+        <v-checkbox
+          v-for="source in SOURCES_BY_CATEGORY[category]"
+          :label="source"
+          :key="source"
+          :value="source"
+          v-model="selectedSources"
+          density="compact"
+          hide-details
+        ></v-checkbox>
+      </template>
+    </v-expansion-panel>
+  </v-expansion-panels>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, onMounted, type Ref } from "vue";
+import { ref, watch, onMounted } from "vue";
 import type { LayerSpecification, Map } from "maplibre-gl";
 
 import { 
@@ -46,32 +51,27 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const PLANT_CATEGORIES = ["Renewables", "Fossil Fuels"] as const;
-const categoryModels = PLANT_CATEGORIES.map((category => createCategoryModel(category)));
+const PLANT_CATEGORIES = ["Renewables", "Fossil Fuels", "Other"] as const;
 type PlantCategory = typeof PLANT_CATEGORIES[number];
 
-
 const selectedSources = ref<PrimSource[]>(Object.values(PrimSource));
-const MODELS = ref<Record<PrimSource, Ref<boolean>>>(Object.values(PrimSource)
-  .reduce((obj, source) => ({ ...obj, [source]: ref(true) }), {} as Record<PrimSource, Ref<boolean>>));
-
-let _allValue = true;
-const allModel = computed({
-  get() {
-    return _allValue;
-  },
-  set(value: boolean) {
-    _allValue = value;
-  }
-});
 
 const SOURCES_BY_CATEGORY: Record<PlantCategory, readonly PrimSource[]> = {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   Renewables: RenewableSources,
   "Fossil Fuels": TraditionalSources,
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  Other: Object.values(PrimSource).filter(source => 
+    !((RenewableSources as unknown as PrimSource[]).includes(source) || 
+      (TraditionalSources as unknown as PrimSource[]).includes(source))
+  ),
 };
 
-function onCategoryChange(category: PlantCategory, value: boolean) {
+function handleGlobalSelect(value: boolean) {
+  selectedSources.value = value ? [...Object.values(PrimSource)] : [];
+}
+
+function handleCategoryGlobalSelect(category: PlantCategory, value: boolean) {
   if (value) {
     SOURCES_BY_CATEGORY[category].forEach(source => {
       if (!selectedSources.value.includes(source)) {
@@ -83,15 +83,11 @@ function onCategoryChange(category: PlantCategory, value: boolean) {
   }
 }
 
-type Selection = PrimSource | PlantCategory | "All";
-
-const selectedPrimSource = ref<Selection>("All");
-
 let layers: LayerSpecification[] = [];
 
 function onLayersChanged(newLayers: LayerSpecification[]) {
   layers = newLayers;
-  applyPrimSourceFilter(selectedPrimSource.value);
+  applyPrimSourceFilter(selectedSources.value);
 }
 
 
@@ -117,28 +113,21 @@ onMounted(() => {
     }
   });
 
-  applyPrimSourceFilter(selectedPrimSource.value);
+  applyPrimSourceFilter(selectedSources.value);
 });
 
-function applyPrimSourceFilter(source: Selection) {
+watch(selectedSources, applyPrimSourceFilter);
+
+function applyPrimSourceFilter(sources: PrimSource[]) {
   const layerIds = ["power-plants-layer", "power-plants-heatmap"];
   layerIds.forEach(id => {
     if (!props.map.getLayer(id)) { return; }
 
-    switch (source) {
-    case "All":
+    if (sources.length === Object.values(PrimSource).length) {
       props.map.setFilter(id, null);
-      break;
-    case "Renewables":
-      props.map.setFilter(id, ['in', ['get', 'PrimSource'], ['literal', RenewableSources]]);
-      break;
-    case "Fossil Fuels":
-      props.map.setFilter(id, ['in', ['get', 'PrimSource'], ['literal', TraditionalSources]]);
-      break;
-    default:
-      props.map.setFilter(id, ['==', ['get', 'PrimSource'], source]);
+    } else {
+      props.map.setFilter(id, ["in", ["get", "PrimSource"], ["literal", sources]]);
     }
-    
   });
 }
 </script>

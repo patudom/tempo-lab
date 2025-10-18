@@ -249,6 +249,12 @@ body {
   }
 }
 
+.v-tabs-window,
+.v-tabs-window-item
+{
+  overflow-y: scroll;
+}
+
 // Some Golden Layout adjustments
 .lm_content {
   background: rgb(var(--v-theme-background));
