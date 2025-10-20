@@ -72,6 +72,9 @@ const mapTargets = reactive<Record<string, Ref<MaybeHTMLElement>>>({});
 const sidePanelTarget = ref<MaybeHTMLElement>(null);
 const tab = ref(0);
 
+// const query = new URLSearchParams(window.location.search);
+// const debug = ref(query.get("debug") ?? process.env.TEMPO_LAB_DEBUG ?? false);
+
 const store = useTempoStore();
 const {
   accentColor,
