@@ -14,6 +14,7 @@ import { atleast1d } from "@/utils/atleast1d";
 import { formatSingleRange, rangeForSingleDay } from "@/utils/timeRange";
 
 const createTempoStore = (backend: MappingBackends) => defineStore("tempods", () => {
+  const debugMode = ref(false);
   const timeRanges = ref<TimeRange[]>([]);
   const regions = ref<UnifiedRegion[]>([]);
   const datasets = ref<UserDataset[]>([]);
@@ -319,6 +320,8 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
   }
 
   return {
+    debugMode,
+
     accentColor,
     accentColor2,
 
@@ -427,7 +430,7 @@ export function deserializeTempoStore(value: string): StateTree {
   }
 }
 
-const OMIT = new Set(["selectionActive"]);
+const OMIT = new Set(["debugMode", "selectionActive"]);
 export function serializeTempoStore(store: ReturnType<typeof useTempoStore>): string {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const state: Record<string, any> = {};
