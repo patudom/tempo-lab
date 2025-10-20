@@ -82,7 +82,7 @@ const {
 } = storeToRefs(store);
 
 const query = new URLSearchParams(window.location.search);
-debugMode.value = (query.get("debug") ?? process.env.TEMPO_LAB_DEBUG) == "true";
+debugMode.value = (query.get("debug") ?? process.env.VUE_APP_TEMPO_LAB_DEBUG)?.toLowerCase() == "true";
 
 const infoColor = "#092088";
 const cssVars = computed(() => {
