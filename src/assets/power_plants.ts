@@ -37,20 +37,6 @@ export interface PowerPlants {
   Other_MW?:       number;
 }
 
-export enum PrimSource {
-  Batteries = "batteries",
-  Biomass = "biomass",
-  Coal = "coal",
-  Geothermal = "geothermal",
-  Hydroelectric = "hydroelectric",
-  NaturalGas = "natural gas",
-  Nuclear = "nuclear",
-  Other = "other",
-  Petroleum = "petroleum",
-  PumpedStorage = "pumped storage",
-  Solar = "solar",
-  Wind = "wind",
-}
 
 // custom groups for green and traditional sources
 export enum RenewableSource {
@@ -66,6 +52,24 @@ export enum TraditionalSource {
   NaturalGas = "natural gas",
   Petroleum = "petroleum",
 }
+
+export enum PrimSource {
+  Batteries = "batteries",
+  Biomass = "biomass",
+  Coal = "coal",
+  Geothermal = "geothermal",
+  Hydroelectric = "hydroelectric",
+  NaturalGas = "natural gas",
+  Nuclear = "nuclear",
+  Other = "other",
+  Petroleum = "petroleum",
+  PumpedStorage = "pumped storage",
+  Solar = "solar",
+  Wind = "wind",
+}
+
+export const TraditionalSources = [PrimSource.Coal, PrimSource.NaturalGas, PrimSource.Petroleum] as const;
+export const RenewableSources = [PrimSource.Biomass, PrimSource.Geothermal, PrimSource.Hydroelectric, PrimSource.Solar, PrimSource.Wind] as const;
 
 export enum Source {
   EIA860EIA860MAndEIA923 = "EIA-860, EIA-860M and EIA-923",
