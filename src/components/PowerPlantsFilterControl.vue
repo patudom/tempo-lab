@@ -77,11 +77,15 @@ function handleGlobalSelect(value: boolean) {
 
 function handleCategoryGlobalSelect(category: PlantCategory, value: boolean) {
   if (value) {
+    // We could update the ref directly and use a deep watcher, but we don't need
+    // to trigger UI updates on each push here - better to do it all at the end
+    const sources = [...selectedSources.value];
     SOURCES_BY_CATEGORY[category].forEach(source => {
-      if (!selectedSources.value.includes(source)) {
-        selectedSources.value.push(source);
+      if (!sources.includes(source)) {
+        sources.push(source);
       }
     });
+    selectedSources.value = sources;
   } else {
     selectedSources.value = selectedSources.value.filter(item => !SOURCES_BY_CATEGORY[category].includes(item));
   }
@@ -126,8 +130,10 @@ function applyPrimSourceFilter(sources: PrimSource[]) {
   const layerIds = ["power-plants-layer", "power-plants-heatmap"];
   layerIds.forEach(id => {
     if (!props.map.getLayer(id)) { return; }
-
-    if (sources.length === Object.values(PrimSource).length) {
+  
+    if (sources.length === 0) {
+      props.map.setFilter(id, false);
+    } else if (sources.length === Object.values(PrimSource).length) {
       props.map.setFilter(id, null);
     } else {
       props.map.setFilter(id, ["in", ["get", "PrimSource"], ["literal", sources]]);
