@@ -410,6 +410,8 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
 
 export const useTempoStore = createTempoStore("maplibre");
 
+type TempoStore = ReturnType<typeof useTempoStore>;
+
 function isDateLikeString(value: string): boolean {
   return /^\d{4}-\d{2}-\d{2}/.test(value);
 }
@@ -450,9 +452,8 @@ export function deserializeTempoStore(value: string): StateTree {
   }
 }
 
-
 const OMIT = new Set(["debugMode", "selectionActive", "maps"]);
-export function serializeTempoStore(store: ReturnType<typeof useTempoStore>): string {
+export function serializeTempoStore(store: TempoStore): string {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const state: Record<string, any> = {};
   for (const [key, value] of Object.entries(store.$state)) {
@@ -468,4 +469,12 @@ export function serializeTempoStore(store: ReturnType<typeof useTempoStore>): st
   });
   const stringified = stringify(state);
   return stringified;
+}
+
+export function postDeserializeTempoStore(store: TempoStore) {
+  for (const dataset of store.datasets) {
+    if (dataset.loading) {
+      store.fetchDataForDataset(dataset);
+    }
+  }
 }
