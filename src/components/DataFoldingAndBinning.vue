@@ -212,7 +212,7 @@
               />
               </div>
               <!-- Preview Info -->
-              <v-card height="fit-content" variant="tonal" class="pa-2 mb-3">
+              <v-card v-if="debugMode" height="fit-content" variant="tonal" class="pa-2 mb-3">
                 <v-card-subtitle class="pa-0">Preview</v-card-subtitle>
                 <div class="text-caption">
                   <div>Original points: {{ originalDataPointCount }}</div>
@@ -296,6 +296,7 @@
 <script setup lang="ts">
 // eslint-disable @typescript-eslint/no-unused-vars */
 import { ref, computed, watch, nextTick } from 'vue';
+import { storeToRefs } from "pinia";
 import { v4 } from 'uuid';
 import { TimeSeriesFolder, sortfoldBinContent } from '../esri/services/aggregation';
 import FoldedPlotlyGraph from './FoldedPlotlyGraph.vue';
@@ -303,12 +304,10 @@ import type { Prettify, UserDataset, PlotltGraphDataSet, UnifiedRegion } from '.
 import type { AggregationMethod, TimeSeriesData, FoldedTimeSeriesData , FoldType, FoldBinContent} from '../esri/services/aggregation';
 import tz_lookup from '@photostructure/tz-lookup';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
-import { storeToRefs } from "pinia";
-import { useTempoStore } from "../stores/app";
-
+import { useTempoStore } from '@/stores/app';
 const store = useTempoStore();
 const {
-  debugMode
+  debugMode,
 } = storeToRefs(store);
 
 import {
