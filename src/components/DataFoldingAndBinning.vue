@@ -29,17 +29,29 @@
                 which are incompatible with other selected options. 
               </div>
               
-              <!-- Time Bin Selection -->
-              <v-select
-                v-if="false"
-                v-model="selectedTimeBin"
-                :items="timeBinOptions.filter(opt => validTimeBinForData(opt.value as TimeBinOptions))"
-                label="Time Bin"
-                density="compact"
-                variant="outlined"
-                hide-details
+              <!-- Folding Period Selection -->
+              <h3>Folding Period</h3>
+              <v-chip-group
+                v-model="selectedFoldingPeriod"
+                column
                 class="mb-3"
-              />
+              >
+                <v-chip
+                  v-for="option in foldingPeriodOptions"
+                  :key="option.value"
+                  :value="option.value"
+                  color="#092088"
+                  :variant="option.value === selectedFoldingPeriod ? 'flat' : 'outlined'"
+                  outline
+                  density="compact"
+                  :disabled="!validFoldingForData(option.value as FoldingPeriodOptions)"
+                >
+                  {{ option.title }}
+                </v-chip>
+              </v-chip-group> 
+              
+              
+              <!-- Time Bin Selection -->
               <!-- use chips for select -->
               <h3>Time Bin</h3>
               <v-chip-group
@@ -54,7 +66,7 @@
                   color="#092088"
                   :variant="option.value === selectedTimeBin ? 'flat' : 'outlined'"    
                   density="compact"
-                  :disabled="!validTimeBinForData(option.value as TimeBinOptions)"
+                  :disabled="!validTimeBinForData(option.value as TimeBinOptions) || !isValidCombination(option.value as TimeBinOptions, selectedFoldingPeriod)"
                 >
                   {{ option.title }}
                 </v-chip>
@@ -99,37 +111,7 @@
                 
               </div>
               
-              <!-- Folding Period Selection -->
-              <v-select
-                v-if="false"
-                v-model="selectedFoldingPeriod"
-                :items="foldingPeriodOptions.filter(opt => validFoldingForData(opt.value as FoldingPeriodOptions))"
-                label="Folding Period"
-                density="compact"
-                variant="outlined"
-                hide-details
-                class="mb-3"
-              />
-              <h3>Folding Period</h3>
-              <v-chip-group
-                v-model="selectedFoldingPeriod"
-                column
-                class="mb-3"
-              >
-                <v-chip
-                  v-for="option in foldingPeriodOptions"
-                  :key="option.value"
-                  :value="option.value"
-                  color="#092088"
-                  :variant="option.value === selectedFoldingPeriod ? 'flat' : 'outlined'"
-                  outline
-                  density="compact"
-                  :disabled="!isValidCombination(option.value, selectedTimeBin) || !validFoldingForData(option.value as FoldingPeriodOptions)"
-                >
-                  {{ option.title }}
-                </v-chip>
-              </v-chip-group> 
-              
+
               <div class="mb-2 explainer-text">
                 <strong class="text-red">FIX</strong>
                 We "fold" data, by stacking data re-aligning data based on a periodic cycle. For example, if we fold by "Week", then
@@ -298,7 +280,7 @@
 </template>
 
 <script setup lang="ts">
-/* eslint-disable @typescript-eslint/no-unused-vars */
+// eslint-disable @typescript-eslint/no-unused-vars */
 import { ref, computed, watch, nextTick } from 'vue';
 import { v4 } from 'uuid';
 import { TimeSeriesFolder, sortfoldBinContent } from '../esri/services/aggregation';
@@ -314,6 +296,13 @@ const store = useTempoStore();
 const {
   debugMode
 } = storeToRefs(store);
+
+import {
+  TimeBinOptions,
+  FoldingPeriodOptions,
+  isValidCombination,
+  getFirstValidTimeBin
+} from '@/utils/foldingValidation';
 
 interface DataFoldingProps {
   selection: UserDataset | null;
@@ -332,8 +321,7 @@ const theColor = computed(() => {
   return props.selection?.customColor ?? (props.selection?.region.color ?? 'blue');
 });
 
-export type TimeBinOptions = 'hour' | 'day' | 'week' | 'month';
-export type FoldingPeriodOptions = 'day' | 'week' | 'month' | 'year' | 'weekdayWeekend' | 'none';
+
 const MS_IN_HOUR = 3600000;
 const MS_IN_DAY = MS_IN_HOUR * 24;
 const MS_IN_WEEK = MS_IN_DAY * 7;
@@ -438,22 +426,14 @@ const showErrors = ref(true);
 const useSEM = ref(true);
 const useErrorBars = ref(false);
 
-const validCombinations: Record<TimeBinOptions, FoldingPeriodOptions[]> = {
-  'hour': ['day', 'week', 'month', 'year', 'weekdayWeekend', 'none'],
-  'day': ['week', 'month', 'year', 'weekdayWeekend', 'none'],
-  'week': ['month', 'year', 'none'],
-  'month': ['year', 'none'],
-};
-const isValidCombination = (period: FoldingPeriodOptions, bin: TimeBinOptions) => {
-  return validCombinations[bin].includes(period);
-};
-  
-watch(selectedTimeBin, (newBin) => {
-  if (!isValidCombination(selectedFoldingPeriod.value, newBin)) {
+watch(selectedFoldingPeriod, (newPeriod) => {
+  if (!isValidCombination(selectedTimeBin.value, newPeriod)) {
     // Set to first valid option
-    const validPeriods = validCombinations[newBin];
-    if (validPeriods.length > 0) {
-      selectedFoldingPeriod.value = validPeriods.filter(validFoldingForData)[0];
+    const validTimeBin = getFirstValidTimeBin(newPeriod);
+    if (validTimeBin && validTimeBinForData(validTimeBin)) {
+      selectedTimeBin.value = validTimeBin;
+    } else {
+      selectedTimeBin.value = 'hour'; // default fallback
     }
   }
 });
