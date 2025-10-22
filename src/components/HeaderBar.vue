@@ -57,16 +57,16 @@
         <v-icon>mdi-creation</v-icon>
       </v-btn>
       <share-button
-          :source="currentUrl"
-          buttonColor="black"
-          :iconColor="accentColor2"
-          elevation="0"
-          size="small"
-          rounded="1"
-          :tooltip-disabled="mobile"
-          @click="shareButtonClickedCount += 1"
-          alert
-        />
+        :source="currentUrl"
+        buttonColor="black"
+        :iconColor="accentColor2"
+        elevation="0"
+        size="small"
+        rounded="1"
+        :tooltip-disabled="mobile"
+        @click="shareButtonClickedCount += 1"
+        alert
+      />
       <v-btn aria-role="menu" aria-label="Show menu" class="menu-button" variant="outlined" rounded="lg" :color="accentColor2" elevation="5">
         <v-icon size="x-large">mdi-menu</v-icon>
         <v-menu
@@ -141,6 +141,11 @@ import { supportsTouchscreen } from "@cosmicds/vue-toolkit";
 import { useTempoStore } from "@/stores/app";
 import changes from "@/changes";
 
+import { library } from "@fortawesome/fontawesome-svg-core";
+import { faArrowsRotate } from "@fortawesome/free-solid-svg-icons";
+
+library.add(faArrowsRotate);
+
 const emit = defineEmits<{
   (event: "intro-slide", value: number): void;
 }>();
@@ -168,7 +173,6 @@ const smallSize = computed(() => {
 const mobile = computed(() => {
   return smallSize.value && touchscreen;
 });
-
 </script>
 
 <style scoped lang="less">
@@ -208,6 +212,16 @@ a[href="https://tempo.si.edu"]>img {
     justify-self: end;
     gap: 1rem;
     align-items: center;
+
+    :deep(.icon-wrapper) {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px !important;
+    }
+
   }
 }
+
+
+
 </style>

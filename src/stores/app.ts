@@ -319,6 +319,13 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
     }
   }
 
+  function reset() {
+    regions.value = [];
+    regionsCreatedCount.value = 0;
+    timeRanges.value = [];
+    datasets.value = [];
+  }
+
   return {
     debugMode,
 
@@ -386,6 +393,8 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
     moveBackwardOneDay,
     moveForwardOneDay,
     nearestDateIndex,
+
+    reset,
   };
 });
 
