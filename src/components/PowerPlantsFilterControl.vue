@@ -1,12 +1,41 @@
 <template>
-  <div>
-    <v-select
-      v-model="selectedPrimSource"
-      :items="items"
-      label="Power Plants by Primary Source"
+  <v-expansion-panels
+    class="power-plant-filter-controls"
+    multiple
+  >
+    <div class="global-filters">
+      <div>Global Filters</div>
+      <v-btn
+       @click="handleGlobalSelect(true)"
+      >All</v-btn>
+      <v-btn
+        @click="handleGlobalSelect(false)"
+      >None</v-btn>
+    </div>
+    <v-expansion-panel
+      v-for="(category, index) in PLANT_CATEGORIES"
+      :key="index"
+      :title="category"
     >
-    </v-select>
-  </div>
+      <template #text>
+        <v-btn
+          @click="handleCategoryGlobalSelect(category, true)"
+        >All</v-btn>
+        <v-btn
+          @click="handleCategoryGlobalSelect(category, false)"
+        >None</v-btn>
+        <v-checkbox
+          v-for="source in SOURCES_BY_CATEGORY[category]"
+          :label="source"
+          :key="source"
+          :value="source"
+          v-model="selectedSources"
+          density="compact"
+          hide-details
+        ></v-checkbox>
+      </template>
+    </v-expansion-panel>
+  </v-expansion-panels>
 </template>
 
 <script setup lang="ts">
@@ -15,8 +44,8 @@ import type { LayerSpecification, Map } from "maplibre-gl";
 
 import { 
   PrimSource,
-  RenewableSource,
-  TraditionalSource,
+  RenewableSources,
+  TraditionalSources,
 } from "@/assets/power_plants";
 
 interface Props {
@@ -26,18 +55,49 @@ interface Props {
 
 const props = defineProps<Props>();
 
-type PlantCategory = "Renewables" | "Fossil Fuels" | "All";
+const PLANT_CATEGORIES = ["Renewables", "Fossil Fuels", "Other"] as const;
+type PlantCategory = typeof PLANT_CATEGORIES[number];
 
-const selectedPrimSource = ref<PrimSource | PlantCategory>("All");
+const selectedSources = ref<PrimSource[]>(Object.values(PrimSource));
+
+const SOURCES_BY_CATEGORY: Record<PlantCategory, readonly PrimSource[]> = {
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  Renewables: RenewableSources,
+  "Fossil Fuels": TraditionalSources,
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  Other: Object.values(PrimSource).filter(source => 
+    !((RenewableSources as unknown as PrimSource[]).includes(source) || 
+      (TraditionalSources as unknown as PrimSource[]).includes(source))
+  ),
+};
+
+function handleGlobalSelect(value: boolean) {
+  selectedSources.value = value ? [...Object.values(PrimSource)] : [];
+}
+
+function handleCategoryGlobalSelect(category: PlantCategory, value: boolean) {
+  if (value) {
+    // We could update the ref directly and use a deep watcher, but we don't need
+    // to trigger UI updates on each push here - better to do it all at the end
+    const sources = [...selectedSources.value];
+    SOURCES_BY_CATEGORY[category].forEach(source => {
+      if (!sources.includes(source)) {
+        sources.push(source);
+      }
+    });
+    selectedSources.value = sources;
+  } else {
+    selectedSources.value = selectedSources.value.filter(item => !SOURCES_BY_CATEGORY[category].includes(item));
+  }
+}
 
 let layers: LayerSpecification[] = [];
 
-const items = ["All", "Renewables", "Fossil Fuels"].concat(Object.values(PrimSource));
-
 function onLayersChanged(newLayers: LayerSpecification[]) {
   layers = newLayers;
-  applyPrimSourceFilter(selectedPrimSource.value);
+  applyPrimSourceFilter(selectedSources.value);
 }
+
 
 onMounted(() => {
   props.map.on("styledata", () => {
@@ -61,31 +121,36 @@ onMounted(() => {
     }
   });
 
-  applyPrimSourceFilter(selectedPrimSource.value);
+  applyPrimSourceFilter(selectedSources.value);
 });
 
-function applyPrimSourceFilter(source: PrimSource | PlantCategory) {
+watch(selectedSources, applyPrimSourceFilter);
+
+function applyPrimSourceFilter(sources: PrimSource[]) {
   const layerIds = ["power-plants-layer", "power-plants-heatmap"];
   layerIds.forEach(id => {
     if (!props.map.getLayer(id)) { return; }
-
-    switch (source) {
-    case "All":
+  
+    if (sources.length === 0) {
+      props.map.setFilter(id, false);
+    } else if (sources.length === Object.values(PrimSource).length) {
       props.map.setFilter(id, null);
-      break;
-    case "Renewables":
-      props.map.setFilter(id, ['in', ['get', 'PrimSource'], ['literal', Object.values(RenewableSource)]]);
-      break;
-    case "Fossil Fuels":
-      props.map.setFilter(id, ['in', ['get', 'PrimSource'], ['literal', Object.values(TraditionalSource)]]);
-      break;
-    default:
-      props.map.setFilter(id, ['==', ['get', 'PrimSource'], source]);
+    } else {
+      props.map.setFilter(id, ["in", ["get", "PrimSource"], ["literal", sources]]);
     }
-    
   });
 }
-
-watch(selectedPrimSource, applyPrimSourceFilter);
-
 </script>
+
+<style scoped lang="less">
+.power-plant-filter-controls {
+  border: 1px solid white;
+  border-radius: 5px;
+  margin: 5px;
+  width: unset;
+}
+
+.global-filters {
+  padding: 5px 0;
+}
+</style>

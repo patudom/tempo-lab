@@ -28,6 +28,7 @@
       
       <v-tabs-window v-model="tab">
         <v-tabs-window-item
+          class="tab-content"
           :value="0"
           :key="0"
         >
@@ -36,6 +37,7 @@
         <v-tabs-window-item
           :value="1"
           :key="1"
+          class="tab-content"
         >
           <div
             v-for="(map, index) in maps"
@@ -229,7 +231,7 @@ body {
   font-family: "Lexend", sans-serif;
 }
 
-.side-panel {
+#side-panel {
   overflow-y: scroll;
 }
 

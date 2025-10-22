@@ -51,22 +51,17 @@ interface Props {
   layerId: string;
   map: Map;
   displayName?: string;
-  initialOpacity?: number;
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  initialOpacity: 1,
-  initialVisibility: true,
-});
-
-let { opacity } = useMaplibreLayerOpacity(props.map, props.layerId, props.initialOpacity);
+const props = defineProps<Props>();
+let { opacity } = useMaplibreLayerOpacity(props.map, props.layerId);
 let { visible } = useMaplibreLayerVisibility(props.map, props.layerId);
 
 // NB: If the props update, we need to make sure that the refs that we're using are still tracking the same layer
 // In particular, if the layer ID changes, without this the component can end up manipulating the wrong layer!
-watch(() => [props.map, props.layerId, props.initialOpacity],
-  ([map, layerId, initialOpacity]: [Map, string, number]) => {
-    opacity = useMaplibreLayerOpacity(map, layerId, initialOpacity).opacity;
+watch(() => [props.map, props.layerId],
+  ([map, layerId]: [Map, string]) => {
+    opacity = useMaplibreLayerOpacity(map, layerId).opacity;
     visible = useMaplibreLayerVisibility(map, layerId).visible;
   });
 </script>

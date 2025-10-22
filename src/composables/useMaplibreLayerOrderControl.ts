@@ -334,7 +334,7 @@ export class MaplibreLayerOrderControl extends PsuedoEvent {
       if (managedLayerMap.has(layer)) {
         newDesiredOrder.push(newManagedOrder[managedIndex]);
         managedIndex++;
-      } {
+      } else {
         newDesiredOrder.push(layer);
       }
     }
