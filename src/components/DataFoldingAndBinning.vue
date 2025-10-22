@@ -60,7 +60,7 @@
                 </v-chip>
               </v-chip-group> 
               
-              <div class="mb-2 explainer-text">
+              <div v-if="debugMode" class="mb-2 explainer-text">
                 <strong class="text-red">FIX</strong>
                 Select the time bin for which we will aggregate the data. 
                 When aggregating data, we take all of the data in a bin (say the 1pm bin) and
@@ -307,6 +307,13 @@ import type { Prettify, UserDataset, PlotltGraphDataSet, UnifiedRegion } from '.
 import type { AggregationMethod, TimeSeriesData, FoldedTimeSeriesData , FoldType, FoldBinContent} from '../esri/services/aggregation';
 import tz_lookup from '@photostructure/tz-lookup';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
+import { storeToRefs } from "pinia";
+import { useTempoStore } from "../stores/app";
+
+const store = useTempoStore();
+const {
+  debugMode
+} = storeToRefs(store);
 
 interface DataFoldingProps {
   selection: UserDataset | null;
