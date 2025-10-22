@@ -74,12 +74,17 @@ const mapTargets = reactive<Record<string, Ref<MaybeHTMLElement>>>({});
 const sidePanelTarget = ref<MaybeHTMLElement>(null);
 const tab = ref(0);
 
+
 const store = useTempoStore();
 const {
   accentColor,
   accentColor2,
   maps,
+  debugMode,
 } = storeToRefs(store);
+
+const query = new URLSearchParams(window.location.search);
+debugMode.value = (query.get("debug") ?? process.env.VUE_APP_TEMPO_LAB_DEBUG)?.toLowerCase() == "true";
 
 const infoColor = "#092088";
 const cssVars = computed(() => {
