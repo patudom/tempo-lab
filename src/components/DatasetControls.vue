@@ -1023,15 +1023,15 @@ watch(tableSelection, (newVal) => {
   border-radius: 5px;
   padding: 5px;
   padding-inline-start: 10px;
-  background-color: rgb(var(--v-theme-surface-bright));
+  background-color: rgb(var(--v-theme-background));
   font-size: 0.8em;
-  color: rgb(var(--v-theme-on-surface-bright));
+  color: rgb(var(--v-theme-on-surface));
   
 }
 
 .explainer-text hr {
   border: none;
-  border-top: 1px solid rgb(var(--v-theme-on-surface-bright));
+  border-top: 1px solid rgb(var(--v-theme-on-surface-light));
   margin-inline: 0;
   margin-block: 1em;
 }

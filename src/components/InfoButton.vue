@@ -5,7 +5,8 @@
         <template v-slot:activator=" { props} ">
         <v-icon 
           v-bind="{...activatorProps, ...props}" 
-          style="margin-left: 1em;font-size: 1.3em; color: var(--accent-color);" elevation="1"
+          class="info-button-icon"
+          elevation="1"
           @click="dialogVisible = true"
           @keydown="handleKeydown"
           >
@@ -71,7 +72,7 @@ export default defineComponent({
 });
 </script>
 
-<style>
+<style scoped>
 .v-card-info-text {
   font-size: 1em;
   line-height: 1.5em;
@@ -113,6 +114,11 @@ export default defineComponent({
   padding: 0.5em;
   margin: -0.5em;
   transition: background-color 0.3s;
+}
+
+.info-button-icon {
+  font-size: 1.3em; 
+  color: var(--accent-color);
 }
 
 </style>
