@@ -91,7 +91,12 @@
         :track-size="10"
         show-ticks="always"
         hide-details
-        @end="timeSliderUsedCount += 1"
+        @end="() => {
+          timeSliderUsedCount += 1;
+          if (map) {
+            setLayerVisibility(map as Map, 'esri-source', true);
+          }
+        }"
       >
         <template v-slot:thumb-label>
           <div class="thumb-label">
@@ -109,7 +114,13 @@
     <div class="d-flex flex-row">
       <map-controls
         class="flex-grow-1"
-        @molecule="(mol: MoleculeType) => { molecule = mol }"
+        @molecule="(mol: MoleculeType) => {
+          molecule = mol;
+          console.log(mol, map);
+          if (map) {
+            setLayerVisibility(map as Map, 'esri-source', true);
+          }
+        }"
       />
     </div>
   </div>

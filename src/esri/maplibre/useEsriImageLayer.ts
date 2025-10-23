@@ -175,18 +175,18 @@ export function useEsriLayer(initialMolecule: MaybeRef<MoleculeType>,
 
   watch(molecule, (_newMol: MoleculeType) => {
     dynamicMapService.value.esriServiceOptions.url = url.value;
-    dynamicMapService.value.esriServiceOptions.renderingRule = renderingRule(renderOptions.value.range, renderOptions.value.colormap);
+    dynamicMapService.value.setRenderingRule(renderingRule(renderOptions.value.range, renderOptions.value.colormap));
   });
   
   function updateStretch(vmin: number, vmax: number) {
     if (dynamicMapService.value) {
-      dynamicMapService.value.esriServiceOptions.renderingRule = renderingRule([vmin, vmax], renderOptions.value.colormap);
+      dynamicMapService.value.setRenderingRule(renderingRule([vmin, vmax], renderOptions.value.colormap));
     }
   }
   
   function updateColormap(colormap: ColorRamps) {
     if (dynamicMapService.value) {
-      dynamicMapService.value.esriServiceOptions.renderingRule = renderingRule(renderOptions.value.range, colormap);
+      dynamicMapService.value.setRenderingRule(renderingRule(renderOptions.value.range, colormap));
     }
   }
   
