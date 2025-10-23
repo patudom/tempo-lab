@@ -116,7 +116,6 @@
         class="flex-grow-1"
         @molecule="(mol: MoleculeType) => {
           molecule = mol;
-          console.log(mol, map);
           if (map) {
             setLayerVisibility(map as Map, 'esri-source', true);
           }
