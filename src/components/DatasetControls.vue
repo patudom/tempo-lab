@@ -217,7 +217,8 @@
                     <div
                       v-if="(dataset.loading || !dataset.samples)  && !(dataset.timeRange?.type === 'folded' && dataset.plotlyDatasets)"
                       class="dataset-loading"
-                    > <hr/>
+                    >
+                      <hr/>
                       <v-progress-linear
                         :class="['dataset-loading-progress', !(dataset.loading && dataset.samples) ? 'dataset-loading-failed' : '']"
                         :active="dataset.loading || !dataset.samples"
@@ -235,6 +236,20 @@
                           </span>
                         </template>
                       </v-progress-linear>
+                      <v-tooltip
+                        text="Remove selection"
+                        location="top"
+                      >
+                        <template #activator="{ props }">
+                          <v-btn
+                            v-bind="props"
+                            size="x-small"
+                            icon="mdi-trash-can"
+                            variant="plain"
+                            @click="() => removeDataset(dataset)"
+                          ></v-btn>
+                        </template>
+                      </v-tooltip>
                       <div v-if="!(dataset.loading || dataset.samples || dataset.plotlyDatasets)">
                         <hr/>
                         <v-tooltip
@@ -1003,9 +1018,7 @@ watch(tableSelection, (newVal) => {
   font-size: 1.17em;
   font-weight: bold;
 }
-</style>
 
-<style>
 .explainer-text {
   border-radius: 5px;
   padding: 5px;
@@ -1030,5 +1043,10 @@ watch(tableSelection, (newVal) => {
 .explainer-text dd {
   margin-left: 0;
   margin-bottom: 8px;
+}
+
+.dataset-loading {
+  display: flex;
+  align-items: center;
 }
 </style>
