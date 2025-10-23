@@ -18,12 +18,14 @@
 
     <teleport
       v-if="sidePanelTarget"
-      :to="sidePanelTarget">
+      :to="sidePanelTarget"
+    >
       <v-tabs
         v-model="tab"
+        :color="tempoRed"
       >
-        <v-tab :value="0">Dataset</v-tab>
-        <v-tab :value="1">Layers</v-tab>
+        <v-tab :value="0">TEMPO Deep Dive</v-tab>
+        <v-tab :value="1">Comparison Data</v-tab>
       </v-tabs>
       
       <v-tabs-window v-model="tab">
@@ -39,21 +41,7 @@
           :key="1"
           class="tab-content"
         >
-          <div
-            v-for="(map, index) in maps"
-            :key="index"
-          >
-            <layer-order-control
-              :mapRef="map"
-              :order="['power-plants-heatmap', 'aqi-layer-aqi', 'esri-source']"
-            >
-            </layer-order-control>
-            <power-plants-filter-control
-              :map="map"
-              layer-id="power-plants-heatmap"
-            >
-            </power-plants-filter-control>
-          </div>
+          <comparison-data-controls />
         </v-tabs-window-item>
       </v-tabs-window>
     </teleport>
@@ -79,8 +67,8 @@ const store = useTempoStore();
 const {
   accentColor,
   accentColor2,
-  maps,
   debugMode,
+  tempoRed,
 } = storeToRefs(store);
 
 const query = new URLSearchParams(window.location.search);
@@ -92,6 +80,7 @@ const cssVars = computed(() => {
     '--accent-color': accentColor.value,
     '--accent-color-2': accentColor2.value,
     '--info-background': infoColor,
+    '--tempo-red': tempoRed.value,
   };
 });
 
@@ -244,7 +233,6 @@ body {
   --smithsonian-yellow: #ffcc33;
   --info-background: #092088;
   --map-height: 500px;
-  --tempo-red: #b60e32;
 }
 
 @media (max-width: 750px) {
@@ -271,4 +259,10 @@ body {
   }
 }
 
+.tab-content {
+  padding: 0.5rem 1rem;
+  border: 5px solid var(--tempo-red);
+  border-radius: 10px;
+  margin: 10px;
+}
 </style>

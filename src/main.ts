@@ -3,7 +3,7 @@ import Vue, { createApp } from "vue";
 
 import { FundingAcknowledgement, IconButton, CreditLogos } from "@cosmicds/vue-toolkit";
 import LocationSearch from "./components/LocationSearch.vue";
-import TempoLite from "./TempoLite.vue";
+import TempoLab from "./TempoLab.vue";
 import Colorbar from './components/ColorBar.vue';
 import ColorBarHorizontal from "./components/ColorBarHorizontal.vue";
 import InfoButton from "./components/InfoButton.vue";
@@ -16,8 +16,10 @@ import TimeseriesGraph from "./components/TimeseriesGraph.vue";
 import SelectionComposer from "./components/SelectionComposer.vue";
 import HeaderBar from "./components/HeaderBar.vue";
 import DatasetControls from "./components/DatasetControls.vue";
+import ComparisonDataControls from "./components/ComparisonDataControls.vue";
 import MapControls from "./components/MapControls.vue";
 import MapWithControls from "./components/MapWithControls.vue";
+import PopupInfoButton from "./components/PopupInfoButton.vue";
 import LayerOrderControl from "./components/LayerOrderControl.vue";
 import MaplibreLayerControlItem from "./components/MaplibreLayerControlItem.vue";
 import PowerPlantsFilterControl from "./components/PowerPlantsFilterControl.vue";
@@ -62,7 +64,7 @@ const update = (el: HTMLElement, binding: Vue.DirectiveBinding) => el.style.visi
 
 const pinia = createPinia();
 
-createApp(TempoLite, {})
+createApp(TempoLab, {})
 
   // Plugins
   .use(vuetify)
@@ -102,9 +104,11 @@ createApp(TempoLite, {})
   .component('timeseries-graph', TimeseriesGraph)
   .component('selection-composer', SelectionComposer)
   .component('dataset-controls', DatasetControls)
+  .component('comparison-data-controls', ComparisonDataControls)
   .component('map-controls', MapControls)
   .component('map-with-controls', MapWithControls)
-  .component("header-bar", HeaderBar)
+  .component('header-bar', HeaderBar)
+  .component('popup-info-button', PopupInfoButton)
   .component('layer-control-item', MaplibreLayerControlItem)
   .component('layer-order-control', LayerOrderControl)
   .component('power-plants-filter-control', PowerPlantsFilterControl)

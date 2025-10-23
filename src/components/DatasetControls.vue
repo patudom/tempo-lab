@@ -1,52 +1,128 @@
 <template>
   <div id="dataset-sections" :style="cssVars">
     <h2>Investigate Patterns with Time</h2>
-      <v-btn
-        v-if="regions.length > 0 || timeRanges.length > 1"
-        :color="accentColor2"
-        @click="showConfirmReset = true"
-      >
-        Delete ALL selections
-      </v-btn>
-      <v-dialog
-        v-model="showConfirmReset"
-        max-width="35%"
-      >
-        <v-card>
-          <v-card-text>
-            Are you sure you want to delete all of your selections? 
-            This will remove all of your regions, time ranges, 
-            and datasets, and cannot be undone.
-          </v-card-text>
-          <v-card-actions>
-            <v-btn
-              color="error"
-              @click="showConfirmReset = false"
-            >
-              No
-            </v-btn>
-            <v-btn
-              color="success"
-              @click="() => {
-                store.reset();
-                serializeTempoStore(store);
-                showConfirmReset = false;
-              }"
-            >
-              Yes
-            </v-btn>
-          </v-card-actions>
-        </v-card>
-      </v-dialog>
-
+    <v-btn
+      v-if="regions.length > 0 || timeRanges.length > 1"
+      :color="accentColor2"
+      @click="showConfirmReset = true"
+    >
+      Delete ALL selections
+    </v-btn>
+    <v-dialog
+      v-model="showConfirmReset"
+      max-width="35%"
+    >
+      <v-card>
+        <v-card-text>
+          Are you sure you want to delete all of your selections? 
+          This will remove all of your regions, time ranges, 
+          and datasets, and cannot be undone.
+        </v-card-text>
+        <v-card-actions>
+          <v-btn
+            color="error"
+            @click="showConfirmReset = false"
+          >
+            No
+          </v-btn>
+          <v-btn
+            color="success"
+            @click="() => {
+              store.reset();
+              serializeTempoStore(store);
+              showConfirmReset = false;
+            }"
+          >
+            Yes
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
     <div id="add-region-time">
+      <p>
+        Select a Region, Time Range, and Molecule to create a dataset of your choice!
+      </p>
       <v-expansion-panels
         v-model="openPanels"
         variant="accordion"
         id="user-options-panels"
         multiple
         class="pl-3"
-      >
+      > 
+        <v-expansion-panel
+          title="Regions"
+          class="mt-3 h3-panel-titles"
+        >
+          <template #text>
+            <div id="add-region-buttons">
+              <v-btn
+                size="small"
+                :active="selectionActive === 'rectangle'"
+                :disabled="selectionActive === 'point'"
+                :color="accentColor2"
+                @click="() => {
+                  selectionActive = (selectionActive === 'rectangle') ? null : 'rectangle';
+                }"
+              >
+                <template #prepend>
+                  <v-icon v-if="selectionActive !== 'rectangle'" icon="mdi-plus"></v-icon>
+                </template>
+                {{ selectionActive === 'rectangle' ? "Cancel" : "New Region" }}
+              </v-btn>
+            </div>
+            <v-checkbox
+              v-model="showSamplingPreviewMarkers"
+              label="Show sample points"
+              density="compact"
+              hide-details
+            ></v-checkbox>
+            <div class="my-selections" v-if="regions.length>0" style="margin-top: 1em;">
+            <h4>My Regions</h4>                   
+              <v-list>
+                <v-list-item
+                  v-for="(region, index) in regions"
+                  :key="index"
+                  :title="region.name"
+                  :style="{ 'background-color': region.color }"
+                  @click="() => focusRegion = region"
+                >
+                  <template #append>
+                    <!-- New: Edit Geometry button (disabled if any selection using region has samples) -->
+                    <!-- <v-btn
+                      variant="plain"
+                      :icon="region.geometryType === 'rectangle' ? 'mdi-select' : 'mdi-plus'"
+                      color="white"
+                      :disabled="regionHasSamples(region as UnifiedRegionType)"
+                      v-tooltip="regionHasSamples(region as UnifiedRegionType) ? 'Cannot edit geometry after samples are fetched for a selection using this region' : 'Edit Geometry'"
+                      @click="() => editRegionGeometry(region as UnifiedRegionType)"
+                    ></v-btn> -->
+                    <v-btn
+                      variant="plain"
+                      v-tooltip="'Edit Name'"
+                      icon="mdi-pencil"
+                      color="white"
+                      @click="(event: MouseEvent | KeyboardEvent) => {
+                        editRegionName(region as UnifiedRegionType);
+                        event.stopPropagation();
+                      }"
+                    ></v-btn>
+                    <v-btn
+                      v-if="!store.regionHasDatasets(region as UnifiedRegionType)"
+                      variant="plain"
+                      v-tooltip="'Delete'"
+                      icon="mdi-delete"
+                      color="white"
+                      @click="(event: MouseEvent | KeyboardEvent) => {
+                        store.deleteRegion(region as UnifiedRegionType);
+                        event.stopPropagation();
+                      }"
+                    ></v-btn>
+                  </template>
+                </v-list-item>
+              </v-list>
+            </div>
+          </template>
+        </v-expansion-panel>
         <v-expansion-panel
           title="Time Ranges"
           class="mt-3 h3-panel-titles"
@@ -95,74 +171,6 @@
             </div>
           </template>
         </v-expansion-panel>
-        <v-expansion-panel
-          title="Regions"
-          class="mt-3 h3-panel-titles"
-        >
-          <template #text>
-            <div id="add-region-buttons">
-              <v-btn
-                size="small"
-                :active="selectionActive === 'rectangle'"
-                :disabled="selectionActive === 'point'"
-                :color="accentColor2"
-                @click="() => {
-                  selectionActive = (selectionActive === 'rectangle') ? null : 'rectangle';
-                }"
-              >
-                <template #prepend>
-                  <v-icon v-if="selectionActive !== 'rectangle'" icon="mdi-plus"></v-icon>
-                </template>
-                {{ selectionActive === 'rectangle' ? "Cancel" : "New Region" }}
-              </v-btn>
-            </div>
-            <div class="my-selections" v-if="regions.length>0" style="margin-top: 1em;">
-            <h4>My Regions</h4>                   
-              <v-list>
-                <v-list-item
-                  v-for="(region, index) in regions"
-                  :key="index"
-                  :title="region.name"
-                  :style="{ 'background-color': region.color }"
-                  @click="() => focusRegion = region"
-                >
-                  <template #append>
-                    <!-- New: Edit Geometry button (disabled if any selection using region has samples) -->
-                    <!-- <v-btn
-                      variant="plain"
-                      :icon="region.geometryType === 'rectangle' ? 'mdi-select' : 'mdi-plus'"
-                      color="white"
-                      :disabled="regionHasSamples(region as UnifiedRegionType)"
-                      v-tooltip="regionHasSamples(region as UnifiedRegionType) ? 'Cannot edit geometry after samples are fetched for a selection using this region' : 'Edit Geometry'"
-                      @click="() => editRegionGeometry(region as UnifiedRegionType)"
-                    ></v-btn> -->
-                    <v-btn
-                      variant="plain"
-                      v-tooltip="'Edit Name'"
-                      icon="mdi-pencil"
-                      color="white"
-                      @click="(event: MouseEvent | KeyboardEvent) => {
-                        editRegionName(region as UnifiedRegionType);
-                        event.stopPropagation();
-                      }"
-                    ></v-btn>
-                    <v-btn
-                      v-if="!store.regionHasDatasets(region as UnifiedRegionType)"
-                      variant="plain"
-                      v-tooltip="'Delete'"
-                      icon="mdi-delete"
-                      color="white"
-                      @click="(event: MouseEvent | KeyboardEvent) => {
-                        store.deleteRegion(region as UnifiedRegionType);
-                        event.stopPropagation();
-                      }"
-                    ></v-btn>
-                  </template>
-                </v-list-item>
-              </v-list>
-            </div>
-          </template>
-        </v-expansion-panel>
 
         <v-divider
           class="mt-3"
@@ -204,7 +212,7 @@
               :datasets="datasets"
               :turn-on-selection="allDatasetSelection"
               v-model:selected-datasets="selectedDatasets"
-              >
+            >
               <template #action-row="{ isHovering, dataset }">
                     <div
                       v-if="(dataset.loading || !dataset.samples)  && !(dataset.timeRange?.type === 'folded' && dataset.plotlyDatasets)"
@@ -752,6 +760,7 @@ const {
   uniqueDays,
   selectionActive,
   focusRegion,
+  showSamplingPreviewMarkers,
 } = storeToRefs(store);
 
 const cssVars = computed(() => {
@@ -767,7 +776,7 @@ function plotlyDragPredicate(element: HTMLElement): boolean {
 
 const touchscreen = supportsTouchscreen();
 
-const openPanels = ref<number[]>([]);
+const openPanels = ref<number[]>([0, 1, 2]);
 const openGraphs = ref<Record<string,boolean>>({});
 const openSelection = ref<string | null>(null);
 const tableSelection = ref<UserDataset | null>(null);
@@ -972,13 +981,6 @@ watch(tableSelection, (newVal) => {
 </script>
 
 <style scoped lang="less">
-#dataset-sections {
-  padding: 0.5rem 1rem;
-  border: 5px solid var(--tempo-red);
-  border-radius: 10px;
-  margin: 10px;
-}
-
 // prevent overflows of the content
 #add-region-time {
   display: flex;
