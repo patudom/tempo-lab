@@ -10,6 +10,10 @@ export function useMaplibreLayerOpacity(
 ) {
   const opacity = ref(initialOpacity ?? getLayerOpacity(map, layerId));
   watch(opacity, (value: number) => setLayerOpacity(map, layerId, value), { immediate: true });
+  map.on("styledata", () => {
+    opacity.value = getLayerOpacity(map, layerId);
+  });
+
   return {
     opacity,
   };

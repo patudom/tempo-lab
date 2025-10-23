@@ -10,6 +10,10 @@ export function useMaplibreLayerVisibility(
 ) {
   const visible = ref(initialVisibility ?? getLayerVisibility(map, layerId));
   watch(visible, (value: boolean) => setLayerVisibility(map, layerId, value), { immediate: true });
+  map.on("styledata", () => {
+    visible.value = getLayerVisibility(map, layerId);
+  });
+
   return {
     visible,
   };
