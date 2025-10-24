@@ -1,23 +1,24 @@
-export type TimeBinOptions = 'hour' | 'day' | 'week' | 'month';
-export type FoldingPeriodOptions = 'day' | 'week' | 'month' | 'year' | 'weekdayWeekend' | 'none';
+export type TimeBinOptions = 'none' | 'hour' | 'day' | 'week' | 'month';
+export type FoldingPeriodOptions = 'none' | 'day' | 'week' | 'month' | 'year' | 'weekdayWeekend';
 
 
 
 const validFoldingPeriodsForTimeBin: Record<TimeBinOptions, FoldingPeriodOptions[]> = {
-  'hour': ['day', 'week', 'month', 'year', 'weekdayWeekend', 'none'],
-  'day': ['week', 'month', 'year', 'weekdayWeekend', 'none'],
-  'week': ['month', 'year', 'none'],
-  'month': ['year', 'none'],
+  'hour': [ 'none', 'day', 'week', 'month', 'year', 'weekdayWeekend',],
+  'day': ['none', 'week', 'month', 'year', 'weekdayWeekend', ],
+  'week': ['none', 'month', 'year', ],
+  'month': ['none', 'year', ],
+  'none' :  [ 'none', 'day', 'week', 'month', 'year']
 };
 
 
 const validTimeBinsForFoldingPeriod: Record<FoldingPeriodOptions, (keyof typeof validFoldingPeriodsForTimeBin)[]> = {
-  'day': ['hour'],
-  'week': ['hour', 'day'],
-  'month': ['hour', 'day', 'week'],
-  'year': ['hour', 'day', 'week', 'month'],
+  'day': ['none', 'hour'],
+  'week': ['none', 'hour', 'day'],
+  'month': ['none', 'hour', 'day', 'week'],
+  'year': ['none', 'hour', 'day', 'week', 'month'],
   'weekdayWeekend': ['hour', 'day'],
-  'none': ['hour', 'day', 'week', 'month'],
+  'none': ['none', 'hour', 'day', 'week', 'month'],
 };
 
 

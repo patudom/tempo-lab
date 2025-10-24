@@ -304,7 +304,7 @@
                           </template>
                         </v-tooltip>
                         <v-tooltip
-                          v-if="dataset.timeRange.type === 'singledate'"
+                          v-if="dataset.timeRange.type === 'singledate' || dataset.folded"
                           text="Show graph"
                           location="top"
                         >

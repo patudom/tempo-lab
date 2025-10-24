@@ -112,7 +112,7 @@ export function _run_value_or_funcion<T, D>(valueOrFunc: T | ((input: D) => T) |
 } 
 
 export type BinSizes = 's' | 'minute' | 'hour' | 'day' | 'week' | 'month' | 'year' | 'none' | 'weekendweekday';
-export type FoldPeriods = 'day' | 'week' | 'year' | 'none' | 'weekendweekday';
+export type FoldPeriods = 'day' | 'week' | 'year' | 'month' | 'none' | 'weekendweekday';
 
 /**
  * 
