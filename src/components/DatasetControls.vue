@@ -286,24 +286,9 @@
                     <v-expand-transition>
                       <div
                         class="selection-icons"
-                        v-show="(dataset.samples || dataset.plotlyDatasets) && (touchscreen ? openSelection == dataset.id : isHovering)"
+                        v-show="(dataset.samples || dataset.plotlyDatasets) && (touchscreen ? openSelection == dataset.id : isHovering || true)"
                       >
-                        <v-tooltip
-                          text="Show table"
-                          location="top"
-                        >
-                          <template #activator="{ props }">
-                            <v-btn
-                              v-bind="props"
-                              size="x-small"
-                              icon="mdi-table"
-                              :disabled="!dataset.samples && !dataset.folded"
-                              variant="plain"
-                              @click="() => tableSelection = dataset"
-                            ></v-btn>
-                          </template>
-                        </v-tooltip>
-                        <v-tooltip
+                      <v-tooltip
                           v-if="dataset.timeRange.type === 'singledate' || dataset.folded"
                           text="Show graph"
                           location="top"
@@ -336,6 +321,22 @@
                           </template>
                         </v-tooltip>
                         <v-tooltip
+                          text="Show table"
+                          location="top"
+                        >
+                          <template #activator="{ props }">
+                            <v-btn
+                              v-bind="props"
+                              size="x-small"
+                              icon="mdi-table"
+                              :disabled="!dataset.samples && !dataset.folded"
+                              variant="plain"
+                              @click="() => tableSelection = dataset"
+                            ></v-btn>
+                          </template>
+                        </v-tooltip>
+                        
+                        <v-tooltip
                           text="Edit Dataset Name/Color"
                           location="top"
                         >
@@ -349,6 +350,7 @@
                             ></v-btn>
                           </template>
                         </v-tooltip>
+                        <v-spacer ></v-spacer>
                         <v-tooltip
                           text="Remove selection"
                           location="top"
@@ -1001,6 +1003,10 @@ watch(tableSelection, (newVal) => {
   padding: 0.5rem;
   border-radius: 10px;
   // background-color: #555555;
+}
+
+.selection-icons {
+  display: flex;
 }
 
 .h3-panel-titles .v-expansion-panel-title {
