@@ -304,6 +304,7 @@
                           </template>
                         </v-tooltip>
                         <v-tooltip
+                          v-if="dataset.timeRange.type === 'singledate'"
                           text="Show graph"
                           location="top"
                         >
@@ -319,15 +320,15 @@
                           </template>
                         </v-tooltip>
                         <v-tooltip
-                          v-if="dataset.timeRange.type === 'pattern' || dataset.timeRange.type === 'daterange' || dataset.timeRange.type === 'monthrange'"
-                          text="Aggregate Data"
+                          v-else
+                          text="Graph Data"
                           location="top"
                         >
                           <template #activator="{ props }">
                             <v-btn
                               v-bind="props"
                               size="x-small"
-                              icon="mdi-chart-box"
+                              icon="mdi-chart-line"
                               :disabled="!dataset.samples"
                               variant="plain"
                               @click="() => openAggregationDialog(dataset)"
@@ -367,21 +368,21 @@
                     <cds-dialog
                       :title="graphTitle(dataset)"
                       v-model="openGraphs[dataset.id]"
-                      title-color="#F44336"
+                      title-color="var(--info-background)"
                       draggable
                       persistent
                       :scrim="false"
                       :modal="false"
                       :drag-predicate="plotlyDragPredicate"
                     >
-                      <v-checkbox
-                        v-model="showErrorBands"
-                        label="Show Errors"
-                        density="compact"
-                        hide-details
-                      >
-                      </v-checkbox>
-                      <template v-if="dataset.timeRange.type === 'folded' && dataset.plotlyDatasets">
+                    <template v-if="dataset.timeRange.type === 'folded' && dataset.plotlyDatasets">
+                        <v-checkbox
+                          v-model="showErrorBands"
+                          label="Show Errors"
+                          density="compact"
+                          hide-details
+                        >
+                        </v-checkbox>
                         <folded-plotly-graph
                           :datasets="dataset.plotlyDatasets"
                           :show-errors="showErrorBands"
@@ -407,8 +408,10 @@
                             xaxis: {title: {text: 'Local Time for Region'}},
                             }"
                         />
-                          
                       </template>
+                      <div class="explainer-text" style="width: 500px; margin-inline: auto;">
+                        Note: We do not allow aggregation of data for a single day. Please create or select a longer dataset if you would like to explore more
+                      </div>
                     </cds-dialog>
                     <v-dialog
                       :model-value="sampleErrorID !== null"
