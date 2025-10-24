@@ -265,7 +265,7 @@
                   :timezones="selectedTimezone"
                   :data-options="[
                     {mode: 'markers'}, // options for the original data
-                    {mode: 'lines+markers'} // options for the folded data
+                    {mode: 'markers'} // options for the folded data
                     ]"
                   :error-bar-styles="[
                     {'thickness': 1, 'width': 0}, // original data error bar style
@@ -582,7 +582,7 @@ const canSave = computed(() => {
 
 const foldedDatasetName = computed(() => {
   if (!props.selection?.name) return 'Folded Data';
-  return `Folded ${props.selection.name ?? props.selection.region.name}`;// (${selectedTimeBin.value} of ${selectedFoldingPeriod.value}, ${selectedMethod.value})`;
+  return `Aggregated ${props.selection.name ?? props.selection.region.name}`;// (${selectedTimeBin.value} of ${selectedFoldingPeriod.value}, ${selectedMethod.value})`;
 });
 
 // Aggregated data
@@ -847,7 +847,7 @@ function saveFolding() {
     region: { ...props.selection.region, name: props.selection.region.name } as typeof props.selection.region,
     timeRange: createFoldedTimeRange(),
     molecule: props.selection.molecule,
-    customColor: '#333',
+    customColor: theColor.value,
     loading: false, // folded data is immediately available
     // samples/errors intentionally omitted for folded since bins are synthetic; rely on plotlyDatasets
     locations: foldedData.value.locations,
@@ -876,7 +876,7 @@ function saveFolding() {
       {
         ...graphData.value[1],
         datasetOptions: {
-          mode: 'lines+markers'
+          mode: 'markers'
         }
       } as PlotltGraphDataSet
     ].slice(0, isFoldWithNoBin.value ? 1 : 2) // only include summary if not fold-with-no-bin

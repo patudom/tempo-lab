@@ -387,7 +387,7 @@
                           :datasets="dataset.plotlyDatasets"
                           :show-errors="showErrorBands"
                           :colors="[dataset.customColor ?? dataset.region.color, '#333']"
-                          :data-options="[{mode: 'markers'}, {mode: 'lines+markers'}]"
+                          :data-options="[{mode: 'markers'}, {mode: 'markers'}]"
                           :names="[`Original Data`, `Binned`]"
                           :layout-options="{width: 600, height: 400}"
                           :fold-type="dataset.folded?.foldType"
@@ -399,7 +399,7 @@
                           :datasets="dataset ? [userDatasetToPlotly(dataset, true)] : []"
                           :colors="[dataset.customColor || dataset.region.color]"
                           show-errors
-                          :data-options="[{mode: 'lines+markers'}]"
+                          :data-options="[{mode: 'markers'}]"
                           :names="dataset.name ? [dataset.name] : undefined"
                           :layout-options="{
                             width: 600, 
@@ -474,7 +474,7 @@
         :datasets="no2GraphData.map(d => userDatasetToPlotly(d, true))"
         :colors="no2GraphData.map(d => d.customColor || d.region.color)"
         :show-errors="showErrorBands"
-        :data-options="no2GraphData.map(() => ({mode: 'lines+markers'}))"
+        :data-options="no2GraphData.map(() => ({mode: 'markers'}))"
         :names="no2GraphData.map(d => d.name ?? '')"
         :layout-options="{
           width: 600, 
@@ -507,7 +507,7 @@
         :datasets="o3GraphData.map(d => userDatasetToPlotly(d, true))"
         :colors="o3GraphData.map(d => d.customColor || d.region.color)"
         :show-errors="showErrorBands"
-        :data-options="o3GraphData.map(() => ({mode: 'lines+markers'}))"
+        :data-options="o3GraphData.map(() => ({mode: 'markers'}))"
         :names="o3GraphData.map(d => d.name ?? '')"
         :layout-options="{
           width: 600, 
@@ -540,7 +540,7 @@
         :datasets="hchoGraphData.map(d => userDatasetToPlotly(d, true))"
         :colors="hchoGraphData.map(d => d.customColor || d.region.color)"
         :show-errors="showErrorBands"
-        :data-options="hchoGraphData.map(() => ({mode: 'lines+markers'}))"
+        :data-options="hchoGraphData.map(() => ({mode: 'markers'}))"
         :names="hchoGraphData.map(d => d.name ?? '')"
         :layout-options="{
           width: 600, 
@@ -582,7 +582,7 @@
         :datasets="no2foldedGraphData.length > 0 ? no2foldedGraphData : []"
         :show-errors="showErrorBands"
         :colors="no2foldedGraphData.map( v => v.color) ?? ['#FF5733', '#333']"
-        :data-options="[{mode: 'lines+markers'}, {mode: 'lines+markers'}]"
+        :data-options="[{mode: 'markers'}, {mode: 'markers'}]"
         :layout-options="{width: 600, height: 400}"
         :fold-type="no2foldedGraphData[0].foldType"
         :timezones="no2foldedGraphData.map(v => v.timezone) ?? 'UTC'"
@@ -612,7 +612,7 @@
         :datasets="o3foldedGraphData.length > 0 ? o3foldedGraphData : []"
         :show-errors="showErrorBands"
         :colors="o3foldedGraphData.map( v => v.color) ?? ['#FF5733', '#333']"
-        :data-options="[{mode: 'lines+markers'}, {mode: 'lines+markers'}]"
+        :data-options="[{mode: 'markers'}, {mode: 'markers'}]"
         :layout-options="{width: 600, height: 400}"
         :fold-type="o3foldedGraphData[0].foldType"
         :timezones="o3foldedGraphData.map(v => v.timezone) ?? 'UTC'"
@@ -642,7 +642,7 @@
         :datasets="hchofoldedGraphData.length > 0 ? hchofoldedGraphData : []"
         :show-errors="showErrorBands"
         :colors="hchofoldedGraphData.map( v => v.color) ?? ['#FF5733', '#333']"
-        :data-options="[{mode: 'lines+markers'}, {mode: 'lines+markers'}]"
+        :data-options="[{mode: 'markers'}, {mode: 'markers'}]"
         :layout-options="{width: 600, height: 400}"
         :fold-type="hchofoldedGraphData[0].foldType"
         :timezones="hchofoldedGraphData.map(v => v.timezone) ?? 'UTC'"
