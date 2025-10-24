@@ -442,7 +442,9 @@
           <div v-if="datasets.some(s => s.timeRange.type === 'folded')" class="pa-2 mb-2 explainer-text">
             Note: You can only overlay datasets with the same molecule and fold type.
           </div>
-          <v-btn color="#ffcc33" size="small" :block="false" @click="allDatasetSelection = !allDatasetSelection">
+          <v-btn 
+          v-if="datasets.length > 1"
+          color="#ffcc33" size="small" :block="false" @click="allDatasetSelection = !allDatasetSelection">
             {{ allDatasetSelection ? 'Cancel Selection' : 'Select Datasets to Graph' }}
           </v-btn>
         </template>
