@@ -289,21 +289,6 @@
                         v-show="(dataset.samples || dataset.plotlyDatasets) && (touchscreen ? openSelection == dataset.id : isHovering)"
                       >
                         <v-tooltip
-                          text="Get Center Point Sample"
-                          location="top"
-                        >
-                          <template #activator="{ props }">
-                            <v-btn
-                              v-bind="props"
-                              size="x-small"
-                              :loading="loadingPointSample === dataset.id"
-                              icon="mdi-image-filter-center-focus"
-                              variant="plain"
-                              @click="() => store.fetchCenterPointDataForDataset(dataset)"
-                            ></v-btn>
-                          </template>
-                        </v-tooltip> 
-                        <v-tooltip
                           text="Show table"
                           location="top"
                         >
@@ -802,7 +787,6 @@ const createTimeRangeActive = ref(false);
 const createDatasetActive = ref(false);
 const datasetRowRefs = ref({});
 const sampleErrorID = ref<string | null>(null);
-const loadingPointSample = ref<string | false>(false);
 
 const showEditRegionNameDialog = ref(false);
 const regionBeingEdited = ref<UnifiedRegionType | null>(null);
