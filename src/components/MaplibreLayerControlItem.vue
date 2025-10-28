@@ -29,14 +29,13 @@
         </template>
       </popup-info-button>
     </div>
-    <slot name="actions"></slot>
     <div
       class="mlc-layer-item-opacity-label-container"
     >
       <label
         :for="`mlc-${layerId}-opacity-slider`"
       >
-        Transparency: 
+        Opacity: 
       </label>
       <v-slider
         v-model.number="opacity"
@@ -47,8 +46,13 @@
         :step="0.01"
         title="Adjust layer opacity"
         color="primary"
+        hide-details
       />
     </div>
+    <slot
+      name="actions"
+      :visible="visible"
+    ></slot>
   </div>
 </template>
 
@@ -79,10 +83,24 @@ watch(() => [props.map, props.layerId],
 </script>
 
 <style scoped>
-.mlc-layer-item-checkbox-label-container {
+.mlc-layer-item {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.mlc-layer-item-checkbox-label-container,
+.mlc-layer-item-opacity-label-container {
+  width: min(100%, 250px);
   padding: 5px;
   display: flex;
   flex-direction: row;
   align-items: center;
+}
+
+.mlc-layer-item-checkbox-label-container {
+  min-width: 200px;
 }
 </style>

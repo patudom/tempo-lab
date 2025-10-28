@@ -8,7 +8,7 @@ function checkArrayEquality<T>(arr1: T[], arr2: T[]) {
   return arr1.map((v, i) => v === arr2[i]).every(v => v);
 }
 
-function isSubset<T>(subset: T[], superset: T[]) {
+function _isSubset<T>(subset: T[], superset: T[]) {
   return subset.every(v => superset.includes(v));
 }
 
@@ -311,9 +311,9 @@ export class MaplibreLayerOrderControl extends PsuedoEvent {
   }
 
   setManagedOrder(newManagedOrder: string[]) {
-    if (!isSubset(newManagedOrder, this.desiredLayerOrder)) {
-      throw new Error('New managed order must be a subset of the original managed layers');
-    }
+    // if (!isSubset(newManagedOrder, this.desiredLayerOrder)) {
+    //   throw new Error('New managed order must be a subset of the original managed layers');
+    // }
     
     if (checkArrayEquality(newManagedOrder, this.availableDesiredOrder)) return;
     

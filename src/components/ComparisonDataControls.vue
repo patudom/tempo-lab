@@ -1,12 +1,15 @@
 <template>
   <div class="comparison-data-controls">
+    <p class="my-3">
+      Choose other datasets to view with the TEMPO Data. Drag cards to re-order data layers.
+    </p>
     <div
       v-for="(map, index) in maps"
       :key="index"
     >
       <layer-order-control
         :mapRef="map"
-        :order="['power-plants-heatmap', 'aqi-layer-aqi', 'esri-source']"
+        :order="['power-plants-heatmap', 'aqi-layer-aqi', 'esri-source', 'stamen-toner-lines']"
       >
       </layer-order-control>
       <v-checkbox

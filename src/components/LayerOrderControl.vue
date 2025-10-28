@@ -1,35 +1,47 @@
 <template>
-  <ul>
-    <draggable 
-      v-model="displayOrder" 
-      handle=".drag-handle"
-    >
-      <template #item="{ element, index }">
-        <div>
-          <div class="layer-order-row">
-            <span class="drag-handle">☰</span>
-            <layer-control-item
-              :map="mapRef"
-              :layer-id="element"
-              :info="layerInfo[element]"
-              :display-name="displayNameTransform(element)"
-            >
-            </layer-control-item>
-          </div>
-          <hr v-if="index != currentOrder.length - 1" />
+  <draggable 
+    v-model="displayOrder" 
+    handle=".drag-handle"
+    class="layer-order"
+  >
+    <template #item="{ element }">
+      <div class="layer-order-row">
+        <div class="drag-handle">
+          <v-icon>mdi-menu</v-icon>
         </div>
-      </template>
-    </draggable>
-  </ul>
+        <layer-control-item
+          :map="mapRef"
+          :layer-id="element"
+          :info="layerInfo[element]"
+          :display-name="displayNameTransform(element)"
+        >
+          <template #actions="{ visible }">
+            <div v-if="powerPlantLayerIds.includes(element)">
+              <v-btn-toggle
+                v-model="powerPlantMode"
+                density="compact"
+                color="primary"
+                :disabled="!visible"
+              >
+                <v-btn>Heatmap</v-btn>
+                <v-btn>Points</v-btn>
+              </v-btn-toggle>
+            </div>
+          </template>
+        </layer-control-item>
+      </div>
+    </template>
+  </draggable>
 </template>
 
 
 <script setup lang="ts">
-import { computed, type MaybeRef, toValue, toRef } from 'vue';
+import { computed, type MaybeRef, ref, toValue, toRef, watch } from 'vue';
 import draggable from 'vuedraggable';
 import M from 'maplibre-gl';
 
 import { useMaplibreLayerOrderControl } from "@/composables/useMaplibreLayerOrderControl";
+import { getLayerOpacity, setLayerOpacity, setLayerVisibility } from "@/maplibre_controls";
 import { capitalizeWords } from "@/utils/names";
 
 interface Props {
@@ -40,13 +52,15 @@ interface Props {
 const props = defineProps<Props>();
 const mapRef = toRef(() => props.mapRef);
 
+const powerPlantMode = ref(0);
+const powerPlantLayerIds = ["power-plants-heatmap", "power-plants-layer"];
+
 // https://vuejs.org/guide/typescript/composition-api.html#typing-component-emits
 
 interface Emits {
   (e: 'change', newOrder: string[]): void;
 }
 const _emit = defineEmits<Emits>();
-console.log('LayerOrderControl props:', props);
 const { 
   currentOrder, 
   controller 
@@ -65,6 +79,8 @@ const layerNames: Record<string, string | undefined> = {
   "esri-source": "TEMPO Data",
   "aqi-layer-aqi": "Air Quality Index",
   "power-plants-heatmap": "Power Plants",
+  "power-plants-layer": "Power Plants",
+  "stamen-toner-lines": "Roads",
 };
 
 const layerInfo: Record<string, string | undefined> = {
@@ -74,6 +90,22 @@ const layerInfo: Record<string, string | undefined> = {
 function displayNameTransform(layerId: string): string {
   return layerNames[layerId] ?? capitalizeWords(layerId.replace(/-/g, " "));
 }
+
+watch(powerPlantMode, (mode: number, oldMode: number) => {
+  const oldLayerId = powerPlantLayerIds[oldMode];
+  const order = [...currentOrder.value];
+  const index = order.indexOf(oldLayerId);
+  const newLayerId = powerPlantLayerIds[mode];
+  if (index >= 0) {
+    order[index] = newLayerId;
+  }
+  if (mapRef.value) {
+    setLayerOpacity(mapRef.value, newLayerId, getLayerOpacity(mapRef.value, oldLayerId));
+    setLayerVisibility(mapRef.value, oldLayerId, false);
+    setLayerVisibility(mapRef.value, newLayerId, true);
+  }
+  currentOrder.value = order;
+});
 </script>
 
 
@@ -87,6 +119,7 @@ ul {
   border-radius: 4px;
   height: fit-content;
 }
+
 li {
   padding: 8px 12px;
   border-bottom: 1px solid #eee;
@@ -102,9 +135,24 @@ li {
   }
 }
 
+.layer-order {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .layer-order-row {
+  background: #404040;
+  border: 1px solid white;
+  border-radius: 10px;
   display: flex;
   flex-direction: row;
+  align-items: center;
   gap: 5px;
+}
+
+.mlc-layer-item {
+  border-left: 1px solid white;
+  padding: 5px;
 }
 </style>
