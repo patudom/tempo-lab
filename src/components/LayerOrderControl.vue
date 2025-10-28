@@ -6,13 +6,28 @@
   >
     <template #item="{ element }">
       <div class="layer-order-row">
-        <v-icon class="drag-handle">mdi-menu</v-icon>
+        <div class="drag-handle">
+          <v-icon>mdi-menu</v-icon>
+        </div>
         <layer-control-item
           :map="mapRef"
           :layer-id="element"
           :info="layerInfo[element]"
           :display-name="displayNameTransform(element)"
         >
+          <template #actions="{ visible }">
+            <div v-if="powerPlantLayerIds.includes(element)">
+              <v-btn-toggle
+                v-model="powerPlantMode"
+                density="compact"
+                color="primary"
+                :disabled="!visible"
+              >
+                <v-btn>Heatmap</v-btn>
+                <v-btn>Points</v-btn>
+              </v-btn-toggle>
+            </div>
+          </template>
         </layer-control-item>
       </div>
     </template>
@@ -21,11 +36,12 @@
 
 
 <script setup lang="ts">
-import { computed, type MaybeRef, toValue, toRef } from 'vue';
+import { computed, type MaybeRef, ref, toValue, toRef, watch } from 'vue';
 import draggable from 'vuedraggable';
 import M from 'maplibre-gl';
 
 import { useMaplibreLayerOrderControl } from "@/composables/useMaplibreLayerOrderControl";
+import { setLayerVisibility } from "@/maplibre_controls";
 import { capitalizeWords } from "@/utils/names";
 
 interface Props {
@@ -36,13 +52,15 @@ interface Props {
 const props = defineProps<Props>();
 const mapRef = toRef(() => props.mapRef);
 
+const powerPlantMode = ref(0);
+const powerPlantLayerIds = ["power-plants-heatmap", "power-plants-layer"];
+
 // https://vuejs.org/guide/typescript/composition-api.html#typing-component-emits
 
 interface Emits {
   (e: 'change', newOrder: string[]): void;
 }
 const _emit = defineEmits<Emits>();
-console.log('LayerOrderControl props:', props);
 const { 
   currentOrder, 
   controller 
@@ -61,6 +79,7 @@ const layerNames: Record<string, string | undefined> = {
   "esri-source": "TEMPO Data",
   "aqi-layer-aqi": "Air Quality Index",
   "power-plants-heatmap": "Power Plants",
+  "power-plants-layer": "Power Plants",
 };
 
 const layerInfo: Record<string, string | undefined> = {
@@ -70,6 +89,21 @@ const layerInfo: Record<string, string | undefined> = {
 function displayNameTransform(layerId: string): string {
   return layerNames[layerId] ?? capitalizeWords(layerId.replace(/-/g, " "));
 }
+
+watch(powerPlantMode, (mode: number, oldMode: number) => {
+  const oldLayerId = powerPlantLayerIds[oldMode];
+  const order = [...currentOrder.value];
+  const index = order.indexOf(oldLayerId);
+  const newLayerId = powerPlantLayerIds[mode];
+  if (index >= 0) {
+    order[index] = newLayerId;
+  }
+  if (mapRef.value) {
+    setLayerVisibility(mapRef.value, oldLayerId, false);
+    setLayerVisibility(mapRef.value, newLayerId, true);
+  }
+  currentOrder.value = order;
+});
 </script>
 
 
@@ -109,11 +143,15 @@ li {
   background: #404040;
   border: 1px solid white;
   border-radius: 10px;
-  padding: 5px;
   display: flex;
   flex-direction: row;
   align-items: center;
   gap: 5px;
   width: 100%;
+}
+
+.mlc-layer-item {
+  border-left: 1px solid white;
+  padding: 5px;
 }
 </style>

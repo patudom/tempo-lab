@@ -267,7 +267,7 @@ export function addPowerPlants(map: Ref<Map | null> | null) {
 
     });
     
-    // addLayer({minzoom: 5}); // add the point layer on top of the heatmap
+    addLayer(); // add the point layer on top of the heatmap
     
     // usingHeatmap = true;
     

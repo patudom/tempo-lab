@@ -29,7 +29,10 @@
         </template>
       </popup-info-button>
     </div>
-    <slot name="actions"></slot>
+    <slot
+      name="actions"
+      :visible="visible"
+    ></slot>
     <div
       class="mlc-layer-item-opacity-label-container"
     >
@@ -82,14 +85,23 @@ watch(() => [props.map, props.layerId],
 <style scoped>
 .mlc-layer-item {
   width: 100%;
+  gap: 40px;
+}
+
+.mlc-layer-opacity-slider {
+  min-width: 150px;
+  max-width: 250px;
 }
 
 .mlc-layer-item-checkbox-label-container,
 .mlc-layer-item-opacity-label-container {
-  width: 100%;
   padding: 5px;
   display: flex;
   flex-direction: row;
   align-items: center;
+}
+
+.mlc-layer-item-checkbox-label-container {
+  min-width: 200px;
 }
 </style>

@@ -1,5 +1,9 @@
 <template>
   <div class="comparison-data-controls">
+    <p>
+      Overlay other datasets to learn more - Air Quality Index, Power Plants,
+      Population Density, and more!
+    </p>
     <div
       v-for="(map, index) in maps"
       :key="index"
