@@ -60,7 +60,7 @@ function safeParseNumber(value: string | null | undefined): number | null {
 }
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-const RATE_LIMIT_MS = 500; // Delay between requests in milliseconds
+const RATE_LIMIT_MS = 50; // Delay between requests in milliseconds
 
 function stringifyEsriGetSamplesParameters(params: {
   geometry: ReturnType<typeof rectangleToGeometry> | ReturnType<typeof pointToGeometry>;
@@ -395,7 +395,7 @@ export class TempoDataService extends ImageServiceServiceMetadata {
     console.log(`Fetching samples for ${timeRanges.length} time ranges...`);
     const promises = timeRanges.map(async (tr, index) => {
       try {
-        return await delay(RATE_LIMIT_MS + 10 * index).then(() => {
+        return await delay(100 + RATE_LIMIT_MS * index).then(() => {
           return this.fetchSample(geometry, tr, options);
         });
       } catch (error) {
