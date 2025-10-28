@@ -59,6 +59,9 @@ function safeParseNumber(value: string | null | undefined): number | null {
   return isNaN(parsed) ? null : parsed;
 }
 
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const RATE_LIMIT_MS = 500; // Delay between requests in milliseconds
+
 function stringifyEsriGetSamplesParameters(params: {
   geometry: ReturnType<typeof rectangleToGeometry> | ReturnType<typeof pointToGeometry>;
   geometryType: EsriGeometryType;
@@ -385,9 +388,12 @@ export class TempoDataService extends ImageServiceServiceMetadata {
       return this.fetchSample(geometry, timeRanges, options);
     }
     
-    const promises = timeRanges.map(async (tr) => {
+    console.log(`Fetching samples for ${timeRanges.length} time ranges...`);
+    const promises = timeRanges.map(async (tr, index) => {
       try {
-        return await this.fetchSample(geometry, tr, options);
+        return await delay(RATE_LIMIT_MS + 10 * index).then(() => {
+          return this.fetchSample(geometry, tr, options);
+        });
       } catch (error) {
         console.error(`Error fetching sample for time range ${tr.start}-${tr.end}:`, error);
         return null;
