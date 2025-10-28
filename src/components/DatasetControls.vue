@@ -1,6 +1,10 @@
 <template>
   <div id="dataset-sections" :style="cssVars">
     <h2>Investigate Patterns with Time</h2>
+    <div id="add-region-time">
+      <p>
+        Select a Region, Time Range, and Molecule to create a dataset of your choice!
+      </p>
     <v-btn
       v-if="regions.length > 0 || timeRanges.length > 1"
       :color="accentColor2"
@@ -38,10 +42,6 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
-    <div id="add-region-time">
-      <p>
-        Select a Region, Time Range, and Molecule to create a dataset of your choice!
-      </p>
       <v-expansion-panels
         v-model="openPanels"
         variant="accordion"
