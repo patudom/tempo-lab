@@ -149,7 +149,6 @@ li {
   flex-direction: row;
   align-items: center;
   gap: 5px;
-  width: 100%;
 }
 
 .mlc-layer-item {
