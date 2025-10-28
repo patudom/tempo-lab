@@ -71,6 +71,9 @@ const filterNulls = ref(true);
 function filterNullValues(data: PlotltGraphDataSet): PlotltGraphDataSet {
   // filter out any place where
   // data.x or data.y is null or undefined or NaN
+  if (!data.x || !data.y) {
+    return data;
+  }
   const filteredX: Datum[] = [];
   const filteredY: number[] = [];
   const filteredLower: (number | null)[] = [];

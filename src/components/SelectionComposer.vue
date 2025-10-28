@@ -1,5 +1,5 @@
 <template>
-  <v-card>
+  <v-card id="selection-composer">
     <v-card-title class="d-flex justify-space-between">
       <v-chip size="x-small" color="primary" variant="tonal">{{ creationProgress.count }}/3</v-chip>
     </v-card-title>
@@ -14,6 +14,7 @@
         hide-details
         variant="outlined"
         return-object
+        bg-color="background"
       >
         <template #item="{ index, props }">
           <v-list-item v-bind="{ ...props, title: props.value.name }">
@@ -45,6 +46,7 @@
         density="compact"
         hide-details
         variant="outlined"
+        bg-color="background"
       />
 
       <!-- Molecule Picker -->
@@ -59,6 +61,7 @@
         density="compact"
         hide-details
         variant="outlined"
+        bg-color="background"
       />
 
       <v-progress-linear :model-value="creationProgress.percent" height="6" color="primary" rounded></v-progress-linear>
@@ -187,8 +190,45 @@ watch(() => props.regions.map(r => r.id), (newRegions) => {
 });
 </script>
 
-<style scoped>
-.v-progress-linear {
+<style>
+#selection-composer  .v-progress-linear {
   width: 80%;
+}
+
+/* the lists are actually attached to the somewhere else in the DOM */
+.v-list[aria-label="Time Range-list"] {
+  background-color: rgb(var(--v-theme-background)) !important;
+  /* color: rgb(var(--v-theme-on-surface-light)); */
+  /* border: 2px solid currentColor; */
+  border-top-width: 1px;
+}
+
+.v-list[aria-label="Molecule-list"] {
+  background-color: rgb(var(--v-theme-background)) !important;
+  /* color: rgb(var(--v-theme-on-surface-light)); */
+  /* border: 1px solid currentColor; */
+}
+
+.v-list[aria-label="Region-list"] {
+  background-color: rgb(var(--v-theme-background)) !important;
+  /* color: rgb(var(--v-theme-on-surface-light)); */
+  /* border: 1px solid currentColor; */
+}
+
+
+/* selectors */
+
+#selection-composer .v-select--active-menu .v-field.v-field--focused .v-field__outline {
+  /* border-bottom: none !important; */
+}
+
+#selection-composer .v-select--active-menu .v-field.v-field--focused .v-field__outline .v-field__outline__start {
+  border-bottom: none !important;
+}
+#selection-composer .v-select--active-menu .v-field.v-field--focused .v-field__outline .v-field__outline__end {
+  border-bottom: none !important;
+}
+#selection-composer  .v-select--active-menu .v-field.v-field--focused .v-field__outline .v-field__outline__notch::after {
+  border-color: transparent !important;
 }
 </style>
