@@ -4,7 +4,13 @@ import type { FoldType } from '@/esri/services/aggregation';
 
 
 // Main style configuration for each fold type
-export const foldTypeStyles: Record<FoldType, Partial<Layout>> = {
+type PredefinedFoldTypes = Exclude<FoldType,
+  | 'noneOfDay'
+  | 'noneOfWeek'
+  | 'noneOfMonth'
+  | 'noneOfYear'
+>;
+export const foldTypeStyles: Record<PredefinedFoldTypes, Partial<Layout>> = {
   // Hour-based bins
   'hourOfDay': {
     xaxis: {
@@ -173,6 +179,14 @@ export const foldTypeStyles: Record<FoldType, Partial<Layout>> = {
   },
   
   // None-period bins (simple binning with dates)
+  'noneOfNone': {
+    xaxis: {
+      title: { text: 'Date' },
+      type: 'date',
+      // tickformat: '%Y-%m-%d'
+    }
+  },
+  
   'hourOfNone': {
     xaxis: {
       title: { text: 'Date' },
@@ -229,6 +243,10 @@ export const foldTypeStyles: Record<FoldType, Partial<Layout>> = {
  * Get the Plotly layout styling for a specific fold type
  */
 export function getFoldTypeStyle(foldType: FoldType): Partial<Layout> {
+  if (foldType.startsWith('none')) {
+    return foldTypeStyles[foldType.replace('noneOf', 'hourOf') as PredefinedFoldTypes];
+  }
+    
   return foldTypeStyles[foldType];
 }
 

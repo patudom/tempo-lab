@@ -265,7 +265,7 @@
                   :timezones="selectedTimezone"
                   :data-options="[
                     {mode: 'markers'}, // options for the original data
-                    {mode: 'lines+markers'} // options for the folded data
+                    {mode: 'markers'} // options for the folded data
                     ]"
                   :error-bar-styles="[
                     {'thickness': 1, 'width': 0}, // original data error bar style
@@ -346,6 +346,7 @@ const timeBinDurations: Record<TimeBinOptions, number> = {
   'day': MS_IN_DAY,
   'week': MS_IN_WEEK,
   'month': MS_IN_MONTH, 
+  'none': 0,
 };
 
 const foldingPeriodDurations: Record<FoldingPeriodOptions, number> = {
@@ -391,6 +392,7 @@ const aggregationWarning = ref('');
 
 // Time bin and folding period options
 const timeBinOptions: {title: string, value: TimeBinOptions}[] = [
+  { title: 'None', value: 'none' },
   { title: 'Hour', value: 'hour' },
   { title: 'Day', value: 'day' },
   { title: 'Week', value: 'week' },
@@ -398,12 +400,12 @@ const timeBinOptions: {title: string, value: TimeBinOptions}[] = [
 ];
 
 const allFoldingPeriodOptions: {title: string, value: FoldingPeriodOptions}[] = [
+  { title: 'None', value: 'none' },
   { title: 'Day', value: 'day' },
   { title: 'Week', value: 'week' },
   { title: 'Month', value: 'month' },
   { title: 'Year', value: 'year' },
   { title: 'Weekend/Weekday', value: 'weekdayWeekend' },
-  { title: 'None (Simple Binning)', value: 'none' },
 ];
 
 
@@ -431,7 +433,7 @@ const timezoneOptions = [
 ];
 
 // Reactive state
-const selectedTimeBin = ref<TimeBinOptions>('hour');
+const selectedTimeBin = ref<TimeBinOptions>('none');
 const selectedFoldingPeriod = ref<FoldingPeriodOptions>('none');
 const selectedMethod = ref<AggregationMethod>('mean');
 const selectedTimezone = ref('US/Eastern');
@@ -473,6 +475,10 @@ const isNonePeriod = computed(() => {
 // Check if we're using any hour-based fold type (which is always centered)
 const isHourBinned = computed(() => {
   return selectedTimeBin.value === 'hour';
+});
+
+const isFoldWithNoBin = computed(() => {
+  return selectedTimeBin.value === 'none' && selectedFoldingPeriod.value !== 'none';
 });
 
 const includeBinPhase = ref(true);
@@ -576,7 +582,7 @@ const canSave = computed(() => {
 
 const foldedDatasetName = computed(() => {
   if (!props.selection?.name) return 'Folded Data';
-  return `Folded ${props.selection.name ?? props.selection.region.name}`;// (${selectedTimeBin.value} of ${selectedFoldingPeriod.value}, ${selectedMethod.value})`;
+  return `Aggregated ${props.selection.name ?? props.selection.region.name}`;// (${selectedTimeBin.value} of ${selectedFoldingPeriod.value}, ${selectedMethod.value})`;
 });
 
 // Aggregated data
@@ -625,7 +631,7 @@ function foldedTimesSeriesToDataSet(foldedTimeSeries: FoldedTimeSeriesData): Omi
   const upper: (number | null)[] = [];
 
   // Check if this is a None-period fold type
-  const isNonePeriod = ['hourOfNone', 'dayOfNone', 'weekOfNone', 'monthOfNone'].includes(foldedTimeSeries.foldType);
+  const isNonePeriod = ['noneOfNone','hourOfNone', 'dayOfNone', 'weekOfNone', 'monthOfNone'].includes(foldedTimeSeries.foldType);
 
   // tsa, tsb are the timestamps as strings
   const sortedEntries = Object.entries(foldedTimeSeries.bins).sort(([binIndexa, _a], [binIndexb, _b]) => parseInt(binIndexa) - parseInt(binIndexb));
@@ -731,9 +737,16 @@ function updateGraphData() {
     const t = foldedTimeSeriesRawToDataSet(foldedData.value); // Raw folded data
     (t as PlotltGraphDataSet).name = props.selection.name || 'Original Data';
     data.push(t as PlotltGraphDataSet); // Raw folded data
-    const f = foldedTimesSeriesToDataSet(foldedData.value); // Summary folded data
-    (f as PlotltGraphDataSet).name = foldedDatasetName.value;
-    data.push(f as PlotltGraphDataSet); // Summary folded data
+    if (!isFoldWithNoBin.value) {
+      const f = foldedTimesSeriesToDataSet(foldedData.value); // Summary folded data
+      (f as PlotltGraphDataSet).name = foldedDatasetName.value;
+      data.push(f as PlotltGraphDataSet); // Summary folded data
+    }
+  } else {
+    // No folded data, just show original
+    const original = timeseriesToDataSet(selectionToTimeseries(props.selection));
+    (original as PlotltGraphDataSet).name = props.selection.name || 'Original Data';
+    data.push(original as PlotltGraphDataSet);
   }
   console.log("Prepared graph data:", data);
   graphData.value = data;
@@ -788,9 +801,13 @@ function updateAggregatedData() {
     // Convert the selection data to TimeSeriesData format
     const timeSeriesData = selectionToTimeseries(props.selection);
     
+    let foldType = selectedFoldType.value;
+    if (isFoldWithNoBin.value) {
+      foldType = foldType.replace('noneOf', 'hourOf') as FoldType;
+    }
     
     const grouper = new TimeSeriesFolder(
-      selectedFoldType.value,  // Use the computed fold type
+      foldType,  // Use the computed fold type
       selectedTimezone.value, 
       selectedMethod.value, 
       useSEM.value ? 'sem' : 'std', true);
@@ -830,7 +847,7 @@ function saveFolding() {
     region: { ...props.selection.region, name: props.selection.region.name } as typeof props.selection.region,
     timeRange: createFoldedTimeRange(),
     molecule: props.selection.molecule,
-    customColor: '#333',
+    customColor: theColor.value,
     loading: false, // folded data is immediately available
     // samples/errors intentionally omitted for folded since bins are synthetic; rely on plotlyDatasets
     locations: foldedData.value.locations,
@@ -859,10 +876,10 @@ function saveFolding() {
       {
         ...graphData.value[1],
         datasetOptions: {
-          mode: 'lines+markers'
+          mode: 'markers'
         }
       } as PlotltGraphDataSet
-    ]
+    ].slice(0, isFoldWithNoBin.value ? 1 : 2) // only include summary if not fold-with-no-bin
   };
   console.log(foldedSelection);
   emit('save', foldedSelection);

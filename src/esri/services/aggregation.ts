@@ -168,7 +168,7 @@ export class TimeSeriesResampler {
 
 
 
-
+// name format is [binning]Of[folding period]
 export type FoldType = 
     // Original fold types
     'hourOfDay' | 
@@ -197,6 +197,12 @@ export type FoldType =
     'dayOfNone' |     // day bins with no folding (x-axis shows dates)
     'weekOfNone' |    // week bins with no folding (x-axis shows dates)
     'monthOfNone' |   // month bins with no folding (x-axis shows dates)
+    'noneOfNone' |   // no folding or binning
+    // fold without binning
+    'noneOfDay' |    // shows days of the week
+    'noneOfWeek' |   // shows weeks of the year
+    'noneOfMonth' |  // shows months of the year
+    'noneOfYear' |   // shows months of the year
     // Others
     'hourOfWeekdayWeekend'; // shows hours of the weekday, and hour of the weekend
 
@@ -319,7 +325,15 @@ export class TimeSeriesFolder {
       case 'dayOfNone':
       case 'weekOfNone':
       case 'monthOfNone':
+      case 'noneOfNone':
         return Infinity;  // no fixed bin count for None-period types
+      
+      // fold without binning
+      case 'noneOfDay':
+      case 'noneOfWeek':
+      case 'noneOfMonth':
+      case 'noneOfYear':
+        return Infinity; // no fixed bin count for fold-only types
       
       // Special cases
       case 'dayOfWeekdayWeekend': return 2;
@@ -433,7 +447,7 @@ export class TimeSeriesFolder {
         zBinStart.setDate(1);
         zBinStart.setHours(0, 0, 0, 0);
         return (this.timezone ? fromZonedTime(zBinStart, this.timezone) : zBinStart).getTime();
-      }
+      }      
       
       // Special cases
       case 'dayOfWeekdayWeekend': 
@@ -511,8 +525,11 @@ export class TimeSeriesFolder {
     }
   }
   
-  foldData(timeseries: Prettify<TimeSeriesData>): FoldedTimeSeriesData {
+  foldData(timeseries: Prettify<TimeSeriesData>): FoldedTimeSeriesData | null {
     
+    if (this.foldType.startsWith('none')) {
+      return null;
+    }
     const binCount = this._binCount();
     const binsRecord: Record<number, Prettify<InternalBin>> = {};
     
@@ -552,7 +569,7 @@ export class TimeSeriesFolder {
     });
 
     // Check if this is a None-period fold type
-    const isNonePeriod = ['hourOfNone', 'dayOfNone', 'weekOfNone', 'monthOfNone'].includes(this.foldType);
+    const isNonePeriod = ['noneOfNone', 'hourOfNone', 'dayOfNone', 'weekOfNone', 'monthOfNone'].includes(this.foldType);
 
     // these will be the time-aggregated values
     const values: Record<number, FoldedAggValue> = {};
