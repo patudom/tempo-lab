@@ -36,7 +36,7 @@
       <label
         :for="`mlc-${layerId}-opacity-slider`"
       >
-        Transparency: 
+        Opacity: 
       </label>
       <v-slider
         v-model.number="opacity"
