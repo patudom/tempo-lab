@@ -346,6 +346,13 @@ export class TempoDataService extends ImageServiceServiceMetadata {
       const data: EsriGetSamplesReturn | EsriGetSamplesReturnError = await response.json();
       
       if ('error' in data) {
+      // Retry once if we get a 503 error and haven't already retried
+        if (data.error.code === 503 && !skipRetry) {
+          console.warn(`Received 503 error, retrying after delay...`);
+          await delay(1000); // Wait 1 second before retrying
+          return this.fetchSample(geometry, timeRange, options, true);
+        }
+        
         throw new Error(`Error fetching samples (${data.error.code}): ${data.error.message} ${data.error.details}`);
       }
 
