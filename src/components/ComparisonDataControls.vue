@@ -1,8 +1,7 @@
 <template>
   <div class="comparison-data-controls">
-    <p>
-      Overlay other datasets to learn more - Air Quality Index, Power Plants,
-      Population Density, and more!
+    <p class="my-3">
+      Choose other datasets to view with the TEMPO Data. Drag cards to re-order data layers.
     </p>
     <div
       v-for="(map, index) in maps"
