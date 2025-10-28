@@ -309,7 +309,8 @@ export class TempoDataService extends ImageServiceServiceMetadata {
   async fetchSample(
     geometry: RectBounds | PointBounds,
     timeRange: MillisecondRange,
-    options: FetchOptions = {}
+    options: FetchOptions = {},
+    skipRetry: boolean = false,
   ): Promise<RawSampleData> {
     const esriGeometry = this.isRectBounds(geometry) 
       ? rectangleToGeometry(geometry as RectBounds)
@@ -321,9 +322,6 @@ export class TempoDataService extends ImageServiceServiceMetadata {
 
     // Handle multiple time ranges by combining them
     const timeString = `${timeRange.start},${timeRange.end}`;
-    
-    // log sample geometry type and time range
-    console.log(`Fetching samples for geometry type: ${geometryType}, time range: ${timeString}`);
 
 
     const params = {
@@ -366,7 +364,6 @@ export class TempoDataService extends ImageServiceServiceMetadata {
         locationId: sample.locationId,
         geometryType: this.isRectBounds(geometry) ? 'rectangle' : 'point' as 'rectangle' | 'point'
       })); // this is a CEsriTimeseries[]
-      console.log(`Fetched ${processedSamples.length} samples for time range ${new Date(timeRange.start)}-${new Date(timeRange.end)}`);
       return {
         samples: processedSamples,
         metadata: {
@@ -411,7 +408,6 @@ export class TempoDataService extends ImageServiceServiceMetadata {
       const validResults = results.filter((result): result is RawSampleData => result !== null);
       const samples = validResults.map((result) => result.samples).flat();
       console.log(`Total samples fetched across all time ranges: ${samples.length}`);
-      console.log(samples);
       return {
         samples,
         metadata: {
@@ -568,29 +564,21 @@ export class TempoDataService extends ImageServiceServiceMetadata {
     
     const { lat: centerLat, lon: centerLon } = this.getRegionCenter(geometry);
     const timezone = tz_lookup(centerLat, centerLon);
-    console.log(`Determined timezone for geometry (${centerLat.toFixed(2)}, ${centerLon.toFixed(2)}): ${timezone}`);
     
     // Convert UTC time ranges to local time ranges for this timezone
     const offsetter = new TimeRangeOffsetter(timezone);
     const timeRangesArray = Array.isArray(timeRanges) ? timeRanges : [timeRanges];
     const localTimeRanges = offsetter.offsetRanges(timeRangesArray);
     
-    console.log(`Offset ${timeRangesArray.length} UTC time range(s) to ${timezone}`);
-    console.log('UTC ranges:', timeRangesArray);
-    console.log('Local ranges:', localTimeRanges);
     
     if (this.isRectBounds(geometry) && this.meta) {
       const sampler = new EsriSampler(this.meta, geometry);
       const sampleCount = options.sampleCount || 30;
-      console.log(`Requested sample count: ${sampleCount}`);
       options.sampleCount = sampler.getSamplingSpecificationFromSampleCount(sampleCount).count;
-      console.log(`Using sample count: ${options.sampleCount}`);
+      console.log(`Taking ${options.sampleCount} samples`);
     }
     const rawData = await this.fetchSamples(geometry, localTimeRanges, options);
-    const stats = this.getTimeSeriesStatistics(rawData);
-    console.log(`Data is sampled from ${stats.numUniqueLocations} unique locations with a total of ${stats.totalValues} values.`);
-    
-    console.log(`Approximate spacing between unique locations: ${stats.latitudeSpacing?.toFixed(4)}° latitude, ${stats.longitudeSpacing?.toFixed(4)}° longitude`);
+    // const stats = this.getTimeSeriesStatistics(rawData);
     return this.aggregateByTime(rawData.samples);
   }
   
