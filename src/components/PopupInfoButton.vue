@@ -5,6 +5,7 @@
         icon
         v-bind="props"
         density="compact"
+        flat
       >
         <v-icon>mdi-information-variant-circle-outline</v-icon>
       </v-btn>
@@ -29,5 +30,9 @@ defineProps<Props>();
 .info-card {
   padding: 10px;
   border-radius: 5px;
+}
+
+.v-btn {
+  background-color: transparent;
 }
 </style>

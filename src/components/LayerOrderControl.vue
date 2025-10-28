@@ -1,26 +1,22 @@
 <template>
-  <ul>
-    <draggable 
-      v-model="displayOrder" 
-      handle=".drag-handle"
-    >
-      <template #item="{ element, index }">
-        <div>
-          <div class="layer-order-row">
-            <span class="drag-handle">☰</span>
-            <layer-control-item
-              :map="mapRef"
-              :layer-id="element"
-              :info="layerInfo[element]"
-              :display-name="displayNameTransform(element)"
-            >
-            </layer-control-item>
-          </div>
-          <hr v-if="index != currentOrder.length - 1" />
-        </div>
-      </template>
-    </draggable>
-  </ul>
+  <draggable 
+    v-model="displayOrder" 
+    handle=".drag-handle"
+    class="layer-order"
+  >
+    <template #item="{ element }">
+      <div class="layer-order-row">
+        <span class="drag-handle">☰</span>
+        <layer-control-item
+          :map="mapRef"
+          :layer-id="element"
+          :info="layerInfo[element]"
+          :display-name="displayNameTransform(element)"
+        >
+        </layer-control-item>
+      </div>
+    </template>
+  </draggable>
 </template>
 
 
@@ -87,6 +83,7 @@ ul {
   border-radius: 4px;
   height: fit-content;
 }
+
 li {
   padding: 8px 12px;
   border-bottom: 1px solid #eee;
@@ -102,9 +99,20 @@ li {
   }
 }
 
+.layer-order {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .layer-order-row {
+  background: #404040;
+  border: 1px solid white;
+  border-radius: 10px;
+  padding: 5px;
   display: flex;
   flex-direction: row;
+  align-items: center;
   gap: 5px;
 }
 </style>
