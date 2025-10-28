@@ -47,6 +47,7 @@
         :step="0.01"
         title="Adjust layer opacity"
         color="primary"
+        hide-details
       />
     </div>
   </div>
@@ -79,7 +80,13 @@ watch(() => [props.map, props.layerId],
 </script>
 
 <style scoped>
-.mlc-layer-item-checkbox-label-container {
+.mlc-layer-item {
+  width: 100%;
+}
+
+.mlc-layer-item-checkbox-label-container,
+.mlc-layer-item-opacity-label-container {
+  width: 100%;
   padding: 5px;
   display: flex;
   flex-direction: row;

@@ -6,7 +6,7 @@
   >
     <template #item="{ element }">
       <div class="layer-order-row">
-        <span class="drag-handle">☰</span>
+        <v-icon class="drag-handle">mdi-menu</v-icon>
         <layer-control-item
           :map="mapRef"
           :layer-id="element"
@@ -114,5 +114,6 @@ li {
   flex-direction: row;
   align-items: center;
   gap: 5px;
+  width: 100%;
 }
 </style>
