@@ -64,7 +64,26 @@ export function useMap(id="map", options: InitMapOptions, _showRoads: Ref<boolea
         });
       });
   }
-  
+
+  function addRoads(map: M.Map) {
+    map.addSource('stamen-toner-lines', {
+      type: 'raster',
+      tiles: [`https://tiles.stadiamaps.com/tiles/stamen_toner_lines/{z}/{x}/{y}${retinaParam}.png`],
+      tileSize: 256,
+    });
+    
+    map.addLayer({
+      id: 'stamen-toner-lines',
+      type: 'raster',
+      source: 'stamen-toner-lines',
+      minzoom: 0,
+      maxzoom: 20,
+      
+    });
+    
+    // Ensure labels are on top
+    map.moveLayer('stamen-toner-lines');
+  } 
   
   
   function addLabels(map: M.Map) {
@@ -100,6 +119,7 @@ export function useMap(id="map", options: InitMapOptions, _showRoads: Ref<boolea
 
     addCoastlines(libreMap);
     addStates(libreMap);
+    addRoads(libreMap);
     addLabels(libreMap);
     
     

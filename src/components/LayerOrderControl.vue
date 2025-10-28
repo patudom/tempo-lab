@@ -41,7 +41,7 @@ import draggable from 'vuedraggable';
 import M from 'maplibre-gl';
 
 import { useMaplibreLayerOrderControl } from "@/composables/useMaplibreLayerOrderControl";
-import { setLayerVisibility } from "@/maplibre_controls";
+import { getLayerOpacity, setLayerOpacity, setLayerVisibility } from "@/maplibre_controls";
 import { capitalizeWords } from "@/utils/names";
 
 interface Props {
@@ -80,6 +80,7 @@ const layerNames: Record<string, string | undefined> = {
   "aqi-layer-aqi": "Air Quality Index",
   "power-plants-heatmap": "Power Plants",
   "power-plants-layer": "Power Plants",
+  "stamen-toner-lines": "Roads",
 };
 
 const layerInfo: Record<string, string | undefined> = {
@@ -99,6 +100,7 @@ watch(powerPlantMode, (mode: number, oldMode: number) => {
     order[index] = newLayerId;
   }
   if (mapRef.value) {
+    setLayerOpacity(mapRef.value, newLayerId, getLayerOpacity(mapRef.value, oldLayerId));
     setLayerVisibility(mapRef.value, oldLayerId, false);
     setLayerVisibility(mapRef.value, newLayerId, true);
   }
