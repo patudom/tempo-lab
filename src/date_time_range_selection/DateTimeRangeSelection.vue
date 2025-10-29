@@ -33,8 +33,8 @@
 
 
 
-      <!-- Date Range Section -->
       <v-expand-transition>
+        <!-- Date Range Section -->
         <div v-if="selectionType === 'daterange'" class="date-range-section">
           <!-- Date Range Picker -->
             <div class="mb-4">
@@ -50,7 +50,7 @@
                 :teleport="true"
                 :enable-time-picker="false"
                 dark
-                :year-range="[allowedDates ? allowedDates[0].getFullYear() : 2023, allowedDates ? allowedDates[allowedDates.length - 1].getFullYear() : new Date().getFullYear()]"
+                :year-range="datePickerYearRange"
               />
           </div>
         </div>
@@ -61,77 +61,22 @@
         <div v-if="selectionType === 'pattern'" class="pattern-section">
           <!-- Days of Week Multi-toggle -->
           <div class="mb-4">
-            <label class="text-subtitle-2 mb-2 d-block">Days of Week</label>
-            <!-- just do labeled checkboxes -->
-            <label v-for="(day, idx) in dayOptions" :key="idx" class="mr-3" style="text-wrap: nowrap;">
-              <input 
-                type="checkbox" 
-                :value="day.value" 
-                v-model="selectedDays" 
-              />
-              <span class="ml-1">{{ day.title.slice(0,3) }}</span>
-            </label>
+            <DaysPicker
+              v-model="selectedDays"
+              :day-options="dayOptions"
+            />
           </div>
-          <div class="mb-4 simple-patterns">
-            <!-- weekdays -->
-            <v-btn 
-              size="x-small" 
-              variant="outlined" 
-              class="mr-2 mb-2"
-              @click="selectedDays = [1,2,3,4,5]"
-            >Weekdays</v-btn>
-            <!-- weekends -->
-            <v-btn 
-              size="x-small" 
-              variant="outlined" 
-              class="mr-2 mb-2"
-              @click="selectedDays = [0,6]"
-            >Weekends</v-btn>
-            <!-- full weeek -->
-            <v-btn 
-              size="x-small" 
-              variant="outlined" 
-              class="mr-2 mb-2"
-              @click="selectedDays = [0,1,2,3,4,5,6]"
-            >Full Week</v-btn>
-            <!-- clear -->
-            <v-btn 
-              size="x-small" 
-              variant="outlined" 
-              class="mr-2 mb-2"
-              @click="selectedDays = []"
-            >Clear</v-btn>
-          </div>
+            <DayPatterns
+              v-model="selectedDays"
+            />
 
           <!-- Times Multi-select -->
           <div class="mb-4">
-            <div class="mt-2 dtrs-flex-time-box">
-              <v-combobox
-                v-model="selectedTimes"
-                :items="timeOptions"
-                label="Add/select times"
-                multiple
-                chips
-                closable-chips
-                density="compact"
-                variant="outlined"
-                hide-details
-                hint="24h format HH:MM (e.g., 09:00, 14:30)"
-                persistent-hint
-                @update:model-value="normalizeTimes"
-              />
-              
-              <div class="pm-wrapper">
-                <input
-                  id="dtrs-time-plus-minus"
-                  type="checkbox"
-                  v-model="timePlusMinus"
-                  :true-value="11.9999"
-                  :false-value="0.49999"
-                />
-                <label for="dtrs-time-plus-minus">All Day</label>
-              </div>
-            </div>
+            <SpecificTimesSelector
+              v-model="selectedTimes"
+              :time-options="timeOptions"
+              v-model:timePlusMinus="timePlusMinus"
+            />
           </div>
 
           <!-- Instances -->
@@ -184,7 +129,7 @@
               text-input
               :teleport="true"
               dark
-              :year-range="[allowedDates ? allowedDates[0].getFullYear() : 2023, allowedDates ? allowedDates[allowedDates.length - 1].getFullYear() : new Date().getFullYear()]"
+              :year-range="datePickerYearRange"
             />
           </div>
         </div>
@@ -194,66 +139,22 @@
       <v-expand-transition>
         <div v-if="selectionType === 'monthrange'" class="month-selection-section">
           <div class="mb-4">
-            <div  v-for="month in monthNames" :key="month" class="d-inline-block">
-            <label class="mr-3" style="text-wrap: nowrap;" for="dtrs-month-{{ month }}"></label>
-              <input 
-                id="dtrs-month-{{ month }}"
-                type="checkbox" 
-                :value="monthNames.indexOf(month)" 
-                v-model="selectedMonths" 
-              />
-              <span class="ml-1">{{ month }}</span>
-            </div>
+            <MonthsPicker
+              v-model="selectedMonths"
+              :month-names="monthNames"
+            />
           </div>
           
           <div class="mb-4">
-            <div v-for="year in possibleYears" :key="year" class="d-inline-block">
-            <label  class="mr-3" style="text-wrap: nowrap;" for="dtrs-year-{{ year }}"></label>
-              <input 
-                id="dtrs-year-{{ year }}"
-                type="checkbox" 
-                :value="year" 
-                v-model="selectedYears" 
-              />
-              <span class="ml-1">{{ year }}</span>
-            </div>
-            
+            <YearsPicker
+              v-model="selectedYears"
+              :possible-years="possibleYears"
+            />
           </div>
           
-          <div class="mb-4 simple-patterns">
-            <!-- winter, spring, summer, fall -->
-            <v-btn 
-              size="x-small" 
-              variant="outlined" 
-              class="mr-2 mb-2"
-              @click="selectedMonths = [11,0,1]"
-            >Winter</v-btn>
-            <v-btn 
-              size="x-small" 
-              variant="outlined" 
-              class="mr-2 mb-2"
-              @click="selectedMonths = [2,3,4]"
-            >Spring</v-btn>
-            <v-btn 
-              size="x-small" 
-              variant="outlined" 
-              class="mr-2 mb-2"
-              @click="selectedMonths = [5,6,7]"
-            >Summer</v-btn>
-            <v-btn 
-              size="x-small" 
-              variant="outlined" 
-              class="mr-2 mb-2"
-              @click="selectedMonths = [8,9,10]"
-            >Fall</v-btn>
-            <!-- clear -->
-            <v-btn 
-              size="x-small" 
-              variant="outlined" 
-              class="mr-2 mb-2"
-              @click="selectedMonths = []"
-            >Clear Months</v-btn>
-          </div>
+          <SeasonPicker
+            v-model="selectedMonths"
+          />
         </div>
       </v-expand-transition>
       
@@ -277,11 +178,16 @@
 // === IMPORTS ===
 import { watch, computed, ref, onMounted } from 'vue';
 import DatePicker from '@vuepic/vue-datepicker';
-import '@vuepic/vue-datepicker/dist/main.css';
 import { useTimezone } from '../composables/useTimezone';
 import { useDateTimeSelector } from './useDateTimeSelector';
 import type { MillisecondRange, TimeRangeSelectionType } from '../types/datetime';
 import { formatTimeRange } from "@/utils/timeRange";
+import DaysPicker from './DaysPicker.vue';
+import DayPatterns from './DayPatterns.vue';
+import MonthsPicker from './MonthsPicker.vue';
+import SeasonPicker from './SeasonPicker.vue';
+import YearsPicker from './YearsPicker.vue';
+import SpecificTimesSelector from './SpecificTimesSelector.vue';
 
 
 // === INTERFACES === 
@@ -372,6 +278,16 @@ const timeOptions = ref<string[]>(Array.from({ length: 15 }, (_, h) => `${String
 //   const hours = count > 0 ? Array.from({ length: count }, (_, i) => min + i) : Array.from({ length: 24 }, (_, i) => i);
 //   return hours.map(h => `${String(h).padStart(2, '0')}:00`);
 // });
+
+const datePickerYearRange = computed<[number, number]>(() => {
+  const minYear = props.allowedDates ? props.allowedDates[0].getFullYear() : 2023;
+  
+  const maxYear = props.allowedDates 
+    ? props.allowedDates[props.allowedDates.length - 1].getFullYear() 
+    : new Date().getFullYear();
+    
+  return [minYear, maxYear];
+});
 
 const possibleYears = computed(() => {
   const dates = props.allowedDates ?? [2024];
@@ -513,35 +429,7 @@ function handleSingleDateChange(value: Date) {
   }
 }
 
-// Normalize entered times to HH:MM 24h (flexible entry via copilot)
-function normalizeTimes(values: string[]) {
-  const normalized = values
-    .map(v => String(v).trim())
-    .map(v => {
-      // Accept HH, H, HH:MM, H:MM, also allow am/pm inputs like 9am, 2:30 PM
-      const lower = v.toLowerCase().replace(/\s+/g, '');
-      const ampmMatch = lower.match(/^(\d{1,2})(?::(\d{1,2}))?(am|pm)$/);
-      if (ampmMatch) {
-        let hour = parseInt(ampmMatch[1], 10);
-        const minute = ampmMatch[2] ? parseInt(ampmMatch[2], 10) : 0;
-        const suffix = ampmMatch[3];
-        if (suffix === 'pm' && hour < 12) hour += 12;
-        if (suffix === 'am' && hour === 12) hour = 0;
-        return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-      }
-      const m = lower.match(/^(\d{1,2})(?::(\d{1,2}))?$/);
-      if (!m) return null;
-      const h = parseInt(m[1], 10);
-      const mm = m[2] ? parseInt(m[2], 10) : 0;
-      if (isNaN(h) || h < 0 || h > 23) return null;
-      if (isNaN(mm) || mm < 0 || mm > 59) return null;
-      return `${String(h).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
-    })
-    .filter((v): v is string => !!v);
-  // Deduplicate
-  const unique = Array.from(new Set(normalized));
-  selectedTimes.value = unique;
-}
+
 
 // Formatting functions
 // Formatting functions moved to useTimezone composable
