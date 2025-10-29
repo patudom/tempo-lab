@@ -4,7 +4,7 @@
     multiple
   >
     <div class="global-filters">
-      <div>Global Filters</div>
+      <div>Power Plant Filters</div>
       <v-btn
        @click="handleGlobalSelect(true)"
       >All</v-btn>
@@ -15,24 +15,41 @@
     <v-expansion-panel
       v-for="(category, index) in PLANT_CATEGORIES"
       :key="index"
-      :title="category"
     >
+      <template #title>
+        <div class="expansion-panel-title">
+          <span>{{ category }}</span>
+          <span>
+            <v-btn
+              @click="handleCategoryGlobalSelect(category, true)"
+              @click.stop
+            >All</v-btn>
+            <v-btn
+              @click="handleCategoryGlobalSelect(category, false)"
+              @click.stop
+            >None</v-btn>
+          </span>
+        </div>
+      </template>
       <template #text>
-        <v-btn
-          @click="handleCategoryGlobalSelect(category, true)"
-        >All</v-btn>
-        <v-btn
-          @click="handleCategoryGlobalSelect(category, false)"
-        >None</v-btn>
-        <v-checkbox
-          v-for="source in SOURCES_BY_CATEGORY[category]"
-          :label="source"
-          :key="source"
-          :value="source"
-          v-model="selectedSources"
-          density="compact"
-          hide-details
-        ></v-checkbox>
+        <v-row
+          v-for="n in Math.ceil(Object.keys(SOURCES_BY_CATEGORY[category]).length / 2)"
+          :key="n"
+        >
+          <v-col
+            cols="auto"
+            v-for="source in SOURCES_BY_CATEGORY[category].slice(2*n, 2*(n+1))"
+            :key="source"
+          >
+            <v-checkbox
+              :label="source"
+              :value="source"
+              v-model="selectedSources"
+              density="compact"
+              hide-details
+            ></v-checkbox>
+          </v-col>
+        </v-row>
       </template>
     </v-expansion-panel>
   </v-expansion-panels>
@@ -152,5 +169,12 @@ function applyPrimSourceFilter(sources: PrimSource[]) {
 
 .global-filters {
   padding: 5px 0;
+}
+
+.expansion-panel-title {
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  flex-wrap: wrap;
 }
 </style>
