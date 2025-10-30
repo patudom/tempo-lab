@@ -1,7 +1,9 @@
 <template>
   <v-expansion-panels
-    class="power-plant-filter-controls"
+    id="power-plant-filter-controls"
     multiple
+    v-model="openPanels"
+    :style="cssVars"
   >
     <div class="global-filters">
       <div>Power Plant Filters</div>
@@ -21,42 +23,45 @@
           <span>{{ category }}</span>
           <span>
             <v-btn
-              @click="handleCategoryGlobalSelect(category, true)"
+              @click="() => {
+                if (!openPanels.includes(index)) {
+                  openPanels.push(index);
+                }
+                handleCategoryGlobalSelect(category, true);
+              }"
               @click.stop
             >All</v-btn>
             <v-btn
-              @click="handleCategoryGlobalSelect(category, false)"
+              @click="() => {
+                if (!openPanels.includes(index)) {
+                  openPanels.push(index);
+                }
+                handleCategoryGlobalSelect(category, false);
+              }"
               @click.stop
             >None</v-btn>
           </span>
         </div>
       </template>
       <template #text>
-        <v-row
-          v-for="n in Math.ceil(Object.keys(SOURCES_BY_CATEGORY[category]).length / 2)"
-          :key="n"
-        >
-          <v-col
-            cols="auto"
-            v-for="source in SOURCES_BY_CATEGORY[category].slice(2*(n-1), 2*n)"
+        <div class="expansion-panel-text">
+          <v-checkbox
+            v-for="source in SOURCES_BY_CATEGORY[category]"
             :key="source"
-          >
-            <v-checkbox
-              :label="source"
-              :value="source"
-              v-model="selectedSources"
-              density="compact"
-              hide-details
-            ></v-checkbox>
-          </v-col>
-        </v-row>
+            :label="source"
+            :value="source"
+            v-model="selectedSources"
+            density="compact"
+            hide-details
+          ></v-checkbox>
+        </div>
       </template>
     </v-expansion-panel>
   </v-expansion-panels>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from "vue";
+import { computed, ref, watch, onMounted } from "vue";
 import type { LayerSpecification, Map } from "maplibre-gl";
 
 import { 
@@ -71,6 +76,14 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+const openPanels = ref<number[]>([]);
+const columns = ref(2);
+const minColumnWidthPx = 170;
+
+const cssVars = computed(() => ({
+  "--column-count": columns.value, 
+}));
 
 const PLANT_CATEGORIES = ["Renewables", "Fossil Fuels", "Other"] as const;
 type PlantCategory = typeof PLANT_CATEGORIES[number];
@@ -115,8 +128,23 @@ function onLayersChanged(newLayers: LayerSpecification[]) {
   applyPrimSourceFilter(selectedSources.value);
 }
 
+function updateColumnCount() {
+  const container = document.querySelector("#power-plant-filter-controls");
+  if (container) {
+    columns.value = Math.max(Math.floor(container.clientWidth / minColumnWidthPx), 1);
+  }
+}
+
 
 onMounted(() => {
+
+  updateColumnCount();
+  const container = document.querySelector("#power-plant-filter-controls");
+  if (container) {
+    const observer = new ResizeObserver(_entries => updateColumnCount());
+    observer.observe(container);
+  }
+
   props.map.on("styledata", () => {
     // check if layers changed
     // console.log('Style data event received');
@@ -160,7 +188,7 @@ function applyPrimSourceFilter(sources: PrimSource[]) {
 </script>
 
 <style scoped lang="less">
-.power-plant-filter-controls {
+#power-plant-filter-controls {
   border: 1px solid white;
   border-radius: 5px;
   margin: 5px;
@@ -176,5 +204,10 @@ function applyPrimSourceFilter(sources: PrimSource[]) {
   align-items: center;
   flex-direction: row;
   flex-wrap: wrap;
+}
+
+.expansion-panel-text {
+  display: grid;
+  grid-template-columns: repeat(var(--column-count), 1fr);
 }
 </style>
