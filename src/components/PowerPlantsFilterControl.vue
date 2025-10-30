@@ -38,7 +38,7 @@
         >
           <v-col
             cols="auto"
-            v-for="source in SOURCES_BY_CATEGORY[category].slice(2*n, 2*(n+1))"
+            v-for="source in SOURCES_BY_CATEGORY[category].slice(2*(n-1), 2*n)"
             :key="source"
           >
             <v-checkbox
