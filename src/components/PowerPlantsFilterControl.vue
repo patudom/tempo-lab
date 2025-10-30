@@ -1,45 +1,69 @@
 <template>
   <v-expansion-panels
-    class="power-plant-filter-controls"
+    id="power-plant-filter-controls"
     multiple
+    v-model="openPanels"
+    :style="cssVars"
   >
     <div class="global-filters">
-      <div>Global Filters</div>
+      <div>Power Plant Filters</div>
       <v-btn
-       @click="handleGlobalSelect(true)"
+        @click="() => {
+          openAllPanels();
+          handleGlobalSelect(true);
+        }"
       >All</v-btn>
       <v-btn
-        @click="handleGlobalSelect(false)"
+        @click="() => {
+          openAllPanels();
+          handleGlobalSelect(false);
+        }"
       >None</v-btn>
     </div>
     <v-expansion-panel
       v-for="(category, index) in PLANT_CATEGORIES"
       :key="index"
-      :title="category"
     >
+      <template #title>
+        <div class="expansion-panel-title">
+          <span>{{ category }}</span>
+          <span>
+            <v-btn
+              @click="() => {
+                openPanel(index); 
+                handleCategoryGlobalSelect(category, true);
+              }"
+              @click.stop
+            >All</v-btn>
+            <v-btn
+              @click="() => {
+                openPanel(index); 
+                handleCategoryGlobalSelect(category, false);
+              }"
+              @click.stop
+            >None</v-btn>
+          </span>
+        </div>
+      </template>
       <template #text>
-        <v-btn
-          @click="handleCategoryGlobalSelect(category, true)"
-        >All</v-btn>
-        <v-btn
-          @click="handleCategoryGlobalSelect(category, false)"
-        >None</v-btn>
-        <v-checkbox
-          v-for="source in SOURCES_BY_CATEGORY[category]"
-          :label="source"
-          :key="source"
-          :value="source"
-          v-model="selectedSources"
-          density="compact"
-          hide-details
-        ></v-checkbox>
+        <div class="expansion-panel-text">
+          <v-checkbox
+            v-for="source in SOURCES_BY_CATEGORY[category]"
+            :key="source"
+            :label="source"
+            :value="source"
+            v-model="selectedSources"
+            density="compact"
+            hide-details
+          ></v-checkbox>
+        </div>
       </template>
     </v-expansion-panel>
   </v-expansion-panels>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from "vue";
+import { computed, ref, watch, onMounted } from "vue";
 import type { LayerSpecification, Map } from "maplibre-gl";
 
 import { 
@@ -54,6 +78,14 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+const openPanels = ref<number[]>([]);
+const columns = ref(2);
+const minColumnWidthPx = 170;
+
+const cssVars = computed(() => ({
+  "--column-count": columns.value, 
+}));
 
 const PLANT_CATEGORIES = ["Renewables", "Fossil Fuels", "Other"] as const;
 type PlantCategory = typeof PLANT_CATEGORIES[number];
@@ -70,6 +102,16 @@ const SOURCES_BY_CATEGORY: Record<PlantCategory, readonly PrimSource[]> = {
       (TraditionalSources as unknown as PrimSource[]).includes(source))
   ),
 };
+
+function openPanel(index: number) {
+  if (!openPanels.value.includes(index)) {
+    openPanels.value.push(index);
+  }
+}
+
+function openAllPanels() {
+  openPanels.value = [...PLANT_CATEGORIES.keys()];
+}
 
 function handleGlobalSelect(value: boolean) {
   selectedSources.value = value ? [...Object.values(PrimSource)] : [];
@@ -98,8 +140,23 @@ function onLayersChanged(newLayers: LayerSpecification[]) {
   applyPrimSourceFilter(selectedSources.value);
 }
 
+function updateColumnCount() {
+  const container = document.querySelector("#power-plant-filter-controls");
+  if (container) {
+    columns.value = Math.max(Math.floor(container.clientWidth / minColumnWidthPx), 1);
+  }
+}
+
 
 onMounted(() => {
+
+  updateColumnCount();
+  const container = document.querySelector("#power-plant-filter-controls");
+  if (container) {
+    const observer = new ResizeObserver(_entries => updateColumnCount());
+    observer.observe(container);
+  }
+
   props.map.on("styledata", () => {
     // check if layers changed
     // console.log('Style data event received');
@@ -143,7 +200,7 @@ function applyPrimSourceFilter(sources: PrimSource[]) {
 </script>
 
 <style scoped lang="less">
-.power-plant-filter-controls {
+#power-plant-filter-controls {
   border: 1px solid white;
   border-radius: 5px;
   margin: 5px;
@@ -152,5 +209,17 @@ function applyPrimSourceFilter(sources: PrimSource[]) {
 
 .global-filters {
   padding: 5px 0;
+}
+
+.expansion-panel-title {
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+.expansion-panel-text {
+  display: grid;
+  grid-template-columns: repeat(var(--column-count), 1fr);
 }
 </style>
