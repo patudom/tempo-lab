@@ -8,10 +8,16 @@
     <div class="global-filters">
       <div>Power Plant Filters</div>
       <v-btn
-       @click="handleGlobalSelect(true)"
+        @click="() => {
+          openAllPanels();
+          handleGlobalSelect(true);
+        }"
       >All</v-btn>
       <v-btn
-        @click="handleGlobalSelect(false)"
+        @click="() => {
+          openAllPanels();
+          handleGlobalSelect(false);
+        }"
       >None</v-btn>
     </div>
     <v-expansion-panel
@@ -24,18 +30,14 @@
           <span>
             <v-btn
               @click="() => {
-                if (!openPanels.includes(index)) {
-                  openPanels.push(index);
-                }
+                openPanel(index); 
                 handleCategoryGlobalSelect(category, true);
               }"
               @click.stop
             >All</v-btn>
             <v-btn
               @click="() => {
-                if (!openPanels.includes(index)) {
-                  openPanels.push(index);
-                }
+                openPanel(index); 
                 handleCategoryGlobalSelect(category, false);
               }"
               @click.stop
@@ -100,6 +102,16 @@ const SOURCES_BY_CATEGORY: Record<PlantCategory, readonly PrimSource[]> = {
       (TraditionalSources as unknown as PrimSource[]).includes(source))
   ),
 };
+
+function openPanel(index: number) {
+  if (!openPanels.value.includes(index)) {
+    openPanels.value.push(index);
+  }
+}
+
+function openAllPanels() {
+  openPanels.value = [...PLANT_CATEGORIES.keys()];
+}
 
 function handleGlobalSelect(value: boolean) {
   selectedSources.value = value ? [...Object.values(PrimSource)] : [];
