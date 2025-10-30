@@ -1,163 +1,180 @@
 <template>
-  <v-card class="datetime-range-selector" elevation="2">
+  <v-card class="datetime-range-selector my-4" elevation="4" color="surface">
 
     <v-card-text>
       <!-- Selection Type Radio Buttons -->
+       Would you like to select a single date or multiple dates?
       <v-radio-group 
-        v-model="selectionType" 
-        row 
+        v-model="timeSelectionMode" 
+        direction="horizontal" 
         density="compact"
       >
         <v-radio 
           label="Single Date" 
-            value="singledate"
+            value="single"
           density="compact"
         />    
         <v-radio 
-          label="Date Range" 
-          value="daterange"
-          density="compact"
-        />
-        <v-radio 
-          label="Months Range" 
-          value="monthrange"
-          density="compact"
-        />
-
-        <v-radio 
-          label="Pattern (Days × Times)" 
-          value="pattern"
+          label="Multiple Dates" 
+          value="multiple"
           density="compact"
         />
       </v-radio-group>
 
+        
+      <!-- Single Date Section -->
+        <v-expand-transition value="singledate" title="Select a Single Date">
+        <div v-if="selectionType === 'singledate'" class="single-date-section">
 
-
-      <v-expand-transition>
-        <!-- Date Range Section -->
-        <div v-if="selectionType === 'daterange'" class="date-range-section">
-          <!-- Date Range Picker -->
             <div class="mb-4">
-              <label class="text-subtitle-2 mb-2 d-block">Pick Date Range</label>
+              <label class="text-subtitle-2 mb-2 d-block">Date</label>
               <date-picker
-                range
-                :multi-calendars="{solo: true}"
-                ref="dateRangeCalendar"
-                :model-value="dateRangeArray"
-                @internal-model-change="handleDateRangeChange"
+                class="mx-2"
+                ref="singleDateCalendar"
+                :model-value="singleDateObj"
+                @internal-model-change="handleSingleDateChange"
                 :allowed-dates="allowedDates"
-                :format="(d) => d.map(formatDateDisplay).join(' - ')"
+                :format="formatDateDisplay"
+                :preview-format="formatDateDisplay"
+                :clearable="false"
+                text-input
                 :teleport="true"
-                :enable-time-picker="false"
                 dark
                 :year-range="datePickerYearRange"
               />
+            </div>
           </div>
-        </div>
-      </v-expand-transition>
+        </v-expand-transition>
 
-      <!-- Pattern Section (Multi-day, Multi-time) -->
-      <v-expand-transition>
-        <div v-if="selectionType === 'pattern'" class="pattern-section">
-          <!-- Days of Week Multi-toggle -->
-          <div class="mb-4">
-            <DaysPicker
-              v-model="selectedDays"
-              :day-options="dayOptions"
-            />
-          </div>
-            <DayPatterns
-              v-model="selectedDays"
-            />
 
-          <!-- Times Multi-select -->
-          <div class="mb-4">
-            <SpecificTimesSelector
-              v-model="selectedTimes"
-              :time-options="timeOptions"
-              v-model:timePlusMinus="timePlusMinus"
-            />
-          </div>
+        
+        <v-expansion-panels 
+          v-if="timeSelectionMode === 'multiple'"
+          class="mb-4"
+          v-model="selectionType" 
+          variant="default"
+          focusable 
+          :multiple="false"
+          color="var(--info-background)"
+        >
+        
+        
+        
+        <!-- Month Selection -->
+        <v-expansion-panel 
+          value="monthrange" 
+          title="Select Months and Years" 
+          bg-color="surface"
+          >
+        <v-expansion-panel-text v-if="selectionType === 'monthrange'" class="month-selection-section">
 
-          <!-- Instances -->
-          <div>
-            <v-number-input
-              v-model="instancesBack"
-              label="Number of Weeks"
-              :rules="instanceRules"
-              :min="1"
-              :max="104"
-              density="compact"
-              variant="outlined"
-              control-variant="split"
-            />
-          </div>
-          <!-- Reference Date -->
-          <div class="mb-2">
-            <label>going back from</label>
-            <date-picker
-              class="reference-date-picker"
-              ref="weekdayCalendar"
-              :model-value="weekdayStartDateObj"
-              @internal-model-change="handleWeekdayDateChange"
-              :allowed-dates="allowedDates"
-              :format="formatDateDisplay"
-              :preview-format="formatDateDisplay"
-              :clearable="false"
-              text-input
-              :teleport="true"
-              dark
-              :year-range="[allowedDates ? allowedDates[0].getFullYear() : 2023, allowedDates ? allowedDates[allowedDates.length - 1].getFullYear() : new Date().getFullYear()]"
-            />
-          </div>
-        </div>
-      </v-expand-transition>
-
-      <!-- Single Date Section -->
-      <v-expand-transition>
-        <div v-if="selectionType === 'singledate'" class="single-date-section">
-          <div class="mb-4">
-            <label class="text-subtitle-2 mb-2 d-block">Date</label>
-            <date-picker
-              ref="singleDateCalendar"
-              :model-value="singleDateObj"
-              @internal-model-change="handleSingleDateChange"
-              :allowed-dates="allowedDates"
-              :format="formatDateDisplay"
-              :preview-format="formatDateDisplay"
-              :clearable="false"
-              text-input
-              :teleport="true"
-              dark
-              :year-range="datePickerYearRange"
-            />
-          </div>
-        </div>
-      </v-expand-transition>
-      
-      <!-- Month Selection -->
-      <v-expand-transition>
-        <div v-if="selectionType === 'monthrange'" class="month-selection-section">
-          <div class="mb-4">
-            <MonthsPicker
+            <div class="mb-4">
+              <MonthsPicker
+                v-model="selectedMonths"
+                :month-names="monthNames"
+              />
+            </div>
+            
+            <div class="mb-4">
+              <YearsPicker
+                v-model="selectedYears"
+                :possible-years="possibleYears"
+              />
+            </div>
+            
+            <SeasonPicker
               v-model="selectedMonths"
-              :month-names="monthNames"
             />
-          </div>
-          
+        </v-expansion-panel-text>
+        </v-expansion-panel>
+
+        <v-expansion-panel 
+        value="daterange" 
+        title="Select a Date Range"
+        bg-color="surface"
+        >
+          <v-expansion-panel-text v-if="selectionType === 'daterange'" class="date-range-section">
+            <!-- Date Range Picker -->
+                <label class="text-subtitle-2 mb-2 d-block">Pick Date Range</label>
+                <date-picker
+                  class="mx-2"
+                  range
+                  ref="dateRangeCalendar"
+                  :model-value="dateRangeArray"
+                  @internal-model-change="handleDateRangeChange"
+                  :allowed-dates="allowedDates"
+                  :format="(d) => d.map(formatDateDisplay).join(' - ')"
+                  :teleport="true"
+                  :enable-time-picker="false"
+                  dark
+                  :year-range="datePickerYearRange"
+                />
+
+          </v-expansion-panel-text>
+        </v-expansion-panel>
+
+        <!-- Pattern Section (Multi-day, Multi-time) -->
+        <v-expansion-panel 
+          value="pattern" 
+          title="Select Day/Time Patterns"
+          bg-color="surface"
+        >
+        <v-expansion-panel-text v-if="selectionType === 'pattern'" class="pattern-section">
+
           <div class="mb-4">
-            <YearsPicker
-              v-model="selectedYears"
-              :possible-years="possibleYears"
-            />
+              <DaysPicker
+                v-model="selectedDays"
+                :day-options="dayOptions"
+              />
           </div>
-          
-          <SeasonPicker
-            v-model="selectedMonths"
-          />
-        </div>
-      </v-expand-transition>
-      
+              <DayPatterns
+                v-model="selectedDays"
+              />
+
+            <!-- Times Multi-select -->
+            <div class="mb-4">
+              <SpecificTimesSelector
+                v-model="selectedTimes"
+                :time-options="timeOptions"
+                v-model:timePlusMinus="timePlusMinus"
+              />
+            </div>
+
+            <!-- Instances -->
+            <div>
+              <v-number-input
+                v-model="instancesBack"
+                label="Number of Weeks"
+                :rules="instanceRules"
+                :min="1"
+                :max="104"
+                density="compact"
+                variant="outlined"
+                control-variant="split"
+              />
+            </div>
+            <!-- Reference Date -->
+            <div class="mb-2">
+              <label>going back from</label>
+              <date-picker
+                class="reference-date-picker mx-2"
+                ref="weekdayCalendar"
+                :model-value="weekdayStartDateObj"
+                @internal-model-change="handleWeekdayDateChange"
+                :allowed-dates="allowedDates"
+                :format="formatDateDisplay"
+                :preview-format="formatDateDisplay"
+                :clearable="false"
+                text-input
+                :teleport="true"
+                dark
+                :year-range="[allowedDates ? allowedDates[0].getFullYear() : 2023, allowedDates ? allowedDates[allowedDates.length - 1].getFullYear() : new Date().getFullYear()]"
+              />
+            </div>
+        </v-expansion-panel-text>
+        </v-expansion-panel>
+      </v-expansion-panels>
+
 
       <!-- Update Custom Range Button -->
       <v-btn
@@ -205,6 +222,8 @@ const emit = defineEmits<{
   'ranges-change': [ranges: MillisecondRange[], selectionType: TimeRangeSelectionType, customName: string];
 }>();
 
+const timeSelectionMode = ref<'single' | 'multiple'>('single');
+
 // === COMPOSABLE SETUP ===
 // Create refs for the current date and timezone to pass to the composable
 const currentDateRef = ref(props.currentDate);
@@ -243,6 +262,14 @@ const {
   selectedTimezone: timezoneRef
 });
 
+
+watch(timeSelectionMode, (newMode) => {
+  if (newMode === 'single') {
+    selectionType.value = 'singledate';
+  } else if (newMode === 'multiple') {
+    selectionType.value = 'daterange';
+  }
+});
 // === REFS ===
 const weekdayCalendar = ref();
 // const startDateCalendar = ref();
@@ -254,7 +281,7 @@ const singleDateCalendar = ref();
 const weekdayStartDateObj = ref<Date | null>(null);
 const startDateObj = ref<Date | null>(null);
 const endDateObj = ref<Date | null>(null);
-const singleDateObj = ref<Date | null>(null);
+const singleDateObj = ref<Date | null>(currentDateRef.value);
 
 // Pre-populated time options (every hour from 6am-9pm; user can add custom HH:MM)
 const timeOptions = ref<string[]>(Array.from({ length: 15 }, (_, h) => `${String(h+6).padStart(2, '0')}:00`));
@@ -280,6 +307,9 @@ const timeOptions = ref<string[]>(Array.from({ length: 15 }, (_, h) => `${String
 // });
 
 const datePickerYearRange = computed<[number, number]>(() => {
+  if (!props.allowedDates || props.allowedDates.length === 0) {
+    return [2023, new Date().getFullYear()];
+  }
   const minYear = props.allowedDates ? props.allowedDates[0].getFullYear() : 2023;
   
   const maxYear = props.allowedDates 
