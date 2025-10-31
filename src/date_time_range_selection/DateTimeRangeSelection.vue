@@ -188,6 +188,10 @@
       </v-btn>
 
     </v-card-text>
+    <TimelineVisualization
+      :ranges="currentTimeRanges"
+
+    />
   </v-card>
 </template>
 
@@ -195,7 +199,7 @@
 // === IMPORTS ===
 import { watch, computed, ref, onMounted } from 'vue';
 import DatePicker from '@vuepic/vue-datepicker';
-import { useTimezone } from '../composables/useTimezone';
+import { setToMidnightUTC, setToEndOfDayUTC } from './dtr_utils';
 import { useDateTimeSelector } from './useDateTimeSelector';
 import type { MillisecondRange, TimeRangeSelectionType } from '../types/datetime';
 import { formatTimeRange } from "@/utils/timeRange";
@@ -205,6 +209,7 @@ import MonthsPicker from './MonthsPicker.vue';
 import SeasonPicker from './SeasonPicker.vue';
 import YearsPicker from './YearsPicker.vue';
 import SpecificTimesSelector from './SpecificTimesSelector.vue';
+import TimelineVisualization from './TimelineVisualization.vue';
 
 
 // === INTERFACES === 
@@ -225,12 +230,12 @@ const emit = defineEmits<{
 const timeSelectionMode = ref<'single' | 'multiple'>('single');
 
 // === COMPOSABLE SETUP ===
-// Create refs for the current date and timezone to pass to the composable
+// Create refs for the current date to pass to the composable
 const currentDateRef = ref(props.currentDate);
-// Using UTC for time range generation - will be offset to local timezone when fetching data
-const timezoneRef = ref('UTC');
-// Initialize timezone handling
-const { setToMidnight, setToEndOfDay, formatDateDisplay } = useTimezone(timezoneRef);
+
+function formatDateDisplay(date: Date | null): string {
+  return date?.toDateString() || '';
+}
 
 // Initialize the datetime selector composable with optional parameters
 const {
@@ -258,8 +263,7 @@ const {
   generatePatternRanges,
   generateMonthRanges,
 } = useDateTimeSelector({
-  currentDate: currentDateRef,
-  selectedTimezone: timezoneRef
+  currentDate: currentDateRef
 });
 
 
@@ -406,7 +410,7 @@ function handleStartDateChange(value: Date) {
     if (value.getTime() !== startDateObj.value?.getTime()) {
       startDateObj.value = value;
       // Convert to timestamp and update composable
-      const timestamp = setToMidnight(value);
+      const timestamp = setToMidnightUTC(value);
       setStartTimestampInternal(timestamp);
       // startDateCalendar.value?.closeMenu();
     }
@@ -418,7 +422,7 @@ function handleEndDateChange(value: Date) {
     if (value.getTime() !== endDateObj.value?.getTime()) {
       endDateObj.value = value;
       // Convert to timestamp and update composable
-      const timestamp = setToEndOfDay(value);
+      const timestamp = setToEndOfDayUTC(value);
       setEndTimestampInternal(timestamp);
       // endDateCalendar.value?.closeMenu();
     }
@@ -460,27 +464,23 @@ function handleSingleDateChange(value: Date) {
 }
 
 
-
-// Formatting functions
-// Formatting functions moved to useTimezone composable
-
 // === LIFECYCLE HOOKS ===
 onMounted(() => {
   // Initialize default dates
   if (props.defaultStartDate) {
     startDateObj.value = props.defaultStartDate;
-    const timestamp = setToMidnight(props.defaultStartDate);
+    const timestamp = setToMidnightUTC(props.defaultStartDate);
     setStartTimestampInternal(timestamp);
   }
   if (props.defaultEndDate) {
     endDateObj.value = props.defaultEndDate;
-    const timestamp = setToEndOfDay(props.defaultEndDate);
+    const timestamp = setToEndOfDayUTC(props.defaultEndDate);
     setEndTimestampInternal(timestamp);
   } else {
     // Default end date to today
     const today = new Date();
     endDateObj.value = today;
-    const timestamp = setToEndOfDay(today);
+    const timestamp = setToEndOfDayUTC(today);
     setEndTimestampInternal(timestamp);
   }
   

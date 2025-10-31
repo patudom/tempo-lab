@@ -1,6 +1,10 @@
 import { ref, computed, watch } from 'vue';
 import type { Ref } from 'vue';
-import { useTimezone } from './useTimezone';
+import { 
+  setToMidnightUTC, 
+  setToEndOfDayUTC, 
+  formatTimeString 
+} from './dtr_utils';
 import type { 
   MillisecondRange,
   TimeRangeSelectionType 
@@ -8,27 +12,17 @@ import type {
 
 interface UseDateTimeSelectorOptions {
   currentDate?: Ref<Date>;
-  selectedTimezone?: Ref<string>;
 }
 
 /**
  * Custom hook for date/time selection with optional configuration
- * @param options - Optional configuration object with currentDate and selectedTimezone refs
+ * @param options - Optional configuration object with currentDate ref
  */
 export function useDateTimeSelector(
   options: UseDateTimeSelectorOptions = {}
 ) {
   const { currentDate } = options;
   
-  const utcTimezone = options.selectedTimezone ? options.selectedTimezone : ref<string>('UTC');
-  
-  const { 
-    toTimezone, 
-    fromTimezone, 
-    setToMidnight, 
-    setToEndOfDay,
-    formatTime 
-  } = useTimezone(utcTimezone);
   
   // Extend selection type locally to include 'singledate' and 'pattern' without altering global type
   const selectionType = ref<TimeRangeSelectionType>('singledate');
@@ -110,8 +104,8 @@ export function useDateTimeSelector(
     const ranges: MillisecondRange[] = [];
     for (const year of selectedYears.value) {
       for (const month of selectedMonths.value) {
-        const startDate = fromTimezone(new Date(year, month, 1));
-        const endDate = fromTimezone(new Date(year, month + 1, 0, 23, 59, 59, 999)); // End of the month
+        const startDate = Date.UTC(year, month, 1);
+        const endDate = Date.UTC(year, month + 1, 0, 23, 59, 59, 999); // End of the month
         parcelLongRanges(startDate, endDate).forEach(r => ranges.push(r));
       }
     }
@@ -126,34 +120,34 @@ export function useDateTimeSelector(
       ? weekdayStartDateTimestamp.value
       : weekdayStartDateTimestamp.value;
     
-    // Create timezone-aware date for calculations  
-    const baseDate = toTimezone(baseTimestamp);
+    // Create UTC date for calculations  
+    const baseDate = new Date(baseTimestamp);
     
     const targetDayOfWeek = selectedDayOfWeek.value;
     
     // Find the target day occurrence - use baseDate if it already matches, otherwise find the most recent occurrence
     const currentDate = new Date(baseDate);
     
-    const currentDay= currentDate.getDay();
+    const currentDay= currentDate.getUTCDay();
     const daysDifference = (currentDay - targetDayOfWeek + 7) % 7;
     if (daysDifference !== 0) {
-      currentDate.setDate(currentDate.getDate() - daysDifference);
+      currentDate.setUTCDate(currentDate.getUTCDate() - daysDifference);
     }
     
     // Generate ranges for the specified number of instances back
     const ranges = Array.from({ length: instancesBack.value }, (_, i) => {
       const rangeDate = new Date(currentDate);
-      rangeDate.setDate(currentDate.getDate() - (i * 7)); // Go back by weeks
+      rangeDate.setUTCDate(currentDate.getUTCDate() - (i * 7)); // Go back by weeks
       
-      // Set the specific time
-      rangeDate.setHours(parsedTime.value.hour, parsedTime.value.minute, 0, 0);
+      // Set the specific time in UTC
+      rangeDate.setUTCHours(parsedTime.value.hour, parsedTime.value.minute, 0, 0);
       
-      // Convert to UTC timestamp for the API
-      const startTime = fromTimezone(rangeDate);
+      // Get UTC timestamp
+      const startTime = rangeDate.getTime();
       const endTime = startTime + (timePlusMinus.value * 60 * 60 * 1000); // Add offset
       
       return {
-        start: startTime - (timePlusMinus.value * 60 * 60 * 1000), // Subtract offsetr
+        start: startTime - (timePlusMinus.value * 60 * 60 * 1000), // Subtract offset
         end: endTime
       };
     });
@@ -233,7 +227,7 @@ export function useDateTimeSelector(
   
   function setSingleDateTimestamp(ts: number) {
     // Normalize to midnight in the selected timezone
-    const midnightTs = setToMidnight(new Date(ts));
+    const midnightTs = setToMidnightUTC(new Date(ts));
     singleDate.value = midnightTs;
   }
   
@@ -248,7 +242,7 @@ export function useDateTimeSelector(
   function generateSingleDateRange(): MillisecondRange[] {
     if (singleDate.value === 0) return [];
     const start = singleDate.value;
-    const end = setToEndOfDay(new Date(singleDate.value));
+    const end = setToEndOfDayUTC(new Date(singleDate.value));
     return [{ start, end }];
   }
 
@@ -293,12 +287,12 @@ export function useDateTimeSelector(
     setSingleDateTimestamp,
     
     // Timezone utilities
-    setToMidnight,
-    setToEndOfDay,
+    setToMidnightUTC,
+    setToEndOfDayUTC,
     
     // Utilities
     generateMillisecondRanges,
-    formatTime,
+    formatTimeString,
     generateSingleDateRange,
     generatePatternRanges,
     generateMonthRanges,
