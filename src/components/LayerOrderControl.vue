@@ -3,6 +3,7 @@
     v-model="displayOrder" 
     handle=".drag-handle"
     class="layer-order"
+    :item-key="(item) => item"
   >
     <template #item="{ element }">
       <div class="layer-order-row">
@@ -105,6 +106,7 @@ watch(powerPlantMode, (mode: number, oldMode: number) => {
     setLayerVisibility(mapRef.value, newLayerId, true);
   }
   currentOrder.value = order;
+  controller?.setManagedOrder(order);
 });
 </script>
 
