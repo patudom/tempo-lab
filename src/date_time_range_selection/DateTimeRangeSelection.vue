@@ -49,18 +49,16 @@
 
         <v-expand-transition title="Select Multiple Dates">
           <div v-if="timeSelectionMode === 'multiple'" class="multiple-dates-section">
-            <label class="text-subtitle-2 mb-2 d-block">Pick Date Range</label>
-            <date-picker
-              class="mx-2"
-              range
-              ref="dateRangeCalendar"
-              :model-value="dateRangeArray"
-              @internal-model-change="handleDateRangeChange"
+            <DateRangePicker
+              v-model:start-date="startDateObj"
+              v-model:end-date="endDateObj"
               :allowed-dates="allowedDates"
-              :format="(d) => d.map(formatDateDisplay).join(' - ')"
+              :format="formatDateDisplay"
+              :preview-format="formatDateDisplay"
+              :clearable="false"
+              :text-input="true"
               :teleport="true"
-              :enable-time-picker="false"
-              dark
+              :dark="true"
               :year-range="datePickerYearRange"
             />
             <v-expansion-panels 
@@ -180,6 +178,7 @@ import DatePicker from '@vuepic/vue-datepicker';
 import { setToMidnightUTC, setToEndOfDayUTC } from './dtr_utils';
 import type { MillisecondRange, TimeRangeSelectionType } from '../types/datetime';
 import { formatTimeRange } from "@/utils/timeRange";
+import DateRangePicker from './DateRangePicker.vue';
 import DaysPicker from './DaysPicker.vue';
 import DayPatterns from './DayPatterns.vue';
 import MonthsPicker from './MonthsPicker.vue';
@@ -189,14 +188,10 @@ import SpecificTimesSelector from './SpecificTimesSelector.vue';
 import TimelineVisualization from './TimelineVisualization.vue';
 import { DAYS, MONTHS, generateTimeRanges } from './date_time_range_generators';
 import type { TimeRangeConfig, TimeRangeCreationMode, DayType, MonthType } from './date_time_range_generators';
-
-
 // === INTERFACES === 
 // === PROPS ===
 const props = defineProps<{
   currentDate: Date;
-  defaultStartDate?: Date;
-  defaultEndDate?: Date;
   allowedDates?: Date[];
   validTimes?: number[]; // timestamps
 }>();
@@ -213,8 +208,6 @@ const emit = defineEmits<{
 const currentDateRef = ref(props.currentDate);
 
 // === REFS ===
-// const startDateCalendar = ref();
-// const endDateCalendar = ref();
 const singleDateCalendar = ref();
 // === PICKER STATE ===
 // Direct date objects for date pickers - no unnecessary timestamp conversion
@@ -346,58 +339,18 @@ function updateCustomRange(doEmit=true) {
   }
 }
 
-// watch all the values and geep currentTimeRanges updated
+// watch all the values and keep currentTimeRanges updated
 watch([
   timePlusMinus,
   selectedDays,
   selectedTimes,
   selectedMonths,
   selectedYears,
+  startDateObj,
+  endDateObj,
 ], () => {
   updateCustomRange(false);
 }, { deep: true });
-
-function handleStartDateChange(value: Date) {
-  if (value != null) {
-    if (value.getTime() !== startDateObj.value?.getTime()) {
-      startDateObj.value = value;
-    }
-  }
-}
-
-function handleEndDateChange(value: Date) {
-  if (value != null) {
-    if (value.getTime() !== endDateObj.value?.getTime()) {
-      endDateObj.value = value;
-    }
-  }
-}
-
-
-const dateRangeArray = computed<Date[] | null>(() => {
-  if (startDateObj.value && endDateObj.value) {
-    return [startDateObj.value, endDateObj.value];
-  }
-  return null;
-});
-const dateRangeCalendar = ref();
-function handleDateRangeChange(value: Date[]) {
-  if (value && value.length === 2) {
-    const [start, end] = value;
-    let changed = false;
-    if (start.getTime() !== startDateObj.value?.getTime()) {
-      handleStartDateChange(start);
-      changed = true;
-    }
-    if (end.getTime() !== endDateObj.value?.getTime()) {
-      handleEndDateChange(end);
-      changed = true;
-    }
-    if (changed) {
-      dateRangeCalendar.value?.closeMenu();
-    }
-  }
-}
 
 function handleSingleDateChange(value: Date) {
   if (value && value.getTime() !== singleDateObj.value?.getTime()) {
@@ -410,15 +363,9 @@ function handleSingleDateChange(value: Date) {
 // === LIFECYCLE HOOKS ===
 onMounted(() => {
   // Initialize default dates
-  if (props.defaultStartDate) {
-    startDateObj.value = props.defaultStartDate;
-  }
-  if (props.defaultEndDate) {
-    endDateObj.value = props.defaultEndDate;
-  } else {
-    // Default end date to today
-    const today = new Date();
-    endDateObj.value = today;
+  if (props.allowedDates && props.allowedDates.length > 0) {
+    startDateObj.value = props.allowedDates[0];
+    endDateObj.value = props.allowedDates[props.allowedDates.length - 1];
   }
 });
 
