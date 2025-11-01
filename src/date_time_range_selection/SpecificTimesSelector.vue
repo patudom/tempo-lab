@@ -20,7 +20,7 @@
         id="dtrs-time-plus-minus"
         type="checkbox"
         v-model="timePlusMinus"
-        :true-value="11"
+        :true-value="12"
         :false-value="0.5"
       />
       <label for="dtrs-time-plus-minus">All Day</label>
@@ -29,7 +29,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 const selectedTimes = defineModel<string[]>({
   type: Array as () => string[]
 });
@@ -39,7 +39,11 @@ const timePlusMinus = defineModel<number>('timePlusMinus', {
 });
 const timeOptions = ref<string[]>(Array.from({ length: 15 }, (_, h) => `${String(h+6).padStart(2, '0')}:00`));
 
-
+watch(timePlusMinus, (newVal) => {
+  if (newVal === 12) {
+    selectedTimes.value = []; // deselect all times
+  }
+});
 // Normalize entered times to HH:MM 24h (flexible entry via copilot)
 function normalizeTimes(values: string[]) {
   const normalized = values

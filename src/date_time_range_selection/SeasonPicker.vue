@@ -5,26 +5,33 @@
       size="x-small" 
       variant="outlined" 
       class="mr-2 mb-2"
-      @click="selectedMonths = [11,0,1]"
+      @click="selectedMonths = ['December', 'January', 'February']"
     >Winter</v-btn>
     <v-btn 
       size="x-small" 
       variant="outlined" 
       class="mr-2 mb-2"
-      @click="selectedMonths = [2,3,4]"
+      @click="selectedMonths = ['March', 'April', 'May']"
     >Spring</v-btn>
     <v-btn 
       size="x-small" 
       variant="outlined" 
       class="mr-2 mb-2"
-      @click="selectedMonths = [5,6,7]"
+      @click="selectedMonths = ['June', 'July', 'August']"
     >Summer</v-btn>
     <v-btn 
       size="x-small" 
       variant="outlined" 
       class="mr-2 mb-2"
-      @click="selectedMonths = [8,9,10]"
+      @click="selectedMonths = ['September', 'October', 'November']"
     >Fall</v-btn>
+    <!-- all -->
+    <v-btn 
+      size="x-small" 
+      variant="outlined" 
+      class="mr-2 mb-2"
+      @click="selectedMonths = MONTHS.slice()"
+    >All Months</v-btn>
     <!-- clear -->
     <v-btn 
       size="x-small" 
@@ -36,7 +43,8 @@
 </template>
 
 <script lang="ts" setup>
-const selectedMonths = defineModel<number[]>({
-  type: Array as () => number[]
+import { type MonthType, MONTHS } from './date_time_range_generators';
+const selectedMonths = defineModel<MonthType[]>({
+  type: Array as () => MonthType[]
 });
 </script>
