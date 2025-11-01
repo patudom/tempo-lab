@@ -83,7 +83,6 @@
                 <div class="mb-4">
                   <MonthsPicker
                     v-model="selectedMonths"
-                    :month-names="monthNames"
                   />
                 </div>
                 

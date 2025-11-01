@@ -140,7 +140,7 @@ function genHoursForOneDay(date: number, times: string[] | undefined, toleranceM
 
 function advanceDateToNextMonth(date: Date): Date {
   const newDate = new Date(date);
-  const newMonth = newDate.getUTCMonth() === 11 ? 0 : newDate.getUTCMonth() + 1;
+  const newMonth = newDate.getUTCMonth() + 1;
   newDate.setUTCMonth(newMonth);
   newDate.setUTCDate(1);
   newDate.setUTCHours(0, 0, 0, 0);
