@@ -311,11 +311,76 @@ function dateInRange(date: number, start: Date, end: Date): boolean {
   return (date >= start.getTime()) && (date <= end.getTime());
 }
 
+
+/**
+ * Validate a range that should match a time point with tolerance
+ * (e.g., "14:00" with ±0.5h tolerance)
+ */
+function validateTimePointRange(
+  range: MillisecondRange, 
+  configuredTime: string, 
+  toleranceMs: number
+): boolean {
+  // The range should be approximately: configuredTime ± toleranceMs
+  const rangeDuration = range.end - range.start + 1; // +1 because end is inclusive
+  const expectedDuration = 2 * toleranceMs;
+  
+  // Check if duration matches expected (with some tolerance for rounding)
+  const durationTolerance = 0.01 * expectedDuration; // 1% tolerance
+  if (Math.abs(rangeDuration - expectedDuration) > durationTolerance) {
+    return false;
+  }
+  
+  // Calculate the center time of the range
+  const centerTime = Math.floor((range.start + range.end + 1) / 2);
+  const centerDate = new Date(centerTime);
+  const centerTimeStr = centerDate.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: 'UTC'
+  }).replace(/^24/, '00'); // Handle edge case where 24:00 should be 00:00
+  
+  return centerTimeStr === configuredTime;
+}
+
+/**
+ * Validate a range that should match a time range specification
+ * (e.g., "09:00-17:00")
+ */
+function validateTimeRangeSpec(
+  range: MillisecondRange,
+  configuredTimeRange: string
+): boolean {
+  const [startStr, endStr] = configuredTimeRange.split('-').map(s => s.trim());
+  
+  const startDate = new Date(range.start);
+  const endDate = new Date(range.end);
+  
+  const rangeStartTimeStr = startDate.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: 'UTC'
+  }).replace(/^24/, '00');
+  
+  const rangeEndTimeStr = endDate.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: 'UTC'
+  }).replace(/^24/, '00');
+  
+  return rangeStartTimeStr === startStr && rangeEndTimeStr === endStr;
+}
+
 interface TimeRangeValidation {
   valid: boolean
   errors: string[]
   badRanges?: MillisecondRange[]
 }
+
+  
 export function validateRanges(ranges: MillisecondRange[], config: TimeRangeConfig): TimeRangeValidation {
   let valid = true;
   const errors: string[] = [];
@@ -414,37 +479,30 @@ export function validateRanges(ranges: MillisecondRange[], config: TimeRangeConf
       const toleranceMs = (config.toleranceHours ?? 0.5) * MS_IN_HOUR;
       
       ranges.forEach(r => {
-        // For time validation, we need to check if the range center falls on one of the configured times
-        // The range should be approximately: configuredTime ± toleranceMs
-        const rangeDuration = r.end - r.start + 1; // +1 because end is inclusive in our range generation
-        const expectedDuration = 2 * toleranceMs;
+        // Check if this range matches any of the configured times
+        let matchesAnyTime = false;
         
-        // Check if duration matches expected (with some tolerance for rounding)
-        const durationTolerance = 0.01 * expectedDuration; // 1% tolerance
-        if (Math.abs(rangeDuration - expectedDuration) > durationTolerance) {
-          // Duration doesn't match - this range doesn't conform to time filtering
-          valid = false;
-          timeCount += 1;
-          badRanges.push(r);
-          return;
+        for (const configuredTime of config.times!) {
+          let isValid = false;
+          if (configuredTime.includes('-')) {
+            // This is a time range specification (e.g., "09:00-17:00")
+            isValid = validateTimeRangeSpec(r, configuredTime);
+          } else {
+            // This is a time point with tolerance (e.g., "14:00" ± toleranceMs)
+            isValid = validateTimePointRange(r, configuredTime, toleranceMs);
+          }
+          
+          if (isValid) {
+            matchesAnyTime = true;
+            break;
+          }
         }
         
-        // Calculate the center time of the range
-        const centerTime = Math.floor((r.start + r.end + 1) / 2);
-        const centerDate = new Date(centerTime);
-        const centerTimeStr = centerDate.toLocaleTimeString('en-US', {
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false,
-          timeZone: 'UTC'
-        }).replace(/^24/, '00'); // Handle edge case where 24:00 should be 00:00
-        
-        // Check if the center time matches one of the configured times
-        if (!config.times!.includes(centerTimeStr)) {
+        if (!matchesAnyTime) {
           valid = false;
           timeCount += 1;
           badRanges.push(r);
-          console.log('Range time not in configured times:', r, 'Center Time:', centerTimeStr);
+          console.log('Range time not in configured times:', r);
         }
       });
       
