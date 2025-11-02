@@ -1,7 +1,25 @@
 <template>
   <div class="mt-2 dtrs-flex-time-box">
+    <v-col>
+    <v-radio-group
+      v-model="timePlusMinus"
+      direction="horizontal"
+      inline
+      hide-details
+      class="mb-2"
+      >
+      <v-radio
+        label="Specific Times"
+        :value="0.5"
+        />
+      <v-radio
+        label="All Day"
+        :value="12"
+        />
+    </v-radio-group>
     <v-combobox
-      v-model="selectedTimes"
+      v-if="timePlusMinus != 12"
+      v-model="selectedTimesRef"
       :items="timeOptions"
       label="Add/select times"
       multiple
@@ -14,8 +32,12 @@
       persistent-hint
       @update:model-value="normalizeTimes"
     />
+    <div v-else class="dtrs-all-day-label">
+      All Day Selected
+    </div>
+  </v-col>
     
-    <div class="pm-wrapper">
+    <!-- <div class="pm-wrapper">
       <input
         id="dtrs-time-plus-minus"
         type="checkbox"
@@ -24,12 +46,12 @@
         :false-value="0.5"
       />
       <label for="dtrs-time-plus-minus">All Day</label>
-    </div>
+    </div> -->
   </div>
 </template>
 
 <script lang="ts" setup>
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 const selectedTimes = defineModel<string[]>({
   type: Array as () => string[]
 });
@@ -38,12 +60,29 @@ const timePlusMinus = defineModel<number>('timePlusMinus', {
   default: 0.5
 });
 const timeOptions = ref<string[]>(Array.from({ length: 15 }, (_, h) => `${String(h+6).padStart(2, '0')}:00`));
-
-watch(timePlusMinus, (newVal) => {
-  if (newVal === 12) {
-    selectedTimes.value = []; // deselect all times
+const _selectedTimesRef = ref<string[]>([]);
+const selectedTimesRef = computed({
+  get: () => {
+    if (timePlusMinus.value == 12) return timeOptions.value;
+    return _selectedTimesRef.value;
+  },
+  set: (value: string[]) => {
+    console.log('selectedTimesRef set to', value);
+    _selectedTimesRef.value = value;
   }
 });
+
+
+watch(selectedTimesRef, (value: string[]) => {
+  console.log('selectedTimesRef changed to', value);
+  if (timePlusMinus.value == 12) {
+    selectedTimes.value = [];
+    return;
+  }
+  selectedTimes.value = value;
+});
+
+
 // Normalize entered times to HH:MM 24h (flexible entry via copilot)
 function normalizeTimes(values: string[]) {
   const normalized = values
@@ -71,6 +110,6 @@ function normalizeTimes(values: string[]) {
     .filter((v): v is string => !!v);
   // Deduplicate
   const unique = Array.from(new Set(normalized));
-  selectedTimes.value = unique;
+  selectedTimesRef.value = unique;
 }
 </script>
