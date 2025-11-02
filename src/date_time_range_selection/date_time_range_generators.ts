@@ -131,10 +131,21 @@ function genHoursForOneDay(date: number, times: string[] | undefined, toleranceM
   
   // for each time, generate the appropriate range. by default +/- 30 minutes
   for (const timeStr of times) {
-    const { hours, minutes } = parseTimeStringToHoursMinutes(timeStr);
-    const start = new Date(date);
-    start.setUTCHours(hours, minutes, 0, 0);
-    ranges.push({ start: start.getTime() - toleranceMs, end: start.getTime() + toleranceMs - 1 });
+    if (timeStr.includes('-')) {
+      const [startStr, endStr] = timeStr.split('-').map(s => s.trim());
+      const { hours: startHours, minutes: startMinutes } = parseTimeStringToHoursMinutes(startStr);
+      const { hours: endHours, minutes: endMinutes } = parseTimeStringToHoursMinutes(endStr);
+      const start = new Date(date);
+      start.setUTCHours(startHours, startMinutes, 0, 0);
+      const end = new Date(date);
+      end.setUTCHours(endHours, endMinutes, 59, 999);
+      ranges.push({ start: start.getTime(), end: end.getTime() - 1 });
+    } else {
+      const { hours, minutes } = parseTimeStringToHoursMinutes(timeStr);
+      const start = new Date(date);
+      start.setUTCHours(hours, minutes, 0, 0);
+      ranges.push({ start: start.getTime() - toleranceMs, end: start.getTime() + toleranceMs - 1 });
+    }
   }
   return ranges;
 }
