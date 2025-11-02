@@ -259,7 +259,7 @@ const selectedMonths = ref<MonthType[]>([]);
 const selectedYears = ref<number[]>([]);
 const selectedTimes = ref<string[]>([]);
 const selectedDays = ref<DayType[]>([]);
-const timePlusMinus = ref<0.5 | 12>(0.5);
+const timePlusMinus = ref<0.5 | 12>(12);
 const allDay = computed(() => timePlusMinus.value === 12);
 const dayNames = DAYS;
 const monthNames = MONTHS;
