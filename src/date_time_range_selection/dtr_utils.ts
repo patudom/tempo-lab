@@ -1,13 +1,23 @@
-export function setToMidnightUTC(date: Date): number {
+
+export function setToMidnightUTC(date: Date, toDate: true): Date;
+export function setToMidnightUTC(date: Date, toDate?: false): number;
+export function setToMidnightUTC(date: Date, toDate: boolean = false): number | Date {
   const d = new Date(date);
   d.setUTCHours(0, 0, 0, 0);
+  if (toDate) {
+    return d;
+  }
   return d.getTime();
 }
 
-
-export function setToEndOfDayUTC(date: Date): number {
+export function setToEndOfDayUTC(date: Date, toDate: true): Date;
+export function setToEndOfDayUTC(date: Date, toDate?: false): number;
+export function setToEndOfDayUTC(date: Date, toDate: boolean = false): number | Date {
   const d = new Date(date);
   d.setUTCHours(23, 59, 59, 999);
+  if (toDate) {
+    return d;
+  }
   return d.getTime();
 }
 

@@ -20,6 +20,7 @@
         :max-date="endDateObj ?? new Date()"
         prevent-min-max-navigation
       />
+      {{  startDateObj?.toLocaleString(undefined, {timeZone: 'UTC'}) }}
     </div>
     
     <div class="mb-4">
@@ -42,6 +43,7 @@
         :min-date="startDateObj ?? new Date(0)"
         prevent-min-max-navigation
       />
+      {{  endDateObj?.toLocaleString(undefined, {timeZone: 'UTC'}) }}
     </div>
     
   </div>
@@ -86,6 +88,7 @@ function handleStartDateChange(value: Date | null) {
       return;
     }
     startDateObj.value = value;
+    startDateObj.value.setUTCHours(0, 0, 0, 0);
     emit('update:startDate', value);
     startDateCalendar.value?.closeMenu();
   }
@@ -98,7 +101,8 @@ function handleEndDateChange(value: Date | null) {
       return;
     }
     endDateObj.value = value;
-    emit('update:endDate', value);
+    endDateObj.value.setUTCHours(23, 59, 59, 999);
+    emit('update:endDate', endDateObj.value);
     endDateCalendar.value?.closeMenu();
   }
 }

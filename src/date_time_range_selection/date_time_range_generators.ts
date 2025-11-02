@@ -35,6 +35,7 @@ export interface TimeRangeConfigMultiple {
   months: MonthType[] | undefined; // 0-11
   weekdays: DayType[] | undefined; // 0 (Sun) - 6 (Sat)
   times: string[] | undefined; // 'HH:MM' format
+  toleranceHours: number | undefined; // tolerance in hours around each time
 }
 
 export type TimeRangeConfig = TimeRangeConfigSingle | TimeRangeConfigMultiple;
@@ -157,9 +158,8 @@ function advanceDateToNextYear(date: Date): Date {
 }
 
 
-function generatePatternedRanges(config: TimeRangeConfigMultiple, toleranceHours: number = 0.5): MillisecondRange[] {
+function generatePatternedRanges(config: TimeRangeConfigMultiple): MillisecondRange[] {
   const ranges: MillisecondRange[] = [];
-  const toleranceMs = toleranceHours * MS_IN_HOUR;
   
   // loop every day
   // use a while loop so we can easily increment by day or month or 
@@ -227,6 +227,9 @@ function generatePatternedRanges(config: TimeRangeConfigMultiple, toleranceHours
     // if we don't need any finer filtering, just grab the whole year, and then go to the next year
     if (!needsFinerThanYears) { 
       const yearRange = genOneYearRange(currentDate.getTime());
+      if (yearRange.end > endDate.getTime()) {
+        yearRange.end = endDate.getTime();
+      }
       ranges.push(yearRange);
       currentDate = advanceDateToNextYear(currentDate);
       continue;
@@ -243,6 +246,9 @@ function generatePatternedRanges(config: TimeRangeConfigMultiple, toleranceHours
     // if we don't need any finer filtering, just grab the whole month, and then go to the next month
     if (!needsFinerThanMonths) { 
       const monthRange = genOneMonthRange(currentDate.getTime());
+      if (monthRange.end > endDate.getTime()) {
+        monthRange.end = endDate.getTime();
+      }
       ranges.push(monthRange);
       currentDate = advanceDateToNextMonth(currentDate);
       continue;
@@ -259,6 +265,7 @@ function generatePatternedRanges(config: TimeRangeConfigMultiple, toleranceHours
     // 
     
     // generate time ranges for this day
+    const toleranceMs = (config.toleranceHours ?? 0.5) * MS_IN_HOUR;
     const dailyRanges = genHoursForOneDay(currentDate.getTime(), config.times, toleranceMs);
     ranges.push(...dailyRanges);
     
@@ -287,5 +294,161 @@ export function generateTimeRanges(config: TimeRangeConfig): MillisecondRange[] 
     
   return ranges;
 }
-  
+ 
 
+function dateInRange(date: number, start: Date, end: Date): boolean {
+  return (date >= start.getTime()) && (date <= end.getTime());
+}
+
+interface TimeRangeValidation {
+  valid: boolean
+  errors: string[]
+  badRanges?: MillisecondRange[]
+}
+export function validateRanges(ranges: MillisecondRange[], config: TimeRangeConfig): TimeRangeValidation {
+  let valid = true;
+  const errors: string[] = [];
+  const badRanges: MillisecondRange[] = [];
+  
+  if (config.type === 'single') {
+    const singleDate = config.singleDate.toLocaleDateString(undefined, { timeZone: 'UTC' });
+    let count = 0;
+    
+    // check that all ranges fall within the single date
+    ranges.forEach(r => {
+      if (singleDate !== new Date(r.start).toLocaleDateString(undefined, { timeZone: 'UTC' })) {
+        valid = false;
+        count += 1;
+        badRanges.push(r);
+      }
+    });
+    if (count > 0) {
+      errors.push(`Found ${count} ranges outside Single Date Value.`);
+    }
+  }
+  
+  
+  if (config.type === 'multiple') {
+    const startDate = config.dateRange.start;
+    const endDate = config.dateRange.end;
+    let count = 0;
+    
+    // check that all ranges fall within the date range
+    ranges.forEach(r => {
+      if (!dateInRange(r.start, startDate, endDate) || !dateInRange(r.end, startDate, endDate)) {
+        console.log('Range out of date range:', r, 'Date Range:', startDate, endDate);
+        valid = false;
+        count += 1;
+        badRanges.push(r);
+      }
+    });
+    if (count > 0) {
+      errors.push(`Found ${count} ranges outside Date Range Values.`);
+    }
+    
+    // check for each year filter
+    if (config.years && config.years.length > 0) {
+      let yearCount = 0;
+      ranges.forEach(r => {
+        const startYear = new Date(r.start).getUTCFullYear();
+        const endYear = new Date(r.end).getUTCFullYear();
+        if (!config.years!.includes(startYear) || !config.years!.includes(endYear)) {
+          valid = false;
+          yearCount += 1;
+          badRanges.push(r);
+        }
+      });
+      if (yearCount > 0) {
+        errors.push(`Found ${yearCount} ranges outside Year Values.`);
+      }
+    }
+    
+    // check for each month filter
+    if (config.months && config.months.length > 0) {
+      let monthCount = 0;
+      ranges.forEach(r => {
+        const startMonth = new Date(r.start).toLocaleDateString('en-US', { month: 'long', timeZone: 'UTC' }) as MonthType;
+        const endMonth = new Date(r.end).toLocaleDateString('en-US', { month: 'long', timeZone: 'UTC' }) as MonthType;
+        if (!config.months!.includes(startMonth) || !config.months!.includes(endMonth)) {
+          valid = false;
+          monthCount += 1;
+          badRanges.push(r);
+        }
+      });
+      if (monthCount > 0) {
+        errors.push(`Found ${monthCount} ranges outside Month Values.`);
+      }
+    } 
+    
+    // check for each weekday filter
+    if (config.weekdays && config.weekdays.length > 0) {
+      let weekdayCount = 0;
+      ranges.forEach(r => {
+        const startWeekday = new Date(r.start).toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' }) as DayType;
+        const endWeekday = new Date(r.end).toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' }) as DayType;
+        if (!config.weekdays!.includes(startWeekday) || !config.weekdays!.includes(endWeekday)) {
+          valid = false;
+          weekdayCount += 1;
+          badRanges.push(r);
+        }
+      });
+      if (weekdayCount > 0) {
+        errors.push(`Found ${weekdayCount} ranges outside Weekday Values.`);
+      }
+    }
+    
+    // check for each time filter
+    if (config.times && config.times.length > 0) {
+      let timeCount = 0;
+      const toleranceMs = (config.toleranceHours ?? 0.5) * MS_IN_HOUR;
+      
+      ranges.forEach(r => {
+        // For time validation, we need to check if the range center falls on one of the configured times
+        // The range should be approximately: configuredTime ± toleranceMs
+        const rangeDuration = r.end - r.start + 1; // +1 because end is inclusive in our range generation
+        const expectedDuration = 2 * toleranceMs;
+        
+        // Check if duration matches expected (with some tolerance for rounding)
+        const durationTolerance = 0.01 * expectedDuration; // 1% tolerance
+        if (Math.abs(rangeDuration - expectedDuration) > durationTolerance) {
+          // Duration doesn't match - this range doesn't conform to time filtering
+          valid = false;
+          timeCount += 1;
+          badRanges.push(r);
+          return;
+        }
+        
+        // Calculate the center time of the range
+        const centerTime = Math.floor((r.start + r.end + 1) / 2);
+        const centerDate = new Date(centerTime);
+        const centerTimeStr = centerDate.toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+          timeZone: 'UTC'
+        }).replace(/^24/, '00'); // Handle edge case where 24:00 should be 00:00
+        
+        // Check if the center time matches one of the configured times
+        if (!config.times!.includes(centerTimeStr)) {
+          valid = false;
+          timeCount += 1;
+          badRanges.push(r);
+          console.log('Range time not in configured times:', r, 'Center Time:', centerTimeStr);
+        }
+      });
+      
+      if (timeCount > 0) {
+        errors.push(`Found ${timeCount} ranges outside Time Values.`);
+      }
+    }
+  }
+  
+  
+  
+  return {
+    valid,
+    errors,
+    badRanges
+  };
+  
+}

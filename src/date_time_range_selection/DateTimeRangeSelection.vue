@@ -186,7 +186,7 @@ import YearsPicker from './YearsPicker.vue';
 import SpecificTimesSelector from './SpecificTimesSelector.vue';
 import TimelineVisualization from './TimelineVisualization.vue';
 import { DAYS, MONTHS, generateTimeRanges } from './date_time_range_generators';
-import type { TimeRangeConfig, TimeRangeCreationMode, DayType, MonthType } from './date_time_range_generators';
+import type { TimeRangeConfig, TimeRangeCreationMode, DayType, MonthType, TimeRangeConfigMultiple, TimeRangeConfigSingle } from './date_time_range_generators';
 // === INTERFACES === 
 // === PROPS ===
 const props = defineProps<{
@@ -268,9 +268,9 @@ const timeRangeConfig = computed<TimeRangeConfig>(() => {
     return {
       type: 'single',
       singleDate: singleDateObj.value,
-    } as TimeRangeConfig;
+    } as TimeRangeConfigSingle;
   } else {
-    const patternConfig: TimeRangeConfig = {
+    const patternConfig: TimeRangeConfigMultiple = {
       type: 'multiple',
       dateRange: {
         start: startDateObj.value ?? new Date(),
@@ -280,6 +280,7 @@ const timeRangeConfig = computed<TimeRangeConfig>(() => {
       months: (selectedMonths.value.length > 0) ? selectedMonths.value : undefined,
       weekdays: (selectedDays.value.length > 0) ? selectedDays.value : undefined,
       times: ((selectedTimes.value.length > 0) && !allDay.value) ? selectedTimes.value : undefined,
+      toleranceHours: allDay.value ? 12 : 0.5,
     };
     return patternConfig as TimeRangeConfig;
   }
@@ -340,6 +341,7 @@ function updateCustomRange(doEmit=true) {
 
 // watch all the values and keep currentTimeRanges updated
 watch([
+  timeSelectionMode,
   timePlusMinus,
   selectedDays,
   selectedTimes,
@@ -363,8 +365,8 @@ function handleSingleDateChange(value: Date) {
 onMounted(() => {
   // Initialize default dates
   if (props.allowedDates && props.allowedDates.length > 0) {
-    startDateObj.value = props.allowedDates[0];
-    endDateObj.value = props.allowedDates[props.allowedDates.length - 1];
+    startDateObj.value = setToMidnightUTC(new Date(props.allowedDates[0]), true);
+    endDateObj.value = setToEndOfDayUTC(props.allowedDates[props.allowedDates.length - 1], true);
   }
 });
 
