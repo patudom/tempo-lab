@@ -163,7 +163,8 @@
     </v-card-text>
     <TimelineVisualization
       :ranges="currentTimeRanges"
-
+      :config="timeRangeConfig"
+      :allowed-dates="allowedDates"
     />
   </v-card>
 </template>
