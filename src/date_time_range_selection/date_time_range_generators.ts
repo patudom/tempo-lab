@@ -14,6 +14,10 @@ export const MONTHS = [
 const MS_IN_HOUR = 60 * 60 * 1000;
 const MS_IN_DAY = 24 * MS_IN_HOUR;
 
+// Tolerance constants for time ranges [before, after] in hours
+export const DEFAULT_TOLERANCE: [number, number] = [0, 1];
+export const ALL_DAY_TOLERANCE: [number, number] = [12, 12];
+
 export type DayType = typeof DAYS[number];
 export type MonthType = typeof MONTHS[number];
 
@@ -35,7 +39,7 @@ export interface TimeRangeConfigMultiple {
   months: MonthType[] | undefined; // 0-11
   weekdays: DayType[] | undefined; // 0 (Sun) - 6 (Sat)
   times: string[] | undefined; // 'HH:MM' format
-  toleranceHours: number | undefined; // tolerance in hours around each time
+  toleranceHours: [number, number] | undefined; // [before, after] tolerance in hours around each time
 }
 
 export type TimeRangeConfig = TimeRangeConfigSingle | TimeRangeConfigMultiple;
@@ -123,11 +127,13 @@ If no times are provided, return the full day range.
 Otherwise, each time generates a range range that is {time - toleranceMs, time + toleranceMs}.
 The range will be left-inclusive, right-exclusive: [start, end)
 */
-function genHoursForOneDay(date: number, times: string[] | undefined, toleranceMs: number = 0.5 * MS_IN_HOUR): MillisecondRange[] {
+function genHoursForOneDay(date: number, times: string[] | undefined, toleranceMs: [number, number] = [DEFAULT_TOLERANCE[0] * MS_IN_HOUR, DEFAULT_TOLERANCE[1] * MS_IN_HOUR]): MillisecondRange[] {
   const ranges: MillisecondRange[] = [];
   if (!times || times.length === 0) {
     return [genOneDayRange(date)];
   }
+  
+  const [toleranceMsBefore, toleranceMsAfter] = toleranceMs;
   
   // for each time, generate the appropriate range. by default +/- 30 minutes
   for (const timeStr of times) {
@@ -144,7 +150,7 @@ function genHoursForOneDay(date: number, times: string[] | undefined, toleranceM
       const { hours, minutes } = parseTimeStringToHoursMinutes(timeStr);
       const start = new Date(date);
       start.setUTCHours(hours, minutes, 0, 0);
-      ranges.push({ start: start.getTime() - toleranceMs, end: start.getTime() + toleranceMs - 1 });
+      ranges.push({ start: start.getTime() - toleranceMsBefore, end: start.getTime() + toleranceMsAfter - 1 });
     }
   }
   return ranges;
@@ -276,7 +282,8 @@ function generatePatternedRanges(config: TimeRangeConfigMultiple): MillisecondRa
     // 
     
     // generate time ranges for this day
-    const toleranceMs = (config.toleranceHours ?? 0.5) * MS_IN_HOUR;
+    const toleranceHours = config.toleranceHours ?? DEFAULT_TOLERANCE;
+    const toleranceMs: [number, number] = [toleranceHours[0] * MS_IN_HOUR, toleranceHours[1] * MS_IN_HOUR];
     const dailyRanges = genHoursForOneDay(currentDate.getTime(), config.times, toleranceMs);
     ranges.push(...dailyRanges);
     
@@ -319,11 +326,11 @@ function dateInRange(date: number, start: Date, end: Date): boolean {
 function validateTimePointRange(
   range: MillisecondRange, 
   configuredTime: string, 
-  toleranceMs: number
+  toleranceMs: [number, number]
 ): boolean {
   // The range should be approximately: configuredTime ± toleranceMs
   const rangeDuration = range.end - range.start + 1; // +1 because end is inclusive
-  const expectedDuration = 2 * toleranceMs;
+  const expectedDuration = toleranceMs[0] + toleranceMs[1];
   
   // Check if duration matches expected (with some tolerance for rounding)
   const durationTolerance = 0.01 * expectedDuration; // 1% tolerance
@@ -332,7 +339,7 @@ function validateTimePointRange(
   }
   
   // Calculate the center time of the range
-  const centerTime = Math.floor((range.start + range.end + 1) / 2);
+  const centerTime = (range.start + toleranceMs[0] + range.end + 1 - toleranceMs[1]) / 2;
   const centerDate = new Date(centerTime);
   const centerTimeStr = centerDate.toLocaleTimeString('en-US', {
     hour: '2-digit',
@@ -476,7 +483,8 @@ export function validateRanges(ranges: MillisecondRange[], config: TimeRangeConf
     // check for each time filter
     if (config.times && config.times.length > 0) {
       let timeCount = 0;
-      const toleranceMs = (config.toleranceHours ?? 0.5) * MS_IN_HOUR;
+      const toleranceHours = config.toleranceHours ?? DEFAULT_TOLERANCE;
+      const toleranceMs: [number, number] = [toleranceHours[0] * MS_IN_HOUR, toleranceHours[1] * MS_IN_HOUR];
       
       ranges.forEach(r => {
         // Check if this range matches any of the configured times
@@ -502,7 +510,7 @@ export function validateRanges(ranges: MillisecondRange[], config: TimeRangeConf
           valid = false;
           timeCount += 1;
           badRanges.push(r);
-          console.log('Range time not in configured times:', r);
+          // console.log('Range time not in configured times:', r);
         }
       });
       

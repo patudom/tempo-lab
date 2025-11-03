@@ -198,7 +198,7 @@ import SeasonPicker from './SeasonPicker.vue';
 import YearsPicker from './YearsPicker.vue';
 import SpecificTimesSelector from './SpecificTimesSelector.vue';
 import TimelineVisualization from './TimelineVisualization.vue';
-import { DAYS, MONTHS, generateTimeRanges } from './date_time_range_generators';
+import { DAYS, MONTHS, generateTimeRanges, DEFAULT_TOLERANCE, ALL_DAY_TOLERANCE } from './date_time_range_generators';
 import type { TimeRangeConfig, TimeRangeCreationMode, DayType, MonthType, TimeRangeConfigMultiple, TimeRangeConfigSingle } from './date_time_range_generators';
 // === INTERFACES === 
 // === PROPS ===
@@ -273,8 +273,8 @@ const selectedMonths = ref<MonthType[]>([]);
 const selectedYears = ref<number[]>([]);
 const selectedTimes = ref<string[]>([]);
 const selectedDays = ref<DayType[]>([]);
-const timePlusMinus = ref<0.5 | 12>(12);
-const allDay = computed(() => timePlusMinus.value === 12);
+const timePlusMinus = ref<[number, number]>([...ALL_DAY_TOLERANCE]);
+const allDay = computed(() => timePlusMinus.value[0] === ALL_DAY_TOLERANCE[0] && timePlusMinus.value[1] === ALL_DAY_TOLERANCE[1]);
 const dayNames = DAYS as unknown as DayType[];
 const monthNames = MONTHS as unknown as MonthType[];
 const timeRangeConfig = computed<TimeRangeConfig>(() => {
@@ -294,7 +294,7 @@ const timeRangeConfig = computed<TimeRangeConfig>(() => {
       months: (selectedMonths.value.length > 0) ? selectedMonths.value : undefined,
       weekdays: (selectedDays.value.length > 0) ? selectedDays.value : undefined,
       times: ((selectedTimes.value.length > 0) && !allDay.value) ? selectedTimes.value : undefined,
-      toleranceHours: allDay.value ? 12 : 0.5,
+      toleranceHours: allDay.value ? [...ALL_DAY_TOLERANCE] : [...DEFAULT_TOLERANCE],
     };
     return patternConfig as TimeRangeConfig;
   }

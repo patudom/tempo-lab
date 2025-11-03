@@ -30,6 +30,9 @@
             <div v-if="config.times">
               <strong>Times:</strong> {{ config.times.join(', ') }}
             </div>
+            <div v-if="config.toleranceHours">
+              <strong>Tolerance:</strong> {{ formatTolerance(config.toleranceHours) }}
+            </div>
           </div>
         </div>
       </div>
@@ -112,7 +115,7 @@
 import { computed } from 'vue';
 import type { MillisecondRange } from '../types/datetime';
 import type { TimeRangeConfig } from './date_time_range_generators';
-import { validateRanges } from './date_time_range_generators';
+import { validateRanges, DEFAULT_TOLERANCE, ALL_DAY_TOLERANCE } from './date_time_range_generators';
 
 const props = defineProps<{
   ranges: MillisecondRange[];
@@ -169,6 +172,28 @@ function formatDuration(ms: number): string {
     return `${days}d ${hours % 24}h`;
   }
   return `${hours}h ${minutes}m`;
+}
+
+function formatTolerance(tolerance: [number, number]): string {
+  const [before, after] = tolerance;
+  
+  // Check if it's all day tolerance
+  if (before === ALL_DAY_TOLERANCE[0] && after === ALL_DAY_TOLERANCE[1]) {
+    return 'All Day';
+  }
+  
+  // Check if it's default tolerance
+  if (before === DEFAULT_TOLERANCE[0] && after === DEFAULT_TOLERANCE[1]) {
+    return `±${before}h (default)`;
+  }
+  
+  // Check if it's symmetric
+  if (before === after) {
+    return `±${before}h`;
+  }
+  
+  // Asymmetric tolerance
+  return `-${before}h / +${after}h`;
 }
 
 const countNotAllowedRange = computed(() => {

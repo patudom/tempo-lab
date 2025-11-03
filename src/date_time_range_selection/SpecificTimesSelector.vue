@@ -2,7 +2,7 @@
   <div class="mt-2 dtrs-flex-time-box">
     <v-col>
     <v-radio-group
-      v-model="timePlusMinus"
+      v-model="allDay"
       direction="horizontal"
       inline
       hide-details
@@ -10,15 +10,15 @@
       >
       <v-radio
         label="Specific Times"
-        :value="0.5"
+        :value="false"
         />
       <v-radio
         label="All Day"
-        :value="12"
+        :value="true"
         />
     </v-radio-group>
     <v-combobox
-      v-if="timePlusMinus != 12"
+      v-if="!allDay"
       v-model="selectedTimesRef"
       :items="timeOptions"
       label="Add/select times"
@@ -52,18 +52,28 @@
 
 <script lang="ts" setup>
 import { ref, watch, computed } from 'vue';
+import { DEFAULT_TOLERANCE, ALL_DAY_TOLERANCE } from './date_time_range_generators';
+
 const selectedTimes = defineModel<string[]>({
   type: Array as () => string[]
 });
-const timePlusMinus = defineModel<number>('timePlusMinus', {
-  type: Number,
-  default: 0.5
+const timePlusMinus = defineModel<[number, number]>('timePlusMinus', {
+  type: Array as unknown as () => [number, number],
+  default: () => [...DEFAULT_TOLERANCE]
 });
 const timeOptions = ref<string[]>(Array.from({ length: 15 }, (_, h) => `${String(h+6).padStart(2, '0')}:00`));
+
+const allDay = computed({
+  get: () => timePlusMinus.value[0] === ALL_DAY_TOLERANCE[0] && timePlusMinus.value[1] === ALL_DAY_TOLERANCE[1],
+  set: (val: boolean) => {
+    timePlusMinus.value = val ? [...ALL_DAY_TOLERANCE] : [...DEFAULT_TOLERANCE];
+  }
+});
+
 const _selectedTimesRef = ref<string[]>([]);
 const selectedTimesRef = computed({
   get: () => {
-    if (timePlusMinus.value == 12) return timeOptions.value;
+    if (allDay.value) return timeOptions.value;
     return _selectedTimesRef.value;
   },
   set: (value: string[]) => {
@@ -75,7 +85,7 @@ const selectedTimesRef = computed({
 
 watch(selectedTimesRef, (value: string[]) => {
   console.log('selectedTimesRef changed to', value);
-  if (timePlusMinus.value == 12) {
+  if (allDay.value) {
     selectedTimes.value = [];
     return;
   }
