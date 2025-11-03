@@ -327,7 +327,19 @@ export class MaplibreLayerOrderControl extends PsuedoEvent {
       managedLayerMap.set(layer, index);
     });
     
-    this.desiredLayerOrder = newManagedOrder;
+    const newDesiredOrder: string[] = [];
+    let managedIndex = 0;
+    
+    for (const layer of this.desiredLayerOrder) {
+      if (managedLayerMap.has(layer)) {
+        newDesiredOrder.push(newManagedOrder[managedIndex]);
+        managedIndex++;
+      } else {
+        newDesiredOrder.push(layer);
+      }
+    }
+    
+    this.desiredLayerOrder = newDesiredOrder;
     this.maintainOrder();
     
   }

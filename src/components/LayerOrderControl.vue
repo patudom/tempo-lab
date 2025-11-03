@@ -72,7 +72,7 @@ const displayOrder = computed({
     return currentOrder.value.slice().reverse();
   },
   set(value: string[]) {
-    controller?.setManagedOrder(value.slice().reverse());
+    controller?.setOrder(value.slice().reverse());
   }
 });
 
@@ -106,7 +106,7 @@ watch(powerPlantMode, (mode: number, oldMode: number) => {
     setLayerVisibility(mapRef.value, newLayerId, true);
   }
   currentOrder.value = order;
-  controller?.setManagedOrder(order);
+  controller?.setOrder(order);
 });
 </script>
 
