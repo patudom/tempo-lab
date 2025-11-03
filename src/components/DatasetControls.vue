@@ -149,12 +149,15 @@
               <h4>My Time Ranges</h4>
               <v-list>
                 <v-list-item
+                  class="my-1"
                   v-for="(timeRange, index) in timeRanges"
                   :key="index"
                   :title="timeRange.name === 'Displayed Day' ? `Displayed Day: ${ formatTimeRange(timeRange.range) }` : (timeRange.name ?? formatTimeRange(timeRange.range))"
                   style="background-color: #444444"
                 >
-
+                  <template #default>
+                    <TimeRangeCard :time-range="timeRange" />
+                  </template>
                   <template #append>
                     <v-btn
                       v-if="timeRange.id !== 'displayed-day' && !datasets.some(s => areEquivalentTimeRanges(s.timeRange, timeRange))"
@@ -736,6 +739,7 @@ import { v4 } from "uuid";
 import { supportsTouchscreen } from "@cosmicds/vue-toolkit";
 
 import type { MillisecondRange, TimeRange, UserDataset, UnifiedRegion } from "../types";
+import type { TimeRangeConfig } from "@/date_time_range_selection/date_time_range_generators";
 import { serializeTempoStore, useTempoStore } from "../stores/app";
 import { MOLECULE_OPTIONS } from "../esri/utils";
 import { areEquivalentTimeRanges, formatTimeRange } from "../utils/timeRange";
@@ -752,6 +756,7 @@ import { toZonedTime } from "date-fns-tz";
 import { allEqual } from "@/utils/array_operations/array_math";
 import { userDatasetToPlotly } from "@/utils/data_converters";
 import UserDatasetTable from "./UserDatasetTable.vue";
+import TimeRangeCard from "@/date_time_range_selection/TimeRangeCard.vue";
 
 type UnifiedRegionType = UnifiedRegion;
 
@@ -833,7 +838,12 @@ function removeDataset(dataset: UserDataset) {
   delete datasetRowRefs[dataset.id];
 }
 
-function handleDateTimeRangeSelectionChange(timeRanges: MillisecondRange[], selectionType: TimeRangeSelectionType, customName: string) {
+function handleDateTimeRangeSelectionChange(
+  timeRanges: MillisecondRange[], 
+  selectionType: TimeRangeSelectionType, 
+  customName: string, 
+  config: TimeRangeConfig,
+) {
   if (!Array.isArray(timeRanges) || timeRanges.length === 0) {
     console.error('No time ranges received from DateTimeRangeSelection');
     return;
@@ -847,6 +857,7 @@ function handleDateTimeRangeSelectionChange(timeRanges: MillisecondRange[], sele
     description: customName,
     range: normalized.length === 1 ? normalized[0] : normalized,
     type: selectionType,
+    config: config,
   };
   store.addTimeRange(tr);
 

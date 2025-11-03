@@ -198,7 +198,7 @@ const props = defineProps<{
 
 // === EMITS ===
 const emit = defineEmits<{
-  'ranges-change': [ranges: MillisecondRange[], selectionType: TimeRangeCreationMode, customName: string];
+  'ranges-change': [ranges: MillisecondRange[], selectionType: TimeRangeCreationMode, customName: string, config: TimeRangeConfig];
 }>();
 
 
@@ -336,7 +336,7 @@ function updateCustomRange(doEmit=true) {
   currentRanges = generateTimeRanges(timeRangeConfig.value);
   currentTimeRanges.value = currentRanges;
   if (doEmit) {
-    emit('ranges-change', currentRanges, timeSelectionMode.value, customTimeRangeName.value);
+    emit('ranges-change', currentRanges, timeSelectionMode.value, customTimeRangeName.value, timeRangeConfig.value);
   }
 }
 

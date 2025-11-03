@@ -11,7 +11,7 @@
           <v-chip size="small" color="primary">Single Date</v-chip>
           <span class="ml-2">{{ formatDate(config.singleDate) }}</span>
         </div>
-        <div v-else>
+        <div v-if="config.type === 'multiple'">
           <v-chip size="small" color="primary">Multiple Dates</v-chip>
           <div class="mt-2">
             <div v-if="config.dateRange">
