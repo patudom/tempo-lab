@@ -243,7 +243,7 @@ const possibleYears = computed(() => {
 
 
 function formatDateDisplay(date: Date | null): string {
-  return date?.toDateString() || '';
+  return date?.toLocaleDateString() || '';
 }
 
 const filterGroups = [
@@ -262,8 +262,8 @@ const selectedTimes = ref<string[]>([]);
 const selectedDays = ref<DayType[]>([]);
 const timePlusMinus = ref<0.5 | 12>(12);
 const allDay = computed(() => timePlusMinus.value === 12);
-const dayNames = DAYS;
-const monthNames = MONTHS;
+const dayNames = DAYS as unknown as DayType[];
+const monthNames = MONTHS as unknown as MonthType[];
 const timeRangeConfig = computed<TimeRangeConfig>(() => {
   if (timeSelectionMode.value === 'single') {
     return {
@@ -291,40 +291,52 @@ watch(timeRangeConfig, (newConfig) => {
   console.log('Time Range Config changed:', newConfig);
 });
 
-
-
-
+import { isRingConsecutive } from '@/utils/array_operations/cyclic';
+function asRangeOrList<T extends string>(arr: T[], order: T[], validDiffs = [1]): string {
+  if (arr.length === 0) return '';  
+  if (arr.length <= 2) {
+    return arr.map(s => s.slice(0,3)).join(', ');
+  }
+  const sortedArrr = arr.slice().sort((a, b) => order.indexOf(a) - order.indexOf(b));
+  const isConsecutive = isRingConsecutive(sortedArrr,  order, true);
+  if (isConsecutive && sortedArrr.length > 2) {
+    return `${isConsecutive.start.slice(0,3)}-${isConsecutive.end.slice(0,3)}`;
+  }
+  return arr.map(s => s.slice(0,3)).join(', ');
+}
+  
 
 const customTimeRangeName = computed((): string => {
   
-  // if (selectionType.value === 'singledate') {
+  if (timeSelectionMode.value === 'single') {
+    return `${singleDateObj.value ? formatDateDisplay(singleDateObj.value) : 'No date selected'}`;
+  }
     
-  //   return `${singleDateObj.value ? formatDateDisplay(singleDateObj.value) : 'No date selected'}`;
-    
-  // } else if (selectionType.value === 'pattern') {
-    
-  //   // string to describe the pattern
-  //   const dayNamesSelected = selectedDays.value.map(d => dayNames[d].slice(0,3)).join(',');
-  //   const timesSelected = selectedTimes.value.join(', ');
-  //   return `Pattern: [${dayNamesSelected}] × [${timesSelected}] ± ${Math.abs(timePlusMinus.value)}h  (${formatTimeRange(generatePatternRanges())})`;
-    
-  // } else if (selectionType.value === 'monthrange') {
-    
-  //   const monthNamesSelected = selectedMonths.value.map(m => monthNames[m].slice(0,3)).join(', ');
-  //   const yearsSelected = selectedYears.value.join(', ');
-    
-  //   return `Months: [${monthNamesSelected}] in [${yearsSelected}] (${formatTimeRange(generatePatternRanges())})`;
-    
-  // } else if (selectionType.value === 'daterange') {
-    
-  //   return `${startDateObj.value ? formatDateDisplay(startDateObj.value) : 'No start date'} - ${endDateObj.value ? formatDateDisplay(endDateObj.value) : 'No end date'}`;
-    
-  // } else {
-    
-  //   return 'Unrecognized selection type';
-  // }
+  let dateRangeString = '';
+  let monthsString = '';
+  let yearsString = '';
+  let daysString = '';
+  let timesString = '';
+  if (startDateObj.value && endDateObj.value) {
+    dateRangeString = `${formatDateDisplay(startDateObj.value)} - ${formatDateDisplay(endDateObj.value)}`;
+  } else {
+    // we shouldn't be able to reach this, so just throw an error
+    throw new Error('Start date or end date is null');
+  }
   
-  return `${timeSelectionMode.value === 'single' ? 'Single Date' : 'Multiple Dates'} Selection`;
+  if (selectedMonths.value.length > 0) {
+    monthsString = ` | Months: ${asRangeOrList(selectedMonths.value, monthNames, [1,11])}`;
+  }
+  if (selectedYears.value.length > 0) {
+    yearsString = ` | Years: ${selectedYears.value.join(', ')}`;
+  }
+  if (selectedDays.value.length > 0) {
+    daysString = ` | ${asRangeOrList(selectedDays.value, dayNames, [1,6])}`;
+  }
+  if (selectedTimes.value.length > 0 && !allDay.value) {
+    timesString = ` | Times: ${selectedTimes.value.join(', ')}`;
+  }
+  return `${dateRangeString}${monthsString}${yearsString}${daysString}${timesString}`.trim();
     
 });
 
