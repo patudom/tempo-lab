@@ -149,14 +149,16 @@
               <h4>My Time Ranges</h4>
               <v-list>
                 <v-list-item
-                  class="my-1"
+                  class="my-2 rounded-lg"
                   v-for="(timeRange, index) in timeRanges"
                   :key="index"
-                  :title="timeRange.name === 'Displayed Day' ? `Displayed Day: ${ formatTimeRange(timeRange.range) }` : (timeRange.name ?? formatTimeRange(timeRange.range))"
                   style="background-color: #444444"
                 >
+                  
                   <template #default>
-                    <TimeRangeCard :time-range="timeRange" />
+                    <TimeRangeCard 
+                    :name="timeRange.name === 'Displayed Day' ? `Displayed Day: ${ formatTimeRange(timeRange.range) }` : (timeRange.name ?? formatTimeRange(timeRange.range))"
+                    :time-range="timeRange" />
                   </template>
                   <template #append>
                     <v-btn

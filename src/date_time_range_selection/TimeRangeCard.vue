@@ -1,50 +1,62 @@
 <!-- TimeRange Card to display time range configuration -->
 <template>
-  <div v-if="timeRange.config" class="time-range-card">
-    <!-- Single Date -->
-    <div 
-      class="time-range-single"
-      v-if="timeRange.config.type==='single'" 
-    >
-      <div 
-      v-for="(key) in Object.keys(timeRange.config)" 
-      class="time-range-config-item"
-      :key="key" 
-      >
-        <div>{{ key }}: {{ timeRange.config[key] }}</div>
+  <v-hover v-slot="{ isHovering, props }">
+    <div v-bind="props" class="time-range-card">
+      
+      <!-- Display Date -->
+      <div v-if='timeRange?.config === undefined' class="time-range-config-name">
+          {{ (name && name!=='') ? name : timeRange.name }} 
+      </div>
+      
+        
+      <!-- Single Date -->
+      <div class="time-range-single" v-if="timeRange.config && timeRange.config.type==='single'">
+        <div class="time-range-config-name">
+          Single Date: {{ (new Date(timeRange.config.singleDate)).toLocaleDateString()}}
+        </div>
+      </div>
+      
+      
+      <!-- Multiple Date -->
+      <div class="time-range-multiple" v-if="timeRange.config && timeRange.config.type==='multiple'">
+        <!-- Name -->
+        <div class="time-range-config-name">
+          {{ timeRange.name}}
+        </div>
+      
+        <v-expand-transition>
+          <div v-if="isHovering">
+            <!-- Date Range -->
+            <div class="time-range-config-item">
+              <strong>Date Range:</strong> 
+              {{ formatDate(timeRange.config.dateRange.start) }} - {{ formatDate(timeRange.config.dateRange.end) }}
+            </div>
+            
+            <!-- Years -->
+            <div v-if="timeRange.config.years" class="time-range-config-item">
+              <strong>Years:</strong> {{ timeRange.config.years.join(', ') }}
+            </div>
+            
+            <!-- Months -->
+            <div v-if="timeRange.config.months" class="time-range-config-item">
+              <strong>Months:</strong> {{ timeRange.config.months.map(s => s.slice(0,3)).join(', ') }} 
+            </div>
+            
+            <!-- Weekdays -->
+            <div v-if="timeRange.config.weekdays" class="time-range-config-item">
+              <strong>Weekdays:</strong> {{ timeRange.config.weekdays.map(s => s.slice(0,3)).join(', ') }} 
+            </div>
+            
+            <!-- Actual Time ranges -->
+            <div v-if="timeRange.config.times" class="time-range-config-item">
+              <strong>Times:</strong> {{ timeRange.config.times.join(', ') }}
+            </div>
+          </div>
+        </v-expand-transition>
       </div>
     </div>
     
-    <!-- Multiple Date -->
-    <div v-if="timeRange.config.type==='multiple'" class="time-range-multiple">
-      <!-- Date Range -->
-      <div class="time-range-config-item">
-        <strong>Date Range:</strong> 
-        {{ formatDate(timeRange.config.dateRange.start) }} - {{ formatDate(timeRange.config.dateRange.end) }}
-      </div>
-      
-      <!-- Years -->
-      <div v-if="timeRange.config.years" class="time-range-config-item">
-        <strong>Years:</strong> {{ timeRange.config.years.join(', ') }}
-      </div>
-      
-      <!-- Months -->
-      <div v-if="timeRange.config.months" class="time-range-config-item">
-        <strong>Months:</strong> {{ timeRange.config.months.map(s => s.slice(0,3)).join(', ') }} 
-      </div>
-      
-      <!-- Weekdays -->
-      <div v-if="timeRange.config.weekdays" class="time-range-config-item">
-        <strong>Weekdays:</strong> {{ timeRange.config.weekdays.map(s => s.slice(0,3)).join(', ') }} 
-      </div>
-      
-      <!-- Actual Time ranges -->
-      <div v-if="timeRange.config.times" class="time-range-config-item">
-        <strong>Times:</strong> {{ timeRange.config.times.join(', ') }}
-      </div>
-    </div>
-    
-  </div>
+  </v-hover>
 </template>
 
 <script setup lang="ts">
@@ -62,6 +74,7 @@ const formatDate = (date: Date): string => {
 };
 
 const props = defineProps<{
+  name?: string;
   timeRange: TimeRange;
 }>();
 console.log('TimeRangeCard props:', props.timeRange.config);
@@ -71,9 +84,13 @@ console.log('TimeRangeCard props:', props.timeRange.config);
 <style land="less" scoped>
 .time-range-card {
   border-radius: 8px;
-  border: 1px solid #ccc;
-  padding: 16px;
+  padding: 4px 16px;
   height: fit-content;
+}
+
+.time-range-config-name {
+  font-weight: bold;
+  margin-bottom: 8px;
 }
 
 .time-range-config-item {
