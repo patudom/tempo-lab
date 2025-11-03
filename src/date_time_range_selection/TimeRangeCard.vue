@@ -54,12 +54,11 @@ import type { TimeRange } from '@/types';
 
 const formatDate = (date: Date): string => {
   try {
-    return date.toLocaleDateString();
+    return (new Date(date)).toLocaleDateString();
   } catch (e) {
     console.log(date);
     return String(date);
   }
-  
 };
 
 const props = defineProps<{

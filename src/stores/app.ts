@@ -247,6 +247,27 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
     });
   }
 
+  function setTimeRangeName(timeRange: TimeRange, newName: string) {
+    if (newName.trim() === '') {
+      console.error("Time range name cannot be empty.");
+      return;
+    }
+    const existing = timeRanges.value.find(tr => tr.name === newName && tr.id !== timeRange.id);
+    if (existing) {
+      console.error(`A time range with the name "${newName}" already exists.`);
+      return;
+    }
+    timeRange.name = newName;
+    console.log(`Renamed time range to: ${newName}`);
+    
+    // Update the name in any datasets using this time range
+    datasets.value.forEach(ds => {
+      if (ds.timeRange.id === timeRange.id) {
+        ds.timeRange.name = timeRange.name;
+      }
+    });
+  }
+
   async function fetchDataForDataset(dataset: UserDataset) {
     dataset.loading = true;
 
@@ -377,6 +398,7 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
     datasetHasSamples,
     regionHasDatasets,
     setRegionName,
+    setTimeRangeName,
 
     deleteTimeRange,
     deleteRegion,

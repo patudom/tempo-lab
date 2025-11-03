@@ -160,6 +160,17 @@
                   </template>
                   <template #append>
                     <v-btn
+                      v-if="timeRange.id !== 'displayed-day'"
+                      variant="plain"
+                      v-tooltip="'Edit Name'"
+                      icon="mdi-pencil"
+                      color="white"
+                      @click="(event) => {
+                        editTimeRangeName(timeRange);
+                        event.stopPropagation();
+                      }"
+                    ></v-btn>
+                    <v-btn
                       v-if="timeRange.id !== 'displayed-day' && !datasets.some(s => areEquivalentTimeRanges(s.timeRange, timeRange))"
                       variant="plain"
                       v-tooltip="'Delete'"
@@ -678,8 +689,30 @@
             regionBeingEdited = null;
           }"
         ></c-text-field>
+    </v-dialog>
 
-        </v-dialog>
+    <v-dialog
+      v-model="showEditTimeRangeNameDialog"
+    >
+      <!-- text field that requires a confirmation -->
+        <c-text-field
+          label="Time Range Name"
+          title="Enter a new name for this time range"
+          hide-details
+          dense
+          :button-color="accentColor"
+          @confirm="(name: string) => {
+            if (timeRangeBeingEdited) {
+              store.setTimeRangeName(timeRangeBeingEdited, name);
+              showEditTimeRangeNameDialog = false;
+            }
+          }"
+          @cancel="() => {
+            showEditTimeRangeNameDialog = false;
+            timeRangeBeingEdited = null;
+          }"
+        ></c-text-field>
+    </v-dialog>
         
       <v-dialog
         v-model="showDatasetEditor"
@@ -803,6 +836,9 @@ const sampleErrorID = ref<string | null>(null);
 const showEditRegionNameDialog = ref(false);
 const regionBeingEdited = ref<UnifiedRegionType | null>(null);
 
+const showEditTimeRangeNameDialog = ref(false);
+const timeRangeBeingEdited = ref<TimeRange | null>(null);
+
 const aggregationDataset = ref<UserDataset | null>(null);
 const showAggregationDialog = ref(false);
 function openAggregationDialog(selection: UserDataset) {
@@ -879,6 +915,19 @@ function editRegionName(region: UnifiedRegionType) {
   regionBeingEdited.value = region;
   // Open dialog for renaming
   showEditRegionNameDialog.value = true;
+}
+
+function editTimeRangeName(timeRange: TimeRange) {
+  console.log(`Editing time range: ${timeRange.name}`);
+  
+  const existing = timeRanges.value.find(tr => tr.id === timeRange.id);
+  if (!existing) {
+    console.error(`Time range with ID ${timeRange.id} not found.`);
+    return;
+  }
+  timeRangeBeingEdited.value = timeRange;
+  // Open dialog for renaming
+  showEditTimeRangeNameDialog.value = true;
 }
 
 function graphTitle(dataset: UserDataset): string {
