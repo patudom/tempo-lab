@@ -289,7 +289,7 @@
                         v-show="(dataset.samples || dataset.plotlyDatasets) && (touchscreen ? openSelection == dataset.id : isHovering || true)"
                       >
                       <v-tooltip
-                          v-if="dataset.timeRange.type === 'singledate' || dataset.folded"
+                          v-if="dataset.timeRange.type === 'single' || dataset.folded"
                           text="Show graph"
                           location="top"
                         >

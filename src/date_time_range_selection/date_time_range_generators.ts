@@ -54,7 +54,7 @@ function parcelLongRange(range: MillisecondRange, maxParcelSize: number): Millis
 
   while (currentStart < range.end) {
     const currentEnd = Math.min(currentStart + maxParcelSize, range.end);
-    parcels.push({ start: currentStart, end: currentEnd });
+    parcels.push({ start: currentStart, end: currentEnd - 1 });
     currentStart = currentEnd;
   }
 
