@@ -74,7 +74,7 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
       name: 'Displayed Day',
       description: `Displayed Day (${new Date(range.start).toLocaleDateString()})`,
       range,
-      type: 'singledate'
+      type: 'single'
     };
   });
 
@@ -131,7 +131,7 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
         name: formatted,
         description: formatted,
         range: oldRange,
-        type: 'singledate'
+        type: 'single'
       };
       timeRanges.value.push(oldTimeRange);
     }
