@@ -161,7 +161,19 @@
       </v-btn>
 
     </v-card-text>
+    <!-- validate time range button -->
+    <v-btn
+      v-if="validate"
+      color="info"
+      variant="outlined"
+      class="mb-4 mx-4"
+      @click="() =>updateCustomRange(false)"
+    >
+      <v-icon class="mr-2">mdi-help-circle</v-icon>
+      Validate Time Range
+    </v-btn>  
     <TimelineVisualization
+      v-if="validate"
       :ranges="currentTimeRanges"
       :config="timeRangeConfig"
       :allowed-dates="allowedDates"
@@ -194,6 +206,7 @@ const props = defineProps<{
   currentDate: Date;
   allowedDates?: Date[];
   validTimes?: number[]; // timestamps
+  validate?: boolean;
 }>();
 
 // === EMITS ===
@@ -351,20 +364,6 @@ function updateCustomRange(doEmit=true) {
     emit('ranges-change', currentRanges, timeSelectionMode.value, customTimeRangeName.value, timeRangeConfig.value);
   }
 }
-
-// watch all the values and keep currentTimeRanges updated
-watch([
-  timeSelectionMode,
-  timePlusMinus,
-  selectedDays,
-  selectedTimes,
-  selectedMonths,
-  selectedYears,
-  startDateObj,
-  endDateObj,
-], () => {
-  updateCustomRange(false);
-}, { deep: true });
 
 function handleSingleDateChange(value: Date) {
   if (value && value.getTime() !== singleDateObj.value?.getTime()) {
