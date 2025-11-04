@@ -1,6 +1,7 @@
 <template>
+  <!-- TODO -- make the date pickers have sharper colors -->
   <div id="dual-date-range-picker">
-    <div class="mb-4">
+    <div class="ddrp__picker mb-4">
       <label class="text-subtitle-2 mb-2 d-block">Start Date</label>
       <date-picker
         class="ddrp__date-picker"
@@ -13,7 +14,7 @@
         :preview-format="previewFormat"
         :clearable="clearable"
         :text-input="textInput"
-        :teleport="teleport"
+        :teleport="true"
         :dark="dark"
         :year-range="yearRange"
         :enable-time-picker="false"
@@ -23,7 +24,7 @@
       />
     </div>
     
-    <div class="mb-4">
+    <div class="ddrp__picker mb-4">
       <label class="text-subtitle-2 mb-2 d-block">End Date</label>
       <date-picker
         class="ddrp__date-picker"
@@ -36,7 +37,7 @@
         :preview-format="previewFormat"
         :clearable="clearable"
         :text-input="textInput"
-        :teleport="teleport"
+        :teleport="true"
         :dark="dark"
         :year-range="yearRange"
         :enable-time-picker="false"
@@ -129,6 +130,15 @@ watch(() => props.endDate, (newDate) => {
   border-radius: 8px;
   padding: 8px;
   margin-bottom: 8px;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+#dual-date-range-picker > div.ddrp__picker {
+  flex-basis: 48%;
+  min-width: 150px;
 }
 
 #dp-menu-start-picker.dp__menu, #dp-menu-end-picker.dp__menu {
