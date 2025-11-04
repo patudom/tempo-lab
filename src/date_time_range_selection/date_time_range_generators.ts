@@ -16,7 +16,7 @@ const MS_IN_HOUR = 60 * 60 * 1000;
 const MS_IN_DAY = 24 * MS_IN_HOUR;
 
 // Tolerance constants for time ranges [before, after] in hours
-export const DEFAULT_TOLERANCE: [number, number] = [0, 1];
+export const DEFAULT_TOLERANCE: [number, number] = [0.5, 0.5];
 export const ALL_DAY_TOLERANCE: [number, number] = [12, 12];
 
 export type DayType = typeof DAYS[number];
