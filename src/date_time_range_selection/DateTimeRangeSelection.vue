@@ -89,6 +89,10 @@
                   <MonthsPicker
                     v-model="selectedMonths"
                   />
+                  <SeasonPicker
+                  class="mt-4"
+                  v-model="selectedMonths"
+                />
                 </div>
                 
                 <div class="mb-4">
@@ -98,9 +102,7 @@
                   />
                 </div>
                 
-                <SeasonPicker
-                  v-model="selectedMonths"
-                />
+                
             </v-expansion-panel-text>
             </v-expansion-panel>
             </v-expansion-panels>
