@@ -21,6 +21,7 @@ export function useDraggableDialog(options: UseDraggableDialogOptions) {
   let mousedown: MouseEventHandler | null = null;
   let mouseup: MouseEventHandler | null = null;
   let mousemove: MouseEventHandler | null = null;
+  let leftOffset = 0;
 
   function removeListeners(element: HTMLElement) {
     if (mousedown) {
@@ -63,23 +64,33 @@ export function useDraggableDialog(options: UseDraggableDialogOptions) {
           d.oldTransition = dragInfo.el.style.transition;
         }
         if (d.el) {
+          const parent = d.el.parentElement;
           d.el.style.margin = "0";
           d.el.style.transition = "none";
           if (d.el.style.position !== "fixed") {
             d.el.style.position = "fixed";
-            d.el.style.left = Math.min(
+            const newLeft = Math.min(
               Math.max(d.elStartX + event.clientX - d.mouseStartX, 0),
               window.innerWidth - boundingRect.width
-            ) + "px";
-            d.el.style.top = Math.min(
+            );
+            const newtop = Math.min(
               Math.max(d.elStartY + event.clientY - d.mouseStartY , 0),
               window.innerHeight - boundingRect.height
-            ) - 0.5 * window.innerHeight + "px";
+            ) - 0.5 * window.innerHeight;
+            
+            // original element was relative positioned
+            // so we need to account for the parent. 
+            if (parent) {
+              const parentRect = await getElementRect(parent);
+              leftOffset = parentRect.left;
+            }
+            
+            d.el.style.left = (newLeft - leftOffset) + "px";
+            d.el.style.top = newtop + "px";
           }
         }
         d.title.classList.add("dragging");
         d.overlays.forEach(overlay => (overlay as HTMLElement).style.display = "none");
-
         dragInfo = d;
       }
     };
@@ -96,8 +107,8 @@ export function useDraggableDialog(options: UseDraggableDialogOptions) {
       }
       const boundingRect = await getElementRect(dragInfo.el);
       dragInfo.el.style.left = Math.min(
-        Math.max(dragInfo.elStartX + event.clientX - dragInfo.mouseStartX, 0),
-        window.innerWidth - boundingRect.width
+        Math.max(dragInfo.elStartX + event.clientX - dragInfo.mouseStartX, -leftOffset),
+        window.innerWidth - boundingRect.width - leftOffset
       ) + "px";
       dragInfo.el.style.top = Math.min(
         Math.max(dragInfo.elStartY + event.clientY - dragInfo.mouseStartY , 0),
@@ -137,6 +148,12 @@ export function useDraggableDialog(options: UseDraggableDialogOptions) {
           const boundingRect = await getElementRect(dialog);
           dialog.style.left = Math.min(parseInt(dialog.style.left), window.innerWidth - boundingRect.width) + "px";
           dialog.style.top = Math.min(parseInt(dialog.style.top), window.innerHeight - boundingRect.height) + "px";
+          const parent = dialog.parentElement;
+          if (parent) {
+            const parentRect = await getElementRect(parent);
+            dialog.style.left = (parseInt(dialog.style.left) - parentRect.left) + "px";
+            leftOffset = parentRect.left;
+          }
         }
       }
     });
