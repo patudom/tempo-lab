@@ -102,7 +102,7 @@ export function useDraggableDialog(options: UseDraggableDialogOptions) {
         return;
       }
       element.style.cursor = dragging ? "grabbing" : "grab";
-      if (dragInfo === null || dragInfo.el == null) {
+      if (!dragging || dragInfo === null || dragInfo.el == null) {
         return;
       }
       const boundingRect = await getElementRect(dragInfo.el);
