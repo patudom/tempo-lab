@@ -145,7 +145,6 @@
                 <div class="mb-4">
                   <SpecificTimesSelector
                     v-model="selectedTimes"
-                    :time-options="timeOptions"
                     v-model:timePlusMinus="timePlusMinus"
                   />
                 </div>
@@ -242,8 +241,7 @@ watch(() => props.currentDate, (newDate) => {
     singleDateObj.value = newDate;
   }
 });
-// Pre-populated time options (every hour from 6am-9pm; user can add custom HH:MM)
-const timeOptions = ref<string[]>(Array.from({ length: 15 }, (_, h) => `${String(h+6).padStart(2, '0')}:00`));
+
 
 
 const datePickerYearRange = computed<[number, number]>(() => {

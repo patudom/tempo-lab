@@ -3,7 +3,8 @@
 import { TimeSeriesFolder } from "@/esri/services/aggregation";
 import { MillisecondRange, TimeRangeSelectionType} from "@/types/datetime";
 import { ElementOf } from "@vueuse/core";
-
+import { parseTimeString, _normalizeTimes, formatTimeHHMM24 } from "@/utils/parse_time_strings";
+import { format } from "maplibre-gl";
 
 // "as const" is required to use typeof inference later
 export const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const;
@@ -75,12 +76,7 @@ function parcelRanges(ranges: MillisecondRange[], maxParcelSize: number): Millis
 }
 
 function parseTimeStringToHoursMinutes(timeStr: string): { hours: number; minutes: number } {
-  const timeParts = timeStr.split(':');
-  if (timeParts.length !== 2) {
-    throw new Error(`Invalid time format: ${timeStr}. Expected 'HH:MM' using 24 hour time.`);
-  }
-  const hours = parseInt(timeParts[0]);
-  const minutes = parseInt(timeParts[1]);
+  const {hour: hours, minute: minutes} = parseTimeString(timeStr) || {hour: NaN, minute: NaN};
   if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
     throw new Error(`Invalid time values in: ${timeStr}. Hours must be 0-23 and minutes must be 0-59.`);
   }
@@ -348,7 +344,7 @@ function validateTimePointRange(
     timeZone: 'UTC'
   }).replace(/^24/, '00'); // Handle edge case where 24:00 should be 00:00
   
-  return centerTimeStr === configuredTime;
+  return centerTimeStr === formatTimeHHMM24(parseTimeString(configuredTime)!);
 }
 
 /**
@@ -359,7 +355,10 @@ function validateTimeRangeSpec(
   range: MillisecondRange,
   configuredTimeRange: string
 ): boolean {
-  const [startStr, endStr] = configuredTimeRange.split('-').map(s => s.trim());
+  const [startStr, endStr] = configuredTimeRange.split('-').map(s => s.trim())
+    .map(s => formatTimeHHMM24(parseTimeString(s)!));
+  
+  
   
   const startDate = new Date(range.start);
   const endDate = new Date(range.end);

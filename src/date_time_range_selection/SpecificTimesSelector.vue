@@ -9,12 +9,12 @@
       class="mb-2"
       >
       <v-radio
-        label="Specific Times"
-        :value="false"
+        label="Entire Day"
+        :value="true"
         />
       <v-radio
-        label="All Day"
-        :value="true"
+        label="Specific Times"
+        :value="false"
         />
     </v-radio-group>
     <v-combobox
@@ -32,9 +32,9 @@
       persistent-hint
       @update:model-value="normalizeTimes"
     />
-    <div v-else class="dtrs-all-day-label">
-      All Day Selected
-    </div>
+    <!-- <div v-else class="dtrs-all-day-label">
+      All Times Selected
+    </div> -->
   </v-col>
     
     <!-- <div class="pm-wrapper">
@@ -53,6 +53,21 @@
 <script lang="ts" setup>
 import { ref, watch, computed } from 'vue';
 import { DEFAULT_TOLERANCE, ALL_DAY_TOLERANCE } from './date_time_range_generators';
+import { _normalizeTimes } from '@/utils/parse_time_strings';
+
+function timeFormat(hour: number, minute: number, ampm = true): string {
+  if (ampm) {
+    // from 24 hour to am/pm
+    const ampm = hour >= 12 ? 'pm' : 'am';
+    const h12 = hour % 12 === 0 ? 12 : hour % 12;
+    if (minute === 0) {
+      return `${h12} ${ampm}`;
+    }
+    return `${h12}:${String(minute).padStart(2, '0')} ${ampm}`;
+  } else {
+    return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+  }
+}
 
 const selectedTimes = defineModel<string[]>({
   type: Array as () => string[]
@@ -61,7 +76,7 @@ const timePlusMinus = defineModel<[number, number]>('timePlusMinus', {
   type: Array as unknown as () => [number, number],
   default: () => [...DEFAULT_TOLERANCE]
 });
-const timeOptions = ref<string[]>(Array.from({ length: 15 }, (_, h) => `${String(h+6).padStart(2, '0')}:00`));
+const timeOptions = ref<string[]>(Array.from({ length: 15 }, (_, h) => timeFormat(h + 6, 0, true))); // 6:00 to 20:00
 
 const allDay = computed({
   get: () => timePlusMinus.value[0] === ALL_DAY_TOLERANCE[0] && timePlusMinus.value[1] === ALL_DAY_TOLERANCE[1],
@@ -92,94 +107,11 @@ watch(selectedTimesRef, (value: string[]) => {
   selectedTimes.value = value;
 });
 
-/**
- * Parse a string to a timme. Support H, H:MM, HH, HH:MM, and am/pm
- * 
- */
-function parseTimeString(timeString: string): { hour: number; minute: number } | null {
-  
-  // get a lower case version, and remove spaces
-  const lower = timeString.toLowerCase().replace(/\s+/g, '');
-
-  // Defeine regexes
-  // Match the hour part (1 or 2 digits)
-  const hourRegex = /^(\d{1,2})/; 
-  // Match the minute part (optional, preceded by a colon)
-  const minuteRegex = /(?::(\d{1,2}))/; 
-  // Matches the am/pm suffix, required
-  const ampmRegex = /(am|pm)$/; 
-  
-  
-  const ampmMatch = lower.match(new RegExp(`${hourRegex.source}${minuteRegex.source}?${ampmRegex.source}`));
-  if (ampmMatch) {
-    let hour = parseInt(ampmMatch[1], 10);
-    const minute = ampmMatch[2] ? parseInt(ampmMatch[2], 10) : 0;
-    const suffix = ampmMatch[3];
-    if (suffix === 'pm' && hour < 12) hour += 12;
-    if (suffix === 'am' && hour === 12) hour = 0;
-    return { hour, minute };
-  }
-  
-  const m = lower.match(new RegExp(`${hourRegex.source}${minuteRegex.source}?`));
-  if (!m) return null;
-  const h = parseInt(m[1], 10);
-  const mm = m[2] ? parseInt(m[2], 10) : 0;
-  if (isNaN(h) || h < 0 || h > 23) return null;
-  if (isNaN(mm) || mm < 0 || mm > 59) return null;
-  return { hour: h, minute: mm }; 
-}
-
-
-
-function parseTimeRange(timeRangeStr: string): string | null {
-  const parts = timeRangeStr.split('-').map(p => p.trim());
-  if (parts.length !== 2) return null;
-  let startParsed = parseTimeString(parts[0]);
-  let endParsed = parseTimeString(parts[1]);
-  if (!startParsed || !endParsed) return null;
-  const endEarlier = (endParsed.hour + endParsed.minute / 60) < (startParsed.hour + startParsed.minute / 60);
-  if (endEarlier) {
-    /* Situations where due to user errorr end time is earlier than start time:
-    1. hours are equal, swap -> just swap them
-    2. start <= 12 and end < 12 -> end is pm
-    */
-    console.log(`%c End time earlier than start time detected in range "${timeRangeStr}"`, 'color: orange;');
-    if (startParsed.hour === endParsed.hour) {
-      console.log('%c Swapping times with equal hours', 'color: orange;');
-      // swap
-      [startParsed, endParsed] = [endParsed, startParsed];
-    } else if (startParsed.hour <= 12 && endParsed.hour < 12) {
-      console.log('%c Adjusting end time to PM', 'color: orange;');
-      endParsed.hour += 12;
-    } else if (startParsed.hour > 12 && endParsed.hour <= 12) {
-      console.log('%c Adjusting start time to AM', 'color: orange;');
-      [startParsed, endParsed] = [endParsed, startParsed];
-    } else {
-      throw new Error(`Cannot parse time range: ${timeRangeStr} with start ${startParsed} and end ${endParsed}`);
-    }
-  }
-  const startStr = `${String(startParsed.hour).padStart(2, '0')}:${String(startParsed.minute).padStart(2, '0')}`;
-  const endStr = `${String(endParsed.hour).padStart(2, '0')}:${String(endParsed.minute).padStart(2, '0')}`;
-  return [startStr, endStr].join('-');
-}
-
 // Normalize entered times to HH:MM 24h (flexible entry via copilot)
 function normalizeTimes(values: string[]) {
-  const normalized = values
-    .map(v => String(v).trim())
-    .map(v => {
-      if (v.includes('-')) {
-        console.log('parsing range', v);
-        const range = parseTimeRange(v);
-        return range;
-      }
-      const parsed = parseTimeString(v);
-      if (!parsed) return null;
-      return `${String(parsed.hour).padStart(2, '0')}:${String(parsed.minute).padStart(2, '0')}`;
-    })
-    .filter((v): v is string => !!v);
-  // Deduplicate
+  const normalized = _normalizeTimes(values, timeFormat);
   const unique = Array.from(new Set(normalized));
   selectedTimesRef.value = unique;
+  return unique;
 }
 </script>
