@@ -1,21 +1,25 @@
 <template>
   <v-card class="datetime-range-selector my-4" elevation="4" color="surface">
-
+    <h4>Select Date(s)</h4>
     <v-card-text>
       <!-- Selection Type Radio Buttons -->
-      Would you like to select a single date or multiple dates?
       <v-radio-group 
-        v-model="timeSelectionMode" 
+        v-model="timeSelectionRadio" 
         direction="horizontal" 
         density="compact"
       >
         <v-radio 
-          label="Single Date" 
+          :label="`Date Shown On Map: ${currentDateString}`" 
+            value="tracked"
+          density="compact"
+        />    
+        <v-radio 
+          label="Single Day" 
             value="single"
           density="compact"
         />    
         <v-radio 
-          label="Multiple Dates" 
+          label="Multiple Days" 
           value="multiple"
           density="compact"
         />
@@ -76,7 +80,7 @@
             <!-- Month Selection -->
             <v-expansion-panel 
               value="monthrange" 
-              title="Select Months and Years" 
+              title="Quick Select: Months and Years" 
               bg-color="surface"
               >
             <v-expansion-panel-text class="month-selection-section">
@@ -121,7 +125,7 @@
             <!-- Pattern Section (Multi-day, Multi-time) -->
             <v-expansion-panel 
               value="pattern" 
-              title="Select Day/Time Patterns"
+              title="Filter Days / Times"
               bg-color="surface"
             >
             <v-expansion-panel-text  class="pattern-section">
@@ -225,11 +229,17 @@ const currentDateRef = ref(props.currentDate);
 const singleDateCalendar = ref();
 // === PICKER STATE ===
 // Direct date objects for date pickers - no unnecessary timestamp conversion
+const timeSelectionRadio = ref<TimeRangeCreationMode | 'tracked'>('tracked');
 const startDateObj = ref<Date | null>(null);
 const endDateObj = ref<Date | null>(null);
 const singleDateObj = ref<Date | null>(currentDateRef.value);
 
 
+watch(() => props.currentDate, (newDate) => {
+  if (timeSelectionRadio.value === 'tracked') {
+    singleDateObj.value = newDate;
+  }
+});
 // Pre-populated time options (every hour from 6am-9pm; user can add custom HH:MM)
 const timeOptions = ref<string[]>(Array.from({ length: 15 }, (_, h) => `${String(h+6).padStart(2, '0')}:00`));
 
@@ -257,7 +267,7 @@ const possibleYears = computed(() => {
 
 
 function formatDateDisplay(date: Date | null): string {
-  return date?.toLocaleDateString() || '';
+  return date?.toLocaleDateString(undefined, {timeZone: 'UTC'}) || '';
 }
 
 const filterGroups = [
@@ -267,9 +277,20 @@ const filterGroups = [
 type FilterGroup = typeof filterGroups[number];
 const filterGroup = ref<FilterGroup | null>(null);
 
-
+const currentDateString = computed((): string => {
+  return currentDateRef.value.toLocaleDateString(undefined, 
+    { year:'2-digit', month: 'numeric', day: 'numeric', timeZone: 'UTC' }
+  );
+});
 
 const timeSelectionMode = ref<TimeRangeCreationMode>('single');
+watch(timeSelectionRadio, (newVal) => {
+  if (newVal === 'tracked') {
+    timeSelectionMode.value = 'single';
+  } else {
+    timeSelectionMode.value = newVal;
+  }
+});
 const selectedMonths = ref<MonthType[]>([]);
 const selectedYears = ref<number[]>([]);
 const selectedTimes = ref<string[]>([]);
@@ -378,8 +399,12 @@ function handleSingleDateChange(value: Date) {
 onMounted(() => {
   // Initialize default dates
   if (props.allowedDates && props.allowedDates.length > 0) {
-    startDateObj.value = setToMidnightUTC(new Date(props.allowedDates[0]), true);
-    endDateObj.value = setToEndOfDayUTC(props.allowedDates[props.allowedDates.length - 1], true);
+    const end = new Date(props.allowedDates[props.allowedDates.length - 1]);
+    const start = new Date(end);
+    // set back by 1 week
+    start.setDate(end.getDate() - 6);
+    startDateObj.value = setToMidnightUTC(start, true);
+    endDateObj.value = setToEndOfDayUTC(end, true);
   }
 });
 
