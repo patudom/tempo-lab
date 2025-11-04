@@ -18,9 +18,9 @@
         :year-range="yearRange"
         :enable-time-picker="false"
         :max-date="endDateObj ?? new Date()"
+        :week-start="0"
         prevent-min-max-navigation
       />
-      {{  startDateObj?.toLocaleString(undefined, {timeZone: 'UTC'}) }}
     </div>
     
     <div class="mb-4">
@@ -41,9 +41,9 @@
         :year-range="yearRange"
         :enable-time-picker="false"
         :min-date="startDateObj ?? new Date(0)"
+        :week-start="0"
         prevent-min-max-navigation
       />
-      {{  endDateObj?.toLocaleString(undefined, {timeZone: 'UTC'}) }}
     </div>
     
   </div>

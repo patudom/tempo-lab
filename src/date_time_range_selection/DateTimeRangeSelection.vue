@@ -41,6 +41,7 @@
                 :teleport="true"
                 dark
                 :year-range="datePickerYearRange"
+                :week-start="0"
               />
             </div>
           </div>

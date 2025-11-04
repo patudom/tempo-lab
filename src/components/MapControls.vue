@@ -22,6 +22,7 @@
             :transitions="false"
             :format="(date: Date | null) => date?.toDateString()"
             :preview-format="(date: Date | null) => date?.toDateString()"
+            :week-start="0"
             no-today
             dark
             :year-range="[uniqueDays[0]?.getFullYear(), uniqueDays[uniqueDays.length - 1]?.getFullYear()]"
