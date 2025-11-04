@@ -3,6 +3,7 @@
     v-model="displayOrder" 
     handle=".drag-handle"
     class="layer-order"
+    :item-key="(item) => item"
   >
     <template #item="{ element }">
       <div class="layer-order-row">
@@ -71,7 +72,7 @@ const displayOrder = computed({
     return currentOrder.value.slice().reverse();
   },
   set(value: string[]) {
-    controller?.setManagedOrder(value.slice().reverse());
+    controller?.setOrder(value.slice().reverse());
   }
 });
 
@@ -105,6 +106,7 @@ watch(powerPlantMode, (mode: number, oldMode: number) => {
     setLayerVisibility(mapRef.value, newLayerId, true);
   }
   currentOrder.value = order;
+  controller?.setOrder(order);
 });
 </script>
 
