@@ -67,16 +67,6 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
     nearestDateIndex
   } = useUniqueTimeSelection(timestamps);
 
-  const displayedDayTimeRange = computed<TimeRange>(() => {
-    const range = rangeForSingleDay(singleDateSelected.value, selectedTimezone.value);
-    return {
-      id: 'displayed-day',
-      name: 'Displayed Day',
-      description: `Displayed Day (${new Date(range.start).toLocaleDateString()})`,
-      range,
-      type: 'single'
-    };
-  });
 
   const accentColor = ref("#068ede");
   const accentColor2 = ref("#ffcc33");
@@ -137,13 +127,6 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
     }
   });
 
-  watch(displayedDayTimeRange, (val) => {
-    if (!timeRanges.value.length) {
-      timeRanges.value.push(val);
-    } else {
-      timeRanges.value[0] = val;
-    }
-  }, { immediate: true });
 
   const zoomScale = 0.5; // for matplibre-gl
   const urlParams = new URLSearchParams(window.location.search);
@@ -387,7 +370,6 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
     datasets,
     timestamps,
     timestampsLoaded,
-    displayedDayTimeRange,
 
     addTimeRange,
     addRegion,
