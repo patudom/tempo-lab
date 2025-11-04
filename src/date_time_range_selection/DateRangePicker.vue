@@ -11,7 +11,7 @@
         @internal-model-change="handleStartDateChange"
         :allowed-dates="allowedDates"
         :format="format"
-        :preview-format="previewFormat"
+        :preview-format="format"
         :clearable="clearable"
         :text-input="textInput"
         :teleport="true"
@@ -34,7 +34,7 @@
         @internal-model-change="handleEndDateChange"
         :allowed-dates="allowedDates"
         :format="format"
-        :preview-format="previewFormat"
+        :preview-format="format"
         :clearable="clearable"
         :text-input="textInput"
         :teleport="true"
@@ -59,8 +59,7 @@ const props = defineProps<{
   startDate?: Date | null;
   endDate?: Date | null;
   allowedDates?: Date[];
-  format?: (date: Date | null) => string;
-  previewFormat?: (date: Date | null) => string;
+  formatFunction?: (date: Date) => string;
   clearable?: boolean;
   textInput?: boolean;
   teleport?: boolean;
@@ -68,6 +67,12 @@ const props = defineProps<{
   yearRange?: [number, number];
 }>();
 
+const format = (date: Date) => {
+  if (props.formatFunction) {
+    return props.formatFunction(date);
+  }
+  return date.toLocaleDateString();
+};
 
 const emit = defineEmits<{
   'update:startDate': [date: Date | null];
@@ -89,7 +94,6 @@ function handleStartDateChange(value: Date | null) {
       return;
     }
     startDateObj.value = value;
-    startDateObj.value.setUTCHours(0, 0, 0, 0);
     emit('update:startDate', value);
     startDateCalendar.value?.closeMenu();
   }
@@ -101,12 +105,14 @@ function handleEndDateChange(value: Date | null) {
       errMessage.value = 'End date cannot be before start date.';
       return;
     }
+    
     endDateObj.value = value;
-    endDateObj.value.setUTCHours(23, 59, 59, 999);
-    emit('update:endDate', endDateObj.value);
+    emit('update:endDate', value);
     endDateCalendar.value?.closeMenu();
   }
 }
+
+
 
 
 watch(() => props.startDate, (newDate) => {

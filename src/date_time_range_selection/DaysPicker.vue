@@ -19,7 +19,7 @@ import { type DayType, DAYS } from './date_time_range_generators';
 
 const selectedDays = defineModel<DayType[]>({
   type: Array as () => DayType[],
-  default: () => [],
+  default: () => [...DAYS],
 });
 
 </script>

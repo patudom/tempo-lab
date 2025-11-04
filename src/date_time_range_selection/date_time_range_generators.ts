@@ -197,10 +197,10 @@ function generatePatternedRanges(config: TimeRangeConfigMultiple): MillisecondRa
   // are we splitting on month, year, weekday, or time. 
   // if we split on times or weekdays  then we need to generate daily ranges
   // other wise we just pull the the largest time range we can
-  const filterOnTimes = config.times && config.times.length > 0;
-  const filterOnWeekdays = config.weekdays && config.weekdays.length > 0;
-  const filterOnMonths = config.months && config.months.length > 0;
-  const filterOnYears = config.years && config.years.length > 0;
+  const filterOnTimes = config.times;// && config.times.length > 0;
+  const filterOnWeekdays = config.weekdays && config.weekdays.length !== DAYS.length;
+  const filterOnMonths = config.months && config.months.length !== MONTHS.length;
+  const filterOnYears = config.years;// && config.years.length > 0;
   
   // boolearns to determine if we need finer filtering
   const needsFinerThanYears = filterOnMonths || filterOnWeekdays || filterOnTimes;
@@ -293,7 +293,7 @@ function generatePatternedRanges(config: TimeRangeConfigMultiple): MillisecondRa
     
 
 
-export function generateTimeRanges(config: TimeRangeConfig): MillisecondRange[] {
+export function generateTimeRanges(config: TimeRangeConfig, parcel: boolean = true): MillisecondRange[] {
   const ranges: MillisecondRange[] = [];
   
   if (config.type === 'single') {
@@ -302,7 +302,7 @@ export function generateTimeRanges(config: TimeRangeConfig): MillisecondRange[] 
   
   if (config.type === 'multiple') {
     const range = generatePatternedRanges(config, );
-    return parcelRanges(range, 7 * MS_IN_DAY);
+    return parcel ? parcelRanges(range, 7 * MS_IN_DAY) : range;
   }
     
     

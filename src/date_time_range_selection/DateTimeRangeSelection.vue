@@ -58,8 +58,7 @@
               v-model:start-date="startDateObj"
               v-model:end-date="endDateObj"
               :allowed-dates="allowedDates"
-              :format="formatDateDisplay"
-              :preview-format="formatDateDisplay"
+              :format-function="formatDateDisplay"
               :clearable="false"
               :text-input="true"
               :teleport="true"
@@ -189,13 +188,10 @@
 
 <script setup lang="ts">
 // no unused vars
-/* eslint-disable @typescript-eslint/no-unused-vars */
 // === IMPORTS ===
 import { watch, computed, ref, onMounted } from 'vue';
 import DatePicker from '@vuepic/vue-datepicker';
-import { setToMidnightUTC, setToEndOfDayUTC } from './dtr_utils';
-import type { MillisecondRange, TimeRangeSelectionType } from '../types/datetime';
-import { formatTimeRange } from "@/utils/timeRange";
+import type { MillisecondRange } from '../types/datetime';
 import DateRangePicker from './DateRangePicker.vue';
 import DaysPicker from './DaysPicker.vue';
 import DayPatterns from './DayPatterns.vue';
@@ -266,16 +262,10 @@ const possibleYears = computed(() => {
 });
 
 
-function formatDateDisplay(date: Date | null): string {
-  return date?.toLocaleDateString(undefined, {timeZone: 'UTC'}) || '';
+function formatDateDisplay(date: Date | null): string {  
+  return date?.toLocaleDateString() || '';
 }
 
-const filterGroups = [
-  'month-year',
-  'day-time'
-] as const;
-type FilterGroup = typeof filterGroups[number];
-const filterGroup = ref<FilterGroup | null>(null);
 
 const currentDateString = computed((): string => {
   return currentDateRef.value.toLocaleDateString(undefined, 
@@ -291,14 +281,38 @@ watch(timeSelectionRadio, (newVal) => {
     timeSelectionMode.value = newVal;
   }
 });
-const selectedMonths = ref<MonthType[]>([]);
-const selectedYears = ref<number[]>([]);
+const selectedMonths = ref<MonthType[]>([...MONTHS]);
+const selectedYears = ref<number[]>([...possibleYears.value]);
+const allYearsSelected = computed(() => selectedYears.value.length === possibleYears.value.length);
 const selectedTimes = ref<string[]>([]);
-const selectedDays = ref<DayType[]>([]);
+const selectedDays = ref<DayType[]>([...DAYS]);
 const timePlusMinus = ref<[number, number]>([...ALL_DAY_TOLERANCE]);
 const allDay = computed(() => timePlusMinus.value[0] === ALL_DAY_TOLERANCE[0] && timePlusMinus.value[1] === ALL_DAY_TOLERANCE[1]);
 const dayNames = DAYS as unknown as DayType[];
 const monthNames = MONTHS as unknown as MonthType[];
+
+const timeRangeStart = computed<Date | null>(() => {
+  if (!startDateObj.value) return null;
+  const utc = Date.UTC(
+    startDateObj.value.getUTCFullYear(), 
+    startDateObj.value.getUTCMonth(),
+    startDateObj.value.getDate(),
+    0, 0, 0, 0
+  );
+  return new Date(utc);
+});
+
+const timeRangeEnd = computed<Date | null>(() => {
+  if (!endDateObj.value) return null;
+  const utc = Date.UTC(
+    endDateObj.value.getUTCFullYear(), 
+    endDateObj.value.getUTCMonth(),
+    endDateObj.value.getDate(),
+    23, 59, 59, 999
+  );
+  return new Date(utc);
+});
+
 const timeRangeConfig = computed<TimeRangeConfig>(() => {
   if (timeSelectionMode.value === 'single') {
     return {
@@ -309,13 +323,16 @@ const timeRangeConfig = computed<TimeRangeConfig>(() => {
     const patternConfig: TimeRangeConfigMultiple = {
       type: 'multiple',
       dateRange: {
-        start: startDateObj.value ?? new Date(),
-        end: endDateObj.value ?? new Date(),
+        start: timeRangeStart.value ?? new Date(),
+        end: timeRangeEnd.value ?? new Date(),
       },
-      years: (selectedYears.value.length > 0) ? selectedYears.value : undefined,
-      months: (selectedMonths.value.length > 0) ? selectedMonths.value : undefined,
-      weekdays: (selectedDays.value.length > 0) ? selectedDays.value : undefined,
-      times: ((selectedTimes.value.length > 0) && !allDay.value) ? selectedTimes.value : undefined,
+      years: (selectedYears.value.length === 0 || allYearsSelected.value) ? undefined : selectedYears.value,
+      // months: (selectedMonths.value.length === 0 || allMonthsSelected.value) ? undefined : selectedMonths.value,
+      // weekdays: (selectedDays.value.length === 0 || allDaysSelected.value) ? undefined : selectedDays.value,
+      // times: ((selectedTimes.value.length > 0) && !allDay.value) ? selectedTimes.value : undefined,
+      months: selectedMonths.value,
+      weekdays: selectedDays.value,
+      times: allDay.value ? undefined : selectedTimes.value,
       toleranceHours: allDay.value ? [...ALL_DAY_TOLERANCE] : [...DEFAULT_TOLERANCE],
     };
     return patternConfig as TimeRangeConfig;
@@ -327,7 +344,7 @@ watch(timeRangeConfig, (newConfig) => {
 });
 
 import { isRingConsecutive } from '@/utils/array_operations/cyclic';
-function asRangeOrList<T extends string>(arr: T[], order: T[], validDiffs = [1]): string {
+function asRangeOrList<T extends string>(arr: T[], order: T[]): string {
   if (arr.length === 0) return '';  
   if (arr.length <= 2) {
     return arr.map(s => s.slice(0,3)).join(', ');
@@ -360,13 +377,13 @@ const customTimeRangeName = computed((): string => {
   }
   
   if (selectedMonths.value.length > 0) {
-    monthsString = ` | Months: ${asRangeOrList(selectedMonths.value, monthNames, [1,11])}`;
+    monthsString = ` | Months: ${asRangeOrList(selectedMonths.value, monthNames)}`;
   }
   if (selectedYears.value.length > 0) {
     yearsString = ` | Years: ${selectedYears.value.join(', ')}`;
   }
   if (selectedDays.value.length > 0) {
-    daysString = ` | ${asRangeOrList(selectedDays.value, dayNames, [1,6])}`;
+    daysString = ` | ${asRangeOrList(selectedDays.value, dayNames)}`;
   }
   if (selectedTimes.value.length > 0 && !allDay.value) {
     timesString = ` | Times: ${selectedTimes.value.join(', ')}`;
@@ -380,7 +397,7 @@ const currentTimeRanges = ref<MillisecondRange[]>([]);
 // Update custom range button handler
 function updateCustomRange(doEmit=true) {
   let currentRanges: MillisecondRange[] = [];
-  currentRanges = generateTimeRanges(timeRangeConfig.value);
+  currentRanges = generateTimeRanges(timeRangeConfig.value, true);
   currentTimeRanges.value = currentRanges;
   if (doEmit) {
     emit('ranges-change', currentRanges, timeSelectionMode.value, customTimeRangeName.value, timeRangeConfig.value);
@@ -403,8 +420,8 @@ onMounted(() => {
     const start = new Date(end);
     // set back by 1 week
     start.setDate(end.getDate() - 6);
-    startDateObj.value = setToMidnightUTC(start, true);
-    endDateObj.value = setToEndOfDayUTC(end, true);
+    startDateObj.value = start;
+    endDateObj.value = end;
   }
 });
 
