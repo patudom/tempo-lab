@@ -28,7 +28,7 @@
         
       <!-- Single Date Section -->
         <v-expand-transition title="Select a Single Date">
-        <div v-if="timeSelectionMode === 'single'" class="single-date-section">
+        <div v-if="timeSelectionRadio === 'single'" class="single-date-section">
 
             <div class="mb-4">
               <label class="text-subtitle-2 mb-2 d-block">Date</label>
