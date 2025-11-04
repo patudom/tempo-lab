@@ -3,7 +3,7 @@
 
     <v-card-text>
       <!-- Selection Type Radio Buttons -->
-       Would you like to select a single date or multiple dates?
+      Would you like to select a single date or multiple dates?
       <v-radio-group 
         v-model="timeSelectionMode" 
         direction="horizontal" 

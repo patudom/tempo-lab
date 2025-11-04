@@ -140,7 +140,7 @@
               {{ createTimeRangeActive ? "Cancel" : "New Time Range" }}
             </v-btn>
             <date-time-range-selection
-              v-if="createTimeRangeActive"
+              v-show="createTimeRangeActive"
               :current-date="singleDateSelected"
               :allowed-dates="uniqueDays"
               @ranges-change="handleDateTimeRangeSelectionChange"
