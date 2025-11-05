@@ -12,7 +12,7 @@
       <!-- Single Date -->
       <div class="time-range-single" v-if="timeRange.config && timeRange.config.type==='single'">
         <div class="time-range-config-name">
-          Single Date: {{ (new Date(timeRange.config.singleDate)).toLocaleDateString()}}
+          {{ (new Date(timeRange.config.singleDate)).toLocaleDateString()}}
         </div>
       </div>
       
