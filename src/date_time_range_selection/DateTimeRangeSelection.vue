@@ -68,8 +68,8 @@
 
         <v-expand-transition title="Select Multiple Dates">
           <div v-if="timeSelectionRadio === 'multiple'" class="multiple-dates-section">
-            <v-tabs
-              v-if="glContainerSize.width > 500"
+            <!-- <v-tabs
+              v-if="glContainerSize.width >= 500"
               v-model="tab"
               id="dtrs-tabs"
               color="var(--info-background)"
@@ -81,9 +81,9 @@
               <v-tab 
               :variant="tab == 'monthrange' ? 'flat' : 'tonal'" 
               value="monthrange">Quick Select</v-tab>
-            </v-tabs>
+            </v-tabs> -->
             
-            <div v-else>
+            <div>
               <v-btn-toggle
                 v-model="tab"
                 mandatory
@@ -91,6 +91,7 @@
                 density="compact"
               >
                 <v-btn 
+                  class="daterange-btn"
                   :variant="tab == 'daterange' ? 'flat' : 'tonal'" 
                   value="daterange" 
                   size="small"
@@ -99,6 +100,7 @@
                   Custom Range
                 </v-btn>
                 <v-btn 
+                  class="monthrange-btn"
                   :variant="tab == 'monthrange' ? 'flat' : 'tonal'" 
                   value="monthrange" 
                   size="small"
@@ -567,5 +569,13 @@ watch(() => props.currentDate, (newDate) => {
   border: 1px solid red;
   border-left: 4px solid red;
   border-radius: 8px;
+}
+
+.daterange-btn .v-btn__overlay {
+  display: none;
+}
+
+.monthrange-btn .v-btn__overlay {
+  display: none;
 }
 </style>
