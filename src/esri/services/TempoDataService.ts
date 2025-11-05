@@ -59,6 +59,9 @@ function safeParseNumber(value: string | null | undefined): number | null {
   return isNaN(parsed) ? null : parsed;
 }
 
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const RATE_LIMIT_MS = 50; // Delay between requests in milliseconds
+
 function stringifyEsriGetSamplesParameters(params: {
   geometry: ReturnType<typeof rectangleToGeometry> | ReturnType<typeof pointToGeometry>;
   geometryType: EsriGeometryType;
@@ -306,7 +309,8 @@ export class TempoDataService extends ImageServiceServiceMetadata {
   async fetchSample(
     geometry: RectBounds | PointBounds,
     timeRange: MillisecondRange,
-    options: FetchOptions = {}
+    options: FetchOptions = {},
+    skipRetry: boolean = false,
   ): Promise<RawSampleData> {
     const esriGeometry = this.isRectBounds(geometry) 
       ? rectangleToGeometry(geometry as RectBounds)
@@ -318,9 +322,6 @@ export class TempoDataService extends ImageServiceServiceMetadata {
 
     // Handle multiple time ranges by combining them
     const timeString = `${timeRange.start},${timeRange.end}`;
-    
-    // log sample geometry type and time range
-    console.log(`Fetching samples for geometry type: ${geometryType}, time range: ${timeString}`);
 
 
     const params = {
@@ -343,6 +344,13 @@ export class TempoDataService extends ImageServiceServiceMetadata {
       const data: EsriGetSamplesReturn | EsriGetSamplesReturnError = await response.json();
       
       if ('error' in data) {
+      // Retry once if we get a 503 error and haven't already retried
+        if (data.error.code === 503 && !skipRetry) {
+          console.warn(`Received 503 error, retrying after delay...`);
+          await delay(1000); // Wait 1 second before retrying
+          return this.fetchSample(geometry, timeRange, options, true);
+        }
+        
         throw new Error(`Error fetching samples (${data.error.code}): ${data.error.message} ${data.error.details}`);
       }
 
@@ -356,7 +364,6 @@ export class TempoDataService extends ImageServiceServiceMetadata {
         locationId: sample.locationId,
         geometryType: this.isRectBounds(geometry) ? 'rectangle' : 'point' as 'rectangle' | 'point'
       })); // this is a CEsriTimeseries[]
-      console.log(`Fetched ${processedSamples.length} samples for time range ${new Date(timeRange.start)}-${new Date(timeRange.end)}`);
       return {
         samples: processedSamples,
         metadata: {
@@ -385,9 +392,12 @@ export class TempoDataService extends ImageServiceServiceMetadata {
       return this.fetchSample(geometry, timeRanges, options);
     }
     
-    const promises = timeRanges.map(async (tr) => {
+    console.log(`Fetching samples for ${timeRanges.length} time ranges...`);
+    const promises = timeRanges.map(async (tr, index) => {
       try {
-        return await this.fetchSample(geometry, tr, options);
+        return await delay(100 + RATE_LIMIT_MS * index).then(() => {
+          return this.fetchSample(geometry, tr, options);
+        });
       } catch (error) {
         console.error(`Error fetching sample for time range ${tr.start}-${tr.end}:`, error);
         return null;
@@ -398,7 +408,6 @@ export class TempoDataService extends ImageServiceServiceMetadata {
       const validResults = results.filter((result): result is RawSampleData => result !== null);
       const samples = validResults.map((result) => result.samples).flat();
       console.log(`Total samples fetched across all time ranges: ${samples.length}`);
-      console.log(samples);
       return {
         samples,
         metadata: {
@@ -555,29 +564,21 @@ export class TempoDataService extends ImageServiceServiceMetadata {
     
     const { lat: centerLat, lon: centerLon } = this.getRegionCenter(geometry);
     const timezone = tz_lookup(centerLat, centerLon);
-    console.log(`Determined timezone for geometry (${centerLat.toFixed(2)}, ${centerLon.toFixed(2)}): ${timezone}`);
     
     // Convert UTC time ranges to local time ranges for this timezone
     const offsetter = new TimeRangeOffsetter(timezone);
     const timeRangesArray = Array.isArray(timeRanges) ? timeRanges : [timeRanges];
     const localTimeRanges = offsetter.offsetRanges(timeRangesArray);
     
-    console.log(`Offset ${timeRangesArray.length} UTC time range(s) to ${timezone}`);
-    console.log('UTC ranges:', timeRangesArray);
-    console.log('Local ranges:', localTimeRanges);
     
     if (this.isRectBounds(geometry) && this.meta) {
       const sampler = new EsriSampler(this.meta, geometry);
       const sampleCount = options.sampleCount || 30;
-      console.log(`Requested sample count: ${sampleCount}`);
       options.sampleCount = sampler.getSamplingSpecificationFromSampleCount(sampleCount).count;
-      console.log(`Using sample count: ${options.sampleCount}`);
+      console.log(`Taking ${options.sampleCount} samples`);
     }
     const rawData = await this.fetchSamples(geometry, localTimeRanges, options);
-    const stats = this.getTimeSeriesStatistics(rawData);
-    console.log(`Data is sampled from ${stats.numUniqueLocations} unique locations with a total of ${stats.totalValues} values.`);
-    
-    console.log(`Approximate spacing between unique locations: ${stats.latitudeSpacing?.toFixed(4)}° latitude, ${stats.longitudeSpacing?.toFixed(4)}° longitude`);
+    // const stats = this.getTimeSeriesStatistics(rawData);
     return this.aggregateByTime(rawData.samples);
   }
   
