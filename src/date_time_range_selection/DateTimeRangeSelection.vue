@@ -234,7 +234,7 @@ const singleDateObj = ref<Date | null>(currentDateRef.value);
 
 watch(() => props.currentDate, (newDate) => {
   if (timeSelectionRadio.value === 'tracked') {
-    singleDateObj.value = newDate;
+    currentDateRef.value = newDate;
   }
 });
 
@@ -317,7 +317,7 @@ const timeRangeConfig = computed<TimeRangeConfig>(() => {
   if (timeSelectionMode.value === 'single') {
     return {
       type: 'single',
-      singleDate: singleDateObj.value,
+      singleDate: timeSelectionRadio.value === 'tracked'? currentDateRef.value : singleDateObj.value,
     } as TimeRangeConfigSingle;
   } else {
     const patternConfig: TimeRangeConfigMultiple = {
