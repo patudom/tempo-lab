@@ -6,23 +6,21 @@
       <v-radio-group 
         v-model="timeSelectionRadio" 
         direction="horizontal" 
-        density="compact"
+        density="comfortable"
       >
         <v-radio 
           :label="`Date Shown On Map: ${currentDateString}`" 
             value="tracked"
-          density="compact"
         />    
         <v-radio 
           label="Single Day" 
             value="single"
-          density="compact"
         >    
         <template #label>
           <span class="mr-2" style="text-wrap:nowrap">Single Day</span>
           <date-picker
                 v-if="timeSelectionRadio === 'single' && glContainerSize.width > 450"
-                class="mx-2"
+                class="mx-2 ddrp__date-picker"
                 ref="singleDateCalendar"
                 :model-value="singleDateObj"
                 @internal-model-change="handleSingleDateChange"
@@ -42,7 +40,7 @@
         <div v-if="timeSelectionRadio === 'single' && glContainerSize.width <= 450" class="single-date-section">
             <div class="my-4">
               <date-picker
-                class="mx-2"
+                class="mx-2  ddrp__date-picker"
                 ref="singleDateCalendar"
                 :model-value="singleDateObj"
                 @internal-model-change="handleSingleDateChange"
@@ -63,7 +61,6 @@
         <v-radio 
           label="Multiple Days" 
           value="multiple"
-          density="compact"
         />
       </v-radio-group>
 
