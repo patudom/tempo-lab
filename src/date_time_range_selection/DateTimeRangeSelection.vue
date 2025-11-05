@@ -308,6 +308,12 @@ const dayNames = DAYS as unknown as DayType[];
 const monthNames = MONTHS as unknown as MonthType[];
 
 const timeRangeStart = computed<Date | null>(() => {
+  if (tab.value === 'monthrange') {
+    // For month range, start from Jan 1 of the earliest selected year and month
+    const year = selectedYears.value.length > 0 ? Math.min(...selectedYears.value) : new Date().getFullYear();
+    const month = selectedMonths.value.length > 0 ? MONTHS.indexOf(selectedMonths.value[0]) : 0;
+    return new Date(Date.UTC(year, month, 1, 0, 0, 0, 0));
+  }
   if (!startDateObj.value) return null;
   const utc = Date.UTC(
     startDateObj.value.getUTCFullYear(), 
@@ -319,6 +325,14 @@ const timeRangeStart = computed<Date | null>(() => {
 });
 
 const timeRangeEnd = computed<Date | null>(() => {
+  if (tab.value === 'monthrange') {
+    // For month range, end at Dec 31 of the latest selected year and month
+    const year = selectedYears.value.length > 0 ? Math.max(...selectedYears.value) : new Date().getFullYear();
+    const month = selectedMonths.value.length > 0 ? MONTHS.indexOf(selectedMonths.value[selectedMonths.value.length - 1]) : 11;
+    // Get last day of month
+    const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+    return new Date(Date.UTC(year, month, lastDay, 23, 59, 59, 999));
+  }
   if (!endDateObj.value) return null;
   const utc = Date.UTC(
     endDateObj.value.getUTCFullYear(), 
@@ -327,6 +341,20 @@ const timeRangeEnd = computed<Date | null>(() => {
     23, 59, 59, 999
   );
   return new Date(utc);
+});
+
+const timeRangeSelectedMonths = computed<MonthType[]>(() => {
+  if (tab.value === 'monthrange') {
+    return selectedMonths.value;
+  }
+  return [...MONTHS];
+});
+
+const timeRangeSelectedYears = computed<number[]>(() => {
+  if (tab.value === 'monthrange') {
+    return selectedYears.value;
+  }
+  return possibleYears.value;
 });
 
 const timeRangeConfig = computed<TimeRangeConfig>(() => {
@@ -342,11 +370,12 @@ const timeRangeConfig = computed<TimeRangeConfig>(() => {
         start: timeRangeStart.value ?? new Date(),
         end: timeRangeEnd.value ?? new Date(),
       },
-      years: (selectedYears.value.length === 0 || allYearsSelected.value) ? undefined : selectedYears.value,
+      // years uses a different pattern because we don't necessarily know it's length to perform the correct login when generating ranges
+      years: (timeRangeSelectedYears.value.length === 0 || allYearsSelected.value) ? undefined : timeRangeSelectedYears.value,
       // months: (selectedMonths.value.length === 0 || allMonthsSelected.value) ? undefined : selectedMonths.value,
       // weekdays: (selectedDays.value.length === 0 || allDaysSelected.value) ? undefined : selectedDays.value,
       // times: ((selectedTimes.value.length > 0) && !allDay.value) ? selectedTimes.value : undefined,
-      months: selectedMonths.value,
+      months: timeRangeSelectedMonths.value,
       weekdays: selectedDays.value,
       times: allDay.value ? undefined : selectedTimes.value,
       toleranceHours: allDay.value ? [...ALL_DAY_TOLERANCE] : [...DEFAULT_TOLERANCE],
