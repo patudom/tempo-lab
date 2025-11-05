@@ -1,7 +1,7 @@
 <template>
-  <v-card ref="dtrs-root" class="datetime-range-selector my-4" elevation="4" color="surface">
+  <div ref="dtrs-root" class="datetime-range-selector my-4" elevation="4" color="surface">
     <h4>Select Date(s)</h4>
-    <v-card-text>
+
       <!-- Selection Type Radio Buttons -->
       <v-radio-group 
         v-model="timeSelectionRadio" 
@@ -68,8 +68,8 @@
 
         <v-expand-transition title="Select Multiple Dates">
           <div v-if="timeSelectionRadio === 'multiple'" class="multiple-dates-section">
-            <v-card>
             <v-tabs
+              v-if="glContainerSize.width > 500"
               v-model="tab"
               id="dtrs-tabs"
               color="var(--info-background)"
@@ -82,6 +82,32 @@
               :variant="tab == 'monthrange' ? 'flat' : 'tonal'" 
               value="monthrange">Quick Select</v-tab>
             </v-tabs>
+            
+            <div v-else>
+              <v-btn-toggle
+                v-model="tab"
+                mandatory
+                color="var(--info-background)"
+                density="compact"
+              >
+                <v-btn 
+                  :variant="tab == 'daterange' ? 'flat' : 'tonal'" 
+                  value="daterange" 
+                  size="small"
+                >
+
+                  Custom Range
+                </v-btn>
+                <v-btn 
+                  :variant="tab == 'monthrange' ? 'flat' : 'tonal'" 
+                  value="monthrange" 
+                  size="small"
+                >
+
+                  Quick Select
+                </v-btn>
+              </v-btn-toggle>
+            </div>
             
             <v-tabs-window
               v-model="tab"
@@ -128,7 +154,6 @@
               </v-tabs-window-item>
             </v-tabs-window>
                 
-          </v-card>
             
             
             <v-expansion-panels 
@@ -186,7 +211,7 @@
         The current time range selections are invalid and result in no possible times. Please adjust your selections.
       </div>
 
-    </v-card-text>
+
     <!-- validate time range button -->
     <v-btn
       v-if="validate"
@@ -204,7 +229,7 @@
       :config="timeRangeConfig"
       :allowed-dates="allowedDates"
     />
-  </v-card>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -492,8 +517,8 @@ import { watchGoldenLayoutContainerSize } from '@/utils/golden_layout';
 // === LIFECYCLE HOOKS ===
 onMounted(() => {
   if (dtrsRoot.value) {
-    console.log(dtrsRoot.value.$el);
-    watchGoldenLayoutContainerSize(dtrsRoot.value.$el as HTMLElement, (size) => {
+    console.log(dtrsRoot.value);
+    watchGoldenLayoutContainerSize(dtrsRoot.value as HTMLElement, (size) => {
       glContainerSize.value = size;
     });
   }
