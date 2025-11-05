@@ -4,18 +4,46 @@
     <v-radio-group
       v-model="allDay"
       direction="horizontal"
-      inline
       hide-details
       class="mb-2"
       >
       <v-radio
         label="Entire Day"
         :value="true"
-        />
+      >
+        <template #label="{label}">
+          <div class="radio-info-label">
+          <div>{{ label }}</div>
+          <info-button>
+            <div>
+              <p>
+                TEMPO only collects data during daylight hours. 
+                Depending on the time of year, different time ranges will be available on a given day
+              </p>
+            </div>
+          </info-button>
+        </div>
+        </template>
+      </v-radio>
       <v-radio
         label="Specific Times"
         :value="false"
-        />
+      >
+        <template #label="{label}">
+          <div class="radio-info-label">
+          <div>{{label}}</div>
+          <info-button>
+            <div>
+              <p>
+                Select the times of day you want to include data for. TEMPO will only collect data during daylight hours.
+                The times you pick will be used for each region and corrected for timezone differences. For example, creating
+                a time range of 9:00-11:00 would pull data from 9:00-11:00 Eastern Time for New York, and 9:00-11:00 Pacific Time for Los Angeles.
+              </p>
+            </div>
+          </info-button>
+          </div>
+        </template>
+      </v-radio>
     </v-radio-group>
     <v-combobox
       v-if="!allDay"
@@ -54,6 +82,7 @@
 import { ref, watch, computed } from 'vue';
 import { DEFAULT_TOLERANCE, ALL_DAY_TOLERANCE } from './date_time_range_generators';
 import { _normalizeTimes } from '@/utils/parse_time_strings';
+import InfoButton from '@/components/InfoButton.vue';
 
 function timeFormat(hour: number, minute: number, ampm = true): string {
   if (ampm) {
@@ -134,5 +163,16 @@ function normalizeTimes(values: string[]) {
 .pm-wrapper > span {
   font-size: 1.2em;
   line-height: 1;
+}
+
+.radio-info-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.radio-info-label > div {
+  width: 16ch;
 }
 </style>
