@@ -68,36 +68,45 @@
 
         <v-expand-transition title="Select Multiple Dates">
           <div v-if="timeSelectionMode === 'multiple'" class="multiple-dates-section">
-            <DateRangePicker
-              v-model:start-date="startDateObj"
-              v-model:end-date="endDateObj"
-              :allowed-dates="allowedDates"
-              :format-function="formatDateDisplay"
-              :clearable="false"
-              :text-input="true"
-              :teleport="true"
-              :dark="true"
-              :year-range="datePickerYearRange"
-            />
-            <v-expansion-panels 
-              v-if="timeSelectionMode === 'multiple'"
-              class="mb-4"
-              variant="default"
-              focusable 
-              :multiple="false"
+            <v-card>
+            <v-tabs
+              v-model="tab"
+              id="dtrs-tabs"
               color="var(--info-background)"
-            >
-            
-            
-            
-            <!-- Month Selection -->
-            <v-expansion-panel 
-              value="monthrange" 
-              title="Quick Select: Months and Years" 
-              bg-color="surface"
+              density="comfortable"
               >
-            <v-expansion-panel-text class="month-selection-section">
-
+              <v-tab 
+                :variant="tab == 'daterange' ? 'flat' : 'tonal'" 
+                value="daterange">Custom Range</v-tab>
+              <v-tab 
+              :variant="tab == 'monthrange' ? 'flat' : 'tonal'" 
+              value="monthrange">Quick Select</v-tab>
+            </v-tabs>
+            
+            <v-tabs-window
+              v-model="tab"
+              crossfade
+              >
+              <v-tabs-window-item 
+              selected-class="dtrs-tab-window-selected" 
+              class="dtrs-tab-window" 
+              value="daterange">
+                <DateRangePicker
+                  v-model:start-date="startDateObj"
+                  v-model:end-date="endDateObj"
+                  :allowed-dates="allowedDates"
+                  :format-function="formatDateDisplay"
+                  :clearable="false"
+                  :text-input="true"
+                  :teleport="true"
+                  :dark="true"
+                  :year-range="datePickerYearRange"
+                />
+              </v-tabs-window-item>
+              <v-tabs-window-item 
+              selected-class="dtrs-tab-window-selected" 
+              class="dtrs-tab-window" 
+              value="monthrange">
                 <div class="mb-4">
                   <MonthsPicker
                     v-model="selectedMonths"
@@ -114,21 +123,12 @@
                     :possible-years="possibleYears"
                   />
                 </div>
+              </v-tabs-window-item>
+            </v-tabs-window>
                 
-                
-            </v-expansion-panel-text>
-            </v-expansion-panel>
-            </v-expansion-panels>
-            <v-expansion-panels 
-              class="mb-4"
-              variant="default"
-              focusable 
-              :multiple="false"
-              color="var(--info-background)"
-            >
-
+          </v-card>
             
-            </v-expansion-panels>
+            
             <v-expansion-panels 
               class="mb-4"
               variant="default"
@@ -232,6 +232,7 @@ const emit = defineEmits<{
 
 
 
+const tab = ref<'daterange' | 'monthrange'>('daterange');
 
 // === COMPOSABLE SETUP ===
 // Create refs for the current date to pass to the composable
@@ -288,7 +289,7 @@ const currentDateString = computed((): string => {
   );
 });
 
-const timeSelectionMode = ref<TimeRangeCreationMode>('single');
+const timeSelectionMode = ref<TimeRangeCreationMode>('multiple');
 watch(timeSelectionRadio, (newVal) => {
   if (newVal === 'tracked') {
     timeSelectionMode.value = 'single';
@@ -462,49 +463,18 @@ watch(() => props.currentDate, (newDate) => {
 // Ranges are now only emitted when the Update Custom Range button is clicked
 </script>
 
-<style scoped>
-/* === INPUT STYLES === */
-.time-input {
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.23);
+<style>
+
+#dtrs-tabs .v-slide-group__content {
+  gap: 4px !important;
+}
+.dtrs-tab-window {
+  padding: 16px;
+  margin-bottom: 16px;
+  border: 1px solid rgb(var(--v-theme-surface-variant), 0.3);
   border-radius: 4px;
-  background: transparent;
-  color: inherit;
-  font-family: inherit;
-  font-size: 14px;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.time-input:focus {
-  outline: none;
-  border-color: rgb(var(--v-theme-primary));
-  box-shadow: 0 0 0 2px rgba(var(--v-theme-primary), 0.2);
+.dtrs-tab-window-selected {
 }
-
-.dtrs-flex-time-box {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 10px;
-  align-items: center;
-}
-
-.pm-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex: 0 0 auto;
-}
-
-.pm-wrapper > span {
-  font-size: 1.2em;
-  line-height: 1;
-}
-
-.reference-date-picker {
-  /*Font sizes*/
-    --dp-font-size: 0.8rem; /*Default font-size*/
-    --dp-preview-font-size: 0.7rem; /*Font size of the date preview in the action row*/
-}
-
 </style>

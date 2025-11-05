@@ -115,3 +115,24 @@ function normalizeTimes(values: string[]) {
   return unique;
 }
 </script>
+
+<style scoped>
+.dtrs-flex-time-box {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: center;
+}
+
+.pm-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
+.pm-wrapper > span {
+  font-size: 1.2em;
+  line-height: 1;
+}
+</style>

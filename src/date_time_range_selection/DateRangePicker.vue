@@ -132,10 +132,6 @@ watch(() => props.endDate, (newDate) => {
 <style>
 #dual-date-range-picker {
   width: 100%;
-  border: 1px solid rgb(var(--v-theme-surface-variant));
-  border-radius: 8px;
-  padding: 8px;
-  margin-bottom: 8px;
   display: flex;
   flex-direction: row;
   gap: 8px;
