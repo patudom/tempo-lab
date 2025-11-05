@@ -1,5 +1,5 @@
 <template>
-  <v-card class="datetime-range-selector my-4" elevation="4" color="surface">
+  <v-card ref="dtrs-root" class="datetime-range-selector my-4" elevation="4" color="surface">
     <h4>Select Date(s)</h4>
     <v-card-text>
       <!-- Selection Type Radio Buttons -->
@@ -17,21 +17,30 @@
           label="Single Day" 
             value="single"
           density="compact"
-        />    
-        <v-radio 
-          label="Multiple Days" 
-          value="multiple"
-          density="compact"
-        />
-      </v-radio-group>
-
-        
-      <!-- Single Date Section -->
+        >    
+        <template #label>
+          <span class="mr-2" style="text-wrap:nowrap">Single Day</span>
+          <date-picker
+                v-if="timeSelectionRadio === 'single' && glContainerSize.width > 450"
+                class="mx-2"
+                ref="singleDateCalendar"
+                :model-value="singleDateObj"
+                @internal-model-change="handleSingleDateChange"
+                :allowed-dates="allowedDates"
+                :format="formatDateDisplay"
+                :preview-format="formatDateDisplay"
+                :clearable="false"
+                text-input
+                :teleport="true"
+                dark
+                :year-range="datePickerYearRange"
+                :week-start="0"
+              />
+        </template>
+      </v-radio>
         <v-expand-transition title="Select a Single Date">
-        <div v-if="timeSelectionRadio === 'single'" class="single-date-section">
-
-            <div class="mb-4">
-              <label class="text-subtitle-2 mb-2 d-block">Date</label>
+        <div v-if="timeSelectionRadio === 'single' && glContainerSize.width <= 450" class="single-date-section">
+            <div class="my-4">
               <date-picker
                 class="mx-2"
                 ref="singleDateCalendar"
@@ -51,6 +60,14 @@
           </div>
         </v-expand-transition>
 
+        <v-radio 
+          label="Multiple Days" 
+          value="multiple"
+          density="compact"
+        />
+      </v-radio-group>
+
+        
 
         <v-expand-transition title="Select Multiple Dates">
           <div v-if="timeSelectionMode === 'multiple'" class="multiple-dates-section">
@@ -189,7 +206,7 @@
 <script setup lang="ts">
 // no unused vars
 // === IMPORTS ===
-import { watch, computed, ref, onMounted } from 'vue';
+import { watch, computed, ref, onMounted, useTemplateRef } from 'vue';
 import DatePicker from '@vuepic/vue-datepicker';
 import type { MillisecondRange } from '../types/datetime';
 import DateRangePicker from './DateRangePicker.vue';
@@ -215,6 +232,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   'ranges-change': [ranges: MillisecondRange[], selectionType: TimeRangeCreationMode, customName: string, config: TimeRangeConfig];
 }>();
+
 
 
 
@@ -411,9 +429,18 @@ function handleSingleDateChange(value: Date) {
   }
 }
 
+const dtrsRoot = useTemplateRef('dtrs-root');
+const glContainerSize = ref<{width: number; height: number}>({width: 0, height: 0});
+import { watchGoldenLayoutContainerSize } from '@/utils/golden_layout';
 
 // === LIFECYCLE HOOKS ===
 onMounted(() => {
+  if (dtrsRoot.value) {
+    console.log(dtrsRoot.value.$el);
+    watchGoldenLayoutContainerSize(dtrsRoot.value.$el as HTMLElement, (size) => {
+      glContainerSize.value = size;
+    });
+  }
   // Initialize default dates
   if (props.allowedDates && props.allowedDates.length > 0) {
     const end = new Date(props.allowedDates[props.allowedDates.length - 1]);
@@ -424,7 +451,9 @@ onMounted(() => {
     endDateObj.value = end;
   }
 });
-
+watch(glContainerSize, (newSize) => {
+  console.log('DTRS Golden Layout container size changed:', newSize);
+});
 // === WATCHERS ===
 // Watch for prop changes and update refs
 watch(() => props.currentDate, (newDate) => {
