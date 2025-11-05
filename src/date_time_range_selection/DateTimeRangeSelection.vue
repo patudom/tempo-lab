@@ -67,7 +67,7 @@
         
 
         <v-expand-transition title="Select Multiple Dates">
-          <div v-if="timeSelectionMode === 'multiple'" class="multiple-dates-section">
+          <div v-if="timeSelectionRadio === 'multiple'" class="multiple-dates-section">
             <v-card>
             <v-tabs
               v-model="tab"
