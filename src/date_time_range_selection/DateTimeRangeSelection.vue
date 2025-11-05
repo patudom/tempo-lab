@@ -110,6 +110,7 @@
                 <div class="mb-4">
                   <MonthsPicker
                     v-model="selectedMonths"
+                    show-error-for-empty
                   />
                   <SeasonPicker
                   class="mt-4"
@@ -121,6 +122,7 @@
                   <YearsPicker
                     v-model="selectedYears"
                     :possible-years="possibleYears"
+                    show-error-for-empty
                   />
                 </div>
               </v-tabs-window-item>
@@ -148,6 +150,7 @@
               <div class="mb-4">
                   <DaysPicker
                     v-model="selectedDays"
+                    show-error-for-empty
                   />
               </div>
                   <DayPatterns
@@ -171,13 +174,17 @@
       <!-- Update Custom Range Button -->
       <v-btn
         color="primary"
+        :disabled="invalidConfig"
         variant="elevated"
-        class="mb-4"
+        class="mb-4 mx-auto d-block"
         @click="updateCustomRange"
       >
         <v-icon class="mr-2">mdi-update</v-icon>
         Confirm Selection 
       </v-btn>
+      <div v-show="invalidConfig" class="my-4 mx-auto pa-4 dtrs-invalid-config-warning">
+        The current time range selections are invalid and result in no possible times. Please adjust your selections.
+      </div>
 
     </v-card-text>
     <!-- validate time range button -->
@@ -370,8 +377,8 @@ const timeRangeConfig = computed<TimeRangeConfig>(() => {
         start: timeRangeStart.value ?? new Date(),
         end: timeRangeEnd.value ?? new Date(),
       },
-      // years uses a different pattern because we don't necessarily know it's length to perform the correct login when generating ranges
-      years: (timeRangeSelectedYears.value.length === 0 || allYearsSelected.value) ? undefined : timeRangeSelectedYears.value,
+      // years needs to send undefined for all years selected
+      years: (allYearsSelected.value) ? undefined : timeRangeSelectedYears.value,
       // months: (selectedMonths.value.length === 0 || allMonthsSelected.value) ? undefined : selectedMonths.value,
       // weekdays: (selectedDays.value.length === 0 || allDaysSelected.value) ? undefined : selectedDays.value,
       // times: ((selectedTimes.value.length > 0) && !allDay.value) ? selectedTimes.value : undefined,
@@ -382,6 +389,28 @@ const timeRangeConfig = computed<TimeRangeConfig>(() => {
     };
     return patternConfig as TimeRangeConfig;
   }
+});
+
+const invalidConfig = computed<boolean>(() => {
+  const config = timeRangeConfig.value;
+  if (config.type === 'single') {
+    return config.singleDate === null;
+  } else {
+    if (config.years !== undefined && config.years.length === 0) {
+      return true;
+    }
+    if (config.months !== undefined && config.months.length === 0) {
+      return true;
+    }
+    if (config.weekdays !== undefined && config.weekdays.length === 0) {
+      return true;
+    } 
+    if (config.times !== undefined && config.times.length === 0) {
+      return true;
+    }
+      
+  }
+  return false;
 });
 
 watch(timeRangeConfig, (newConfig) => {
@@ -505,5 +534,13 @@ watch(() => props.currentDate, (newDate) => {
 }
 
 .dtrs-tab-window-selected {
+}
+
+.dtrs-invalid-config-warning {
+  background-color: rgba(255, 0, 0, 0.25);
+  font-weight: bold;
+  border: 1px solid red;
+  border-left: 4px solid red;
+  border-radius: 8px;
 }
 </style>
