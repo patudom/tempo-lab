@@ -333,7 +333,6 @@ watch(timeSelectionRadio, (newVal) => {
 });
 const selectedMonths = ref<MonthType[]>([...MONTHS]);
 const selectedYears = ref<number[]>([...possibleYears.value]);
-const allYearsSelected = computed(() => selectedYears.value.length === possibleYears.value.length);
 const selectedTimes = ref<string[]>([]);
 const selectedDays = ref<DayType[]>([...DAYS]);
 const timePlusMinus = ref<[number, number]>([...ALL_DAY_TOLERANCE]);
@@ -377,18 +376,24 @@ const timeRangeEnd = computed<Date | null>(() => {
   return new Date(utc);
 });
 
-const timeRangeSelectedMonths = computed<MonthType[]>(() => {
+const timeRangeSelectedMonths = computed<MonthType[] | undefined>(() => {
   if (tab.value === 'monthrange') {
+    if (selectedMonths.value.length === MONTHS.length) {
+      return undefined;
+    }
     return selectedMonths.value;
   }
-  return [...MONTHS];
+  return undefined;
 });
 
-const timeRangeSelectedYears = computed<number[]>(() => {
+const timeRangeSelectedYears = computed<number[] | undefined>(() => {
   if (tab.value === 'monthrange') {
+    if (selectedYears.value.length === possibleYears.value.length) {
+      return undefined;
+    }
     return selectedYears.value;
   }
-  return possibleYears.value;
+  return undefined;
 });
 
 const timeRangeConfig = computed<TimeRangeConfig>(() => {
@@ -405,12 +410,12 @@ const timeRangeConfig = computed<TimeRangeConfig>(() => {
         end: timeRangeEnd.value ?? new Date(),
       },
       // years needs to send undefined for all years selected
-      years: (allYearsSelected.value) ? undefined : timeRangeSelectedYears.value,
+      years: timeRangeSelectedYears.value,
       // months: (selectedMonths.value.length === 0 || allMonthsSelected.value) ? undefined : selectedMonths.value,
       // weekdays: (selectedDays.value.length === 0 || allDaysSelected.value) ? undefined : selectedDays.value,
       // times: ((selectedTimes.value.length > 0) && !allDay.value) ? selectedTimes.value : undefined,
       months: timeRangeSelectedMonths.value,
-      weekdays: selectedDays.value,
+      weekdays: selectedDays.value.length === DAYS.length ? undefined : selectedDays.value,
       times: allDay.value ? undefined : selectedTimes.value,
       toleranceHours: allDay.value ? [...ALL_DAY_TOLERANCE] : [...DEFAULT_TOLERANCE],
     };
