@@ -21,6 +21,7 @@
         :max-date="endDateObj ?? new Date()"
         :week-start="0"
         prevent-min-max-navigation
+        six-weeks
       />
     </div>
     
@@ -44,6 +45,7 @@
         :min-date="startDateObj ?? new Date(0)"
         :week-start="0"
         prevent-min-max-navigation
+        six-weeks
       />
     </div>
     

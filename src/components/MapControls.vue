@@ -26,6 +26,7 @@
             no-today
             dark
             :year-range="[uniqueDays[0]?.getFullYear(), uniqueDays[uniqueDays.length - 1]?.getFullYear()]"
+            six-weeks
           >
             <template #action-buttons>
               <button

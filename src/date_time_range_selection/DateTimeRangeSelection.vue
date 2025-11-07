@@ -33,6 +33,7 @@
                 dark
                 :year-range="datePickerYearRange"
                 :week-start="0"
+                six-weeks
               />
         </template>
       </v-radio>
@@ -53,6 +54,7 @@
                 dark
                 :year-range="datePickerYearRange"
                 :week-start="0"
+                six-weeks
               />
             </div>
           </div>
