@@ -143,12 +143,15 @@ export interface MillisecondRange {
   end: number;
 }
 
+import { type TimeRangeSelectionType} from '@/types/datetime';
+import { type TimeRangeConfig } from '@/date_time_range_selection/date_time_range_generators';
 export interface TimeRange {
   id: string;
   name: string; // user editable
   description: string; // not editable
   range: MillisecondRange | MillisecondRange[];
-  type: string; 
+  type: TimeRangeSelectionType; 
+  config?: TimeRangeConfig;
 }
 
 

@@ -67,16 +67,6 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
     nearestDateIndex
   } = useUniqueTimeSelection(timestamps);
 
-  const displayedDayTimeRange = computed<TimeRange>(() => {
-    const range = rangeForSingleDay(singleDateSelected.value, selectedTimezone.value);
-    return {
-      id: 'displayed-day',
-      name: 'Displayed Day',
-      description: `Displayed Day (${new Date(range.start).toLocaleDateString()})`,
-      range,
-      type: 'singledate'
-    };
-  });
 
   const accentColor = ref("#068ede");
   const accentColor2 = ref("#ffcc33");
@@ -131,19 +121,12 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
         name: formatted,
         description: formatted,
         range: oldRange,
-        type: 'singledate'
+        type: 'single'
       };
       timeRanges.value.push(oldTimeRange);
     }
   });
 
-  watch(displayedDayTimeRange, (val) => {
-    if (!timeRanges.value.length) {
-      timeRanges.value.push(val);
-    } else {
-      timeRanges.value[0] = val;
-    }
-  }, { immediate: true });
 
   const zoomScale = 0.5; // for matplibre-gl
   const urlParams = new URLSearchParams(window.location.search);
@@ -243,6 +226,27 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
     datasets.value.forEach(ds => {
       if (ds.region.id === region.id) {
         ds.region.name = region.name;
+      }
+    });
+  }
+
+  function setTimeRangeName(timeRange: TimeRange, newName: string) {
+    if (newName.trim() === '') {
+      console.error("Time range name cannot be empty.");
+      return;
+    }
+    const existing = timeRanges.value.find(tr => tr.name === newName && tr.id !== timeRange.id);
+    if (existing) {
+      console.error(`A time range with the name "${newName}" already exists.`);
+      return;
+    }
+    timeRange.name = newName;
+    console.log(`Renamed time range to: ${newName}`);
+    
+    // Update the name in any datasets using this time range
+    datasets.value.forEach(ds => {
+      if (ds.timeRange.id === timeRange.id) {
+        ds.timeRange.name = timeRange.name;
       }
     });
   }
@@ -366,7 +370,6 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
     datasets,
     timestamps,
     timestampsLoaded,
-    displayedDayTimeRange,
 
     addTimeRange,
     addRegion,
@@ -377,6 +380,7 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
     datasetHasSamples,
     regionHasDatasets,
     setRegionName,
+    setTimeRangeName,
 
     deleteTimeRange,
     deleteRegion,

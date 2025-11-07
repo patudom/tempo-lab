@@ -24,8 +24,8 @@
         v-model="tab"
         :color="tempoRed"
       >
-        <v-tab :value="0">TEMPO Deep Dive</v-tab>
-        <v-tab :value="1">Comparison Data</v-tab>
+        <v-tab :value="0" variant="flat">TEMPO Deep Dive</v-tab>
+        <v-tab :value="1" variant="flat">Comparison Data</v-tab>
       </v-tabs>
       
       <v-tabs-window v-model="tab">

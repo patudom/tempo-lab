@@ -16,7 +16,7 @@ export interface DateRangeSelection {
   endDate: Date;
 }
 
-export type TimeRangeSelectionType = 'singledate' | 'daterange' | 'pattern' | 'monthrange';
+export type TimeRangeSelectionType =  'single' | 'multiple' | 'folded';
 
 export interface DateTimeSelection {
   type: TimeRangeSelectionType;

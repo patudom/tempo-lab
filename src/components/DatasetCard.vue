@@ -28,31 +28,31 @@
           <div>
             <v-chip
               size="small" 
-              elevation="1"
               variant="flat"
               :color="dataset.customColor ?? dataset.region.color"
               >
               {{ dataset.name ?? dataset.region.name }}
             </v-chip>
-            
-            <v-chip 
-              size="small" 
-              variant="flat"  
-              :style="(dataset.customColor === dataset.region.color) ? {border: '1px solid #ffffff61'} : {}"
-              :color="dataset.region.color"
-              >
-              Region: {{ dataset.region.name }}
-            </v-chip>
-            
-            <v-chip size="small">
-              Mol: {{ moleculeName(dataset.molecule) }}
-            </v-chip>
-            
-            <div class="d-inline-block text-caption dataset-patttern-chip ma-2"
-              v-if="dataset.timeRange" 
-              >
+            <div class="d-flex flex-wrap align-center ga-2 my-2">
+              <v-chip 
+                label
+                size="small" 
+                variant="flat"  
+                :color="dataset.region.color"
+                >
+                Region: {{ dataset.region.name }}
+              </v-chip>
+              
+              <v-chip label size="small" >
+                Mol: {{ moleculeName(dataset.molecule) }}
+              </v-chip>
+              
+              <div class="d-inline-block text-caption dataset-patttern-chip"
+                v-if="dataset.timeRange" 
+                >
               <span>{{ dataset.timeRange.description }}</span>
             </div>
+          </div>
             
             <!-- <v-chip 
               v-if="dataset.timeRange" 

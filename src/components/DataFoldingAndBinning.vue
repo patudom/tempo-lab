@@ -301,6 +301,7 @@ import { v4 } from 'uuid';
 import { TimeSeriesFolder, sortfoldBinContent } from '../esri/services/aggregation';
 import FoldedPlotlyGraph from './FoldedPlotlyGraph.vue';
 import type { Prettify, UserDataset, PlotltGraphDataSet, UnifiedRegion } from '../types';
+import type { TimeRangeSelectionType } from '@/types/datetime';
 import type { AggregationMethod, TimeSeriesData, FoldedTimeSeriesData , FoldType, FoldBinContent} from '../esri/services/aggregation';
 import tz_lookup from '@photostructure/tz-lookup';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
@@ -767,7 +768,7 @@ function createFoldedTimeRange() {
     name: `Folded (${selectedTimeBin.value} of ${selectedFoldingPeriod.value})`,
     description: `Folded data (${selectedTimeBin.value} of ${selectedFoldingPeriod.value}) ${selectedMethod.value}`,
     range: ranges,
-    type: 'folded'
+    type: 'folded' as TimeRangeSelectionType,
   };
 }
 
