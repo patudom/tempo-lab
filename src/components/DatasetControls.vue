@@ -450,11 +450,12 @@
                   </template>
             </dataset-card>
           </div>
-          <div v-if="!validDataSetSelection" class="pa-2 mb-2 explainer-text">
+          <div v-if="!validDataSetSelection" class="pa-2 mb-2 error-explainer-text">
             Note: You can only overlay datasets with the same molecule and fold type.
           </div>
           <v-btn 
           v-if="datasets.length > 1"
+          :disabled="datasets.length === 0 || !datasets.every(d => d.samples || d.plotlyDatasets)"
           color="#ffcc33" size="small" :block="false" @click="allDatasetSelection = !allDatasetSelection">
             {{ allDatasetSelection ? 'Cancel Selection' : 'Select Datasets to Graph' }}
           </v-btn>
@@ -465,8 +466,12 @@
     
     <div class="d-flex flex-wrap flex-row ma-2 align-center justify-center ga-1">
       
-    <v-btn v-if="selectedDatasets.length > 0" @click="showSelectedDatasetsGraph = true">
-      Show Selected Datasets
+    <v-btn 
+      :color="accentColor2"
+      :disabled="!validDataSetSelection"
+      v-if="selectedDatasets.length > 0" 
+      @click="showSelectedDatasetsGraph = true">
+      Graph Selected Datasets
     </v-btn>
     <cds-dialog
       title="Graph of Selected Datasets"
@@ -1200,6 +1205,16 @@ watch(tableSelection, (newVal) => {
   font-size: 0.8em;
   color: rgb(var(--v-theme-on-surface));
   
+}
+
+.error-explainer-text {
+  border-radius: 5px;
+  padding: 5px;
+  padding-inline-start: 10px;
+  background-color: rgba(255, 0, 0, 0.4);
+  font-size: 0.8em;
+  color: white;
+  font-weight: bold;
 }
 
 .explainer-text hr {
