@@ -9,7 +9,7 @@ import { type PointBounds } from '@/esri/geometry';
 
 
 
-interface UseEsriLayer {
+export interface UseEsriLayer {
   esriImageSource: Ref<maplibregl.RasterTileSource | null>;
   opacity: Ref<number>;
   noEsriData: Ref<boolean>;
@@ -21,7 +21,7 @@ interface UseEsriLayer {
   renderOptions: Ref<RenderingRuleOptions>;
 }
 
-interface ImageSerivceLayerOptions {
+export interface ImageSerivceLayerOptions {
   renderingRule?: RenderingRuleOptions;
   visible?: boolean;
   clickValue?: boolean;
@@ -31,6 +31,7 @@ export function useEsriImageServiceLayer(
   serviceUrl: string,
   layerId: string,
   opacity: MaybeRef<number>,
+  variable: MaybeRef<string>,
   _timestamp: MaybeRef<number>,
   options: ImageSerivceLayerOptions = {},
 ): UseEsriLayer {
@@ -40,15 +41,15 @@ export function useEsriImageServiceLayer(
   const esriLayerId = layerId;
   const esriImageSource = ref<maplibregl.RasterTileSource | null>(null);
   const map = ref<Map | null>(null);
+  const variableRef = toRef(variable);
   
-  const tds = new TempoDataService(serviceUrl, 'un-adjusted-population-density');
+  const tds = new TempoDataService(serviceUrl, variableRef.value);
   // bind tds to the window
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 
 
   const opacityRef = toRef(opacity);
   const noEsriData = ref(false);
-  
 
   
   const esriOptions = computed(() => {
