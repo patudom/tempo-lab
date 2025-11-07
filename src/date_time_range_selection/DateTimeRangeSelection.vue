@@ -212,6 +212,11 @@
       <div v-show="invalidConfig" class="my-4 mx-auto pa-4 dtrs-invalid-config-warning">
         The current time range selections are invalid and result in no possible times. Please adjust your selections.
       </div>
+      <div v-show="submissionTried && currentTimeRanges.length===0" class="my-4 mx-auto pa-4 dtrs-invalid-config-warning">
+        <!-- This should be incredibly rare to see except for contrived cases. 
+        Ex: Select 8/7/2024 - 8/22/2024 and remove Wed/Thu and select a specific time -->
+        There is no TEMPO data available for the time range selected. Please adjust your selections. 
+      </div>
 
 
     <!-- validate time range button -->
@@ -440,7 +445,6 @@ const invalidConfig = computed<boolean>(() => {
     if (config.times !== undefined && config.times.length === 0) {
       return true;
     }
-      
   }
   return false;
 });
@@ -498,13 +502,23 @@ const customTimeRangeName = computed((): string => {
     
 });
 
+import { filterForAllowedDates } from "./filter_ranges";
+
 const currentTimeRanges = ref<MillisecondRange[]>([]);
+const submissionTried = ref<boolean>(false);
 // === METHODS ===
 // Update custom range button handler
 function updateCustomRange(doEmit=true) {
   let currentRanges: MillisecondRange[] = [];
   currentRanges = generateTimeRanges(timeRangeConfig.value, true);
+  
+  // Filter ranges to only include those with allowed dates
+  if (props.allowedDates && props.allowedDates.length > 0) {
+    currentRanges = filterForAllowedDates(currentRanges, props.allowedDates);
+  }
+  
   currentTimeRanges.value = currentRanges;
+  submissionTried.value = doEmit;
   if (doEmit) {
     emit('ranges-change', currentRanges, timeSelectionMode.value, customTimeRangeName.value, timeRangeConfig.value);
   }
@@ -520,6 +534,7 @@ function handleSingleDateChange(value: Date) {
 const dtrsRoot = useTemplateRef('dtrs-root');
 const glContainerSize = ref<{width: number; height: number}>({width: 0, height: 0});
 import { watchGoldenLayoutContainerSize } from '@/utils/golden_layout';
+
 
 // === LIFECYCLE HOOKS ===
 onMounted(() => {

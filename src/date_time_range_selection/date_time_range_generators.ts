@@ -2,9 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { TimeSeriesFolder } from "@/esri/services/aggregation";
 import { MillisecondRange, TimeRangeSelectionType} from "@/types/datetime";
-import { ElementOf } from "@vueuse/core";
 import { parseTimeString, _normalizeTimes, formatTimeHHMM24 } from "@/utils/parse_time_strings";
-import { format } from "maplibre-gl";
 
 // "as const" is required to use typeof inference later
 export const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const;
@@ -308,7 +306,7 @@ export function generateTimeRanges(config: TimeRangeConfig, parcel: boolean = tr
     
   return ranges;
 }
- 
+
 
 function dateInRange(date: number, start: Date, end: Date): boolean {
   return (date >= start.getTime()) && (date <= end.getTime());
