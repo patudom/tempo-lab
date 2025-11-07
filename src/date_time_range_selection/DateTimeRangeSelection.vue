@@ -402,12 +402,14 @@ const timeRangeSelectedYears = computed<number[] | undefined>(() => {
 });
 
 const timeRangeConfig = computed<TimeRangeConfig>(() => {
-  if (timeSelectionMode.value === 'single') {
+  if (timeSelectionRadio.value === 'single' || timeSelectionRadio.value === 'tracked') {
+    console.log('Single date config:');
     return {
       type: 'single',
       singleDate: timeSelectionRadio.value === 'tracked'? currentDateRef.value : singleDateObj.value,
     } as TimeRangeConfigSingle;
   } else {
+    console.log('Multiple date config:');
     const patternConfig: TimeRangeConfigMultiple = {
       type: 'multiple',
       dateRange: {
