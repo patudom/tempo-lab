@@ -221,8 +221,7 @@ watch(molecule, (newMol: MoleculeType) => {
   flex-direction: row;
   flex-wrap: wrap;
   gap: 1rem;
-  flex: 1 1 210px; /* Grow, shrink, basis of 440px (2 x 220px dropdowns) */
-  // min-width: 220px; /* Minimum width - when smaller, children will wrap */
+  flex: 1 1 210px; 
 
   .map-dropdowns {
 
