@@ -34,6 +34,7 @@
                 :year-range="datePickerYearRange"
                 :week-start="0"
                 six-weeks
+                :enable-time-picker="false"
               />
         </template>
       </v-radio>
@@ -55,6 +56,7 @@
                 :year-range="datePickerYearRange"
                 :week-start="0"
                 six-weeks
+                :enable-time-picker="false"
               />
             </div>
           </div>
