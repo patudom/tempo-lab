@@ -2,12 +2,28 @@ import { ref, type Ref } from "vue";
 import { Map, Popup, type GeoJSONSource } from "maplibre-gl";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { createHeatmapColorMap, previewColormapInConsole } from "@/colormaps/utils";
+import { PrimSource } from "@/assets/power_plants";
 
 
 
 // const steps = Array.from({ length: 20 }, (_, i) => i / 19);
 // console.log('Heatmap colors:', createHeatmapColorMap('svs', steps, 0.05));
 // previewColormapInConsole('svs', steps, 0.05);
+
+export const POWER_PLANT_COLORS: Record<PrimSource, string> = {
+  batteries: "#00FF00",
+  biomass: "#654321",
+  coal: "#000000",
+  geothermal: "#FF0000",
+  hydroelectric: "#00008B",
+  "natural gas": "#C4A484",
+  nuclear: "#5D3FD3",
+  other: "#FAF9F6",
+  petroleum: "#333333",
+  "pumped storage": "#00FFFF",
+  solar: "#FFFF00",
+  wind: "#ADD8E6",
+} as const;
 
 
 export function addPowerPlants(map: Ref<Map | null> | null) {
@@ -113,24 +129,24 @@ export function addPowerPlants(map: Ref<Map | null> | null) {
           ["get", "PrimSource"],
           
           // Traditional Sources (Black, Gray, Brown)
-          'coal',          '#1f2937', // Very Dark Slate/Black
-          'petroleum',     '#4b5563', // Dark Gray (Keeping Dark Gray for Petroleum)
-          'natural gas',   '#6b7280', // Medium Gray
+          'coal',          POWER_PLANT_COLORS.coal,
+          'petroleum',     POWER_PLANT_COLORS.petroleum,
+          'natural gas',   POWER_PLANT_COLORS['natural gas'],
           
           // Renewable Sources (Bright & Cool Hues)
-          'solar',         '#facc15', // Bright Amber/Gold (☀️ Sunnier Color)
-          'wind',          '#34d399', // Bright Cyan/Teal
-          'hydroelectric', '#1e40af', // Deep Blue (Water)
-          'geothermal',    '#047857', // Dark Teal
-          'biomass',       '#92400e', // Dark Brown (Reassigned)
+          'solar',         POWER_PLANT_COLORS.solar,
+          'wind',          POWER_PLANT_COLORS.wind,
+          'hydroelectric', POWER_PLANT_COLORS.hydroelectric,
+          'geothermal',    POWER_PLANT_COLORS.geothermal,
+          'biomass',       POWER_PLANT_COLORS.biomass,
           
           // Storage & Unique Sources (Magenta, Purple, Light Blue)
-          'nuclear',       '#d946ef', // Bright Magenta
-          'batteries',     '#a78bfa', // Medium Purple
-          'pumped storage', '#60a5fa', // Light Blue
+          'nuclear',       POWER_PLANT_COLORS.nuclear,
+          'batteries',     POWER_PLANT_COLORS.batteries,
+          'pumped storage', POWER_PLANT_COLORS['pumped storage'],
           
           // Fallback
-          /* other */ '#e5e7eb' // Lightest Gray
+          /* other */ POWER_PLANT_COLORS.other // Lightest Gray
           
         ],
         "circle-opacity": 1,

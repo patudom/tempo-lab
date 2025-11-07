@@ -23,6 +23,7 @@ import PopupInfoButton from "./components/PopupInfoButton.vue";
 import LayerOrderControl from "./components/LayerOrderControl.vue";
 import MaplibreLayerControlItem from "./components/MaplibreLayerControlItem.vue";
 import PowerPlantsFilterControl from "./components/PowerPlantsFilterControl.vue";
+import IconCheckbox from "./components/IconCheckbox.vue";
 
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { library } from "@fortawesome/fontawesome-svg-core";
@@ -36,6 +37,10 @@ import {
   faCircleXmark,
   faSquareXmark,
   faHome,
+  faSolarPanel,
+  faDroplet,
+  faEarthAmericas,
+  faAtom,
 } from "@fortawesome/free-solid-svg-icons";
 
 import VueDatePicker from "@vuepic/vue-datepicker";
@@ -54,6 +59,10 @@ library.add(faMagnifyingGlass);
 library.add(faCircleXmark);
 library.add(faSquareXmark);
 library.add(faHome);
+library.add(faSolarPanel);
+library.add(faDroplet);
+library.add(faEarthAmericas);
+library.add(faAtom);
 
 // TODO: This doesn't work. Why??
 // import "golden-layout/dist/css/goldenlayout-base.css";
@@ -113,6 +122,7 @@ createApp(TempoLab, {})
   .component('layer-control-item', MaplibreLayerControlItem)
   .component('layer-order-control', LayerOrderControl)
   .component('power-plants-filter-control', PowerPlantsFilterControl)
+  .component('icon-checkbox', IconCheckbox)
 
   // Mount
   .mount("#app");

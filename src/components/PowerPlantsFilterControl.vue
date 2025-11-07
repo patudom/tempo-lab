@@ -47,15 +47,20 @@
       </template>
       <template #text>
         <div class="expansion-panel-text">
-          <v-checkbox
+          <icon-checkbox
             v-for="source in SOURCES_BY_CATEGORY[category]"
             :key="source"
             :label="source"
             :value="source"
+            :on-icon="icons[source]"
+            :off-icon="icons[source]"
+            :on-color="POWER_PLANT_COLORS[source]"
+            off-color="gray"
             v-model="selectedSources"
             density="compact"
             hide-details
-          ></v-checkbox>
+          >
+          </icon-checkbox>
         </div>
       </template>
     </v-expansion-panel>
@@ -71,6 +76,8 @@ import {
   RenewableSources,
   TraditionalSources,
 } from "@/assets/power_plants";
+
+import { POWER_PLANT_COLORS } from "@/composables/addPowerPlants";
 
 interface Props {
   map: Map;
@@ -103,6 +110,21 @@ const SOURCES_BY_CATEGORY: Record<PlantCategory, readonly PrimSource[]> = {
   ),
 };
 
+const icons: Record<PrimSource, string> = {
+  batteries: "mdi-battery-charging",
+  biomass: "mdi-campfire",
+  coal: "mdi-grill",
+  geothermal: "fa-earth-americas",
+  hydroelectric: "fa-droplet",
+  "natural gas": "mdi-gas-burner",
+  nuclear: "fa-atom",
+  other: "mdi-circle",
+  petroleum: "mdi-gas-station",
+  "pumped storage": "mdi-water-pump",
+  solar: "fa-solar-panel",
+  wind: "mdi-wind-power",
+};
+
 function openPanel(index: number) {
   if (!openPanels.value.includes(index)) {
     openPanels.value.push(index);
@@ -112,6 +134,16 @@ function openPanel(index: number) {
 function openAllPanels() {
   openPanels.value = [...PLANT_CATEGORIES.keys()];
 }
+
+// function updateSelectedSources(source: PrimSource, value: boolean) {
+//   console.log("updating");
+//   const index = selectedSources.value.indexOf(source);
+//   if (value && index === -1) {
+//     selectedSources.value = [...selectedSources.value, source];
+//   } else if (!value && index >= 0) {
+//     selectedSources.value = selectedSources.value.slice(0, index).concat(selectedSources.value.slice(index + 1));
+//   }
+// }
 
 function handleGlobalSelect(value: boolean) {
   selectedSources.value = value ? [...Object.values(PrimSource)] : [];
