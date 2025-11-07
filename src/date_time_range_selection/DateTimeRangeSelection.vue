@@ -489,16 +489,16 @@ const customTimeRangeName = computed((): string => {
   }
   
   if (selectedMonths.value.length > 0) {
-    monthsString = ` | Months: ${asRangeOrList(selectedMonths.value, monthNames)}`;
+    monthsString = `Months: ${asRangeOrList(selectedMonths.value, monthNames)}`;
   }
   if (selectedYears.value.length > 0) {
-    yearsString = ` | Years: ${selectedYears.value.join(', ')}`;
+    yearsString = `Years: ${selectedYears.value.join(', ')}`;
   }
   if (selectedDays.value.length > 0) {
-    daysString = ` | ${asRangeOrList(selectedDays.value, dayNames)}`;
+    daysString = `${asRangeOrList(selectedDays.value, dayNames)}`;
   }
   if (selectedTimes.value.length > 0 && !allDay.value) {
-    timesString = ` | Times: ${selectedTimes.value.join(', ')}`;
+    timesString = `Times: ${selectedTimes.value.join(', ')}`;
   }
   if (tab.value === 'monthrange') {
     // For monthrange tab, omit date range string
@@ -510,7 +510,9 @@ const customTimeRangeName = computed((): string => {
     yearsString = '';
   }
   
-  return `${dateRangeString}${monthsString}${yearsString}${daysString}${timesString}`.trim();
+  return [dateRangeString, monthsString, yearsString, daysString, timesString]
+    .filter(s => s !== '')
+    .join(' | ');
     
 });
 
