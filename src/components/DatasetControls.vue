@@ -1,17 +1,9 @@
 <template>
   <div id="dataset-sections" :style="cssVars">
-    <h2>Investigate Patterns with Time</h2>
     <div id="add-region-time">
       <p>
         Select a Region, Time Range, and Molecule to create a dataset of your choice!
       </p>
-    <v-btn
-      v-if="regions.length > 0 || timeRanges.length > 1"
-      :color="accentColor2"
-      @click="showConfirmReset = true"
-    >
-      Delete ALL selections
-    </v-btn>
     <v-dialog
       v-model="showConfirmReset"
       max-width="35%"
@@ -470,8 +462,9 @@
       </v-expansion-panel>
     </v-expansion-panels>
     </div>
-
+    
     <div class="d-flex flex-wrap flex-row ma-2 align-center justify-center ga-1">
+    
     <v-btn v-if="no2GraphData.length > 0" @click="showNO2Graph = true">
       Show NO₂ Graph
     </v-btn>
@@ -669,6 +662,15 @@
         :timezones="hchofoldedGraphData.map(v => v.timezone) ?? 'UTC'"
       />
     </cds-dialog>
+    <!--  -->
+    <hr class="ma-2" style="width: 100%;"/>
+        <v-btn
+      v-if="regions.length > 0 || timeRanges.length > 1"
+      color="#a63a3f"
+      @click="showConfirmReset = true"
+    >
+      Delete ALL selections
+    </v-btn>
     </div>
 
     <v-dialog
