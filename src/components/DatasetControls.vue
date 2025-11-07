@@ -450,7 +450,7 @@
                   </template>
             </dataset-card>
           </div>
-          <div v-if="datasets.some(s => s.timeRange.type === 'folded')" class="pa-2 mb-2 explainer-text">
+          <div v-if="!validDataSetSelection" class="pa-2 mb-2 explainer-text">
             Note: You can only overlay datasets with the same molecule and fold type.
           </div>
           <v-btn 
@@ -464,8 +464,41 @@
     </div>
     
     <div class="d-flex flex-wrap flex-row ma-2 align-center justify-center ga-1">
+      
+    <v-btn v-if="selectedDatasets.length > 0" @click="showSelectedDatasetsGraph = true">
+      Show Selected Datasets
+    </v-btn>
+    <cds-dialog
+      title="Graph of Selected Datasets"
+      v-model="showSelectedDatasetsGraph"
+      draggable
+      persistent
+      :modal="false"
+      :scrim="false"
+      :drag-predicate="plotlyDragPredicate"
+    >
+      <v-checkbox
+        v-model="showErrorBands"
+        label="Show Errors"
+        density="compact"
+        hide-details
+      >
+      </v-checkbox>
+      <plotly-graph
+        :datasets="selectedDatasetsGraphData"
+        :colors="selectedDatasetsGraphDataColors"
+        :show-errors="showErrorBands"
+        :data-options="selectedDatasetsGraphData.map(() => ({mode: 'markers'}))"
+        :names="selectedDatasetsGraphData.map(d => d.name ?? '')"
+        :layout-options="{
+          width: 600, 
+          height: 400,
+          xaxis: {title: {text: 'Local Time for Region'}},
+        }"
+      />
+    </cds-dialog>
     
-    <v-btn v-if="no2GraphData.length > 0" @click="showNO2Graph = true">
+    <v-btn v-if="false && no2GraphData.length > 0" @click="showNO2Graph = true">
       Show NO₂ Graph
     </v-btn>
     <cds-dialog
@@ -498,7 +531,7 @@
       />
     </cds-dialog>
 
-    <v-btn v-if="o3GraphData.length > 0" @click="showO3Graph = true">
+    <v-btn v-if="false && o3GraphData.length > 0" @click="showO3Graph = true">
       Show Ozone Graph
     </v-btn>
     <cds-dialog
@@ -531,7 +564,7 @@
       />
     </cds-dialog>
     
-    <v-btn v-if="hchoGraphData.length > 0" @click="showHCHOGraph = true">
+    <v-btn v-if="false && hchoGraphData.length > 0" @click="showHCHOGraph = true">
       Show Formaldehyde Graph
     </v-btn>
     <cds-dialog
@@ -573,7 +606,7 @@
     Warning: Be sure to only select datasets that have the same type of fold. It is not possible to overlay different FoldTypes.
     </div>
     
-    <v-btn v-if="no2foldedGraphData.length > 0" @click="showfoldedNO2Graph = true">
+    <v-btn v-if="false && no2foldedGraphData.length > 0" @click="showfoldedNO2Graph = true">
       Show Folded NO₂ Data
     </v-btn>
     <cds-dialog
@@ -603,7 +636,7 @@
       />
     </cds-dialog>
 
-    <v-btn v-if="o3foldedGraphData.length > 0" @click="showfoldedO3Graph = true">
+    <v-btn v-if="false && o3foldedGraphData.length > 0" @click="showfoldedO3Graph = true">
       Show Folded O₃ Data
     </v-btn>
     <cds-dialog
@@ -633,7 +666,7 @@
       />
     </cds-dialog>
 
-    <v-btn v-if="hchofoldedGraphData.length > 0" @click="showfoldedHCHOGraph = true">
+    <v-btn v-if="false && hchofoldedGraphData.length > 0" @click="showfoldedHCHOGraph = true">
       Show Folded HCHO Data
     </v-btn>
     <cds-dialog
@@ -941,6 +974,70 @@ function graphTitle(dataset: UserDataset): string {
   return `${molTitle} Time Series for ${dataset.region.name}`;
 }
 
+const showSelectedDatasetsGraph = ref(false);
+const selectedDatasetsGraphData = computed(() =>{
+  // check if folded
+  if (selectedDatasets.value.length === 0) {
+    return [];
+  }
+  const firstDataset = datasets.value.find(s => s.id === selectedDatasets.value[0]);
+  if (!firstDataset) {
+    return [];
+  }
+  const isFolded = firstDataset.timeRange?.type === 'folded';
+  if (isFolded) {
+    // folded datasets
+    const validFoldedDatasets = datasets.value
+      .filter(
+        s => selectedDatasets.value.includes(s.id) &&
+        s.timeRange?.type === 'folded' && 
+        s.plotlyDatasets && 
+        s.plotlyDatasets.length > 0
+      );
+    return validFoldedDatasets.map(s => {    
+      return {
+        ...s.plotlyDatasets![1],
+        foldType: s.folded?.foldType,
+        timezone: s.folded?.timezone,
+        color: s.customColor || s.region.color,
+      };
+    }); // "!" tells TS that we know it's not undefined
+  } else {
+    // normal datasets
+    return datasets.value
+      .filter(s => selectedDatasets.value.includes(s.id))
+      .map(s => userDatasetToPlotly(s, true));
+  }
+});
+
+const selectedDatasetsGraphDataColors = computed<string[]>(() => {
+  if (selectedDatasets.value.length === 0) {
+    return [];
+  }
+  const firstDataset = datasets.value.find(s => s.id === selectedDatasets.value[0]);
+  if (!firstDataset) {
+    return [];
+  }
+  const isFolded = firstDataset.timeRange?.type === 'folded';
+  if (isFolded) {
+    // folded datasets
+    const validFoldedDatasets = datasets.value
+      .filter(
+        s => selectedDatasets.value.includes(s.id) &&
+        s.timeRange?.type === 'folded' && 
+        s.plotlyDatasets && 
+        s.plotlyDatasets.length > 0
+      );
+    return validFoldedDatasets.map(s => s.customColor || s.region.color);
+  } else {
+    // normal datasets
+    return datasets.value
+      .filter(s => selectedDatasets.value.includes(s.id))
+      .map(s => s.customColor || s.region.color);
+  }
+  
+});
+
 const showNO2Graph = ref(false);
 const no2GraphData = computed(() =>{
   return datasets.value.filter(s => s.molecule.includes('no2') && store.datasetHasSamples(s));
@@ -977,6 +1074,22 @@ watch(allDatasetSelection, (newVal) => {
 });
 watch(selectedDatasets, (newVal) => {
   console.log('Selected datasets changed:', newVal);
+});
+
+// is the current selection of datasets valid for graphing together?
+const validDataSetSelection = computed<boolean>(() => {
+  // must have same time range type and molecule
+  const selected = datasets.value.filter(s => selectedDatasets.value.includes(s.id));
+  if (selected.length === 0) {
+    console.log('Not enough datasets selected for comparison');
+    return true;
+  }
+  const firstMolecule = selected[0].molecule;
+  const firstTimeRangeType = selected[0].timeRange;
+  const notFolded = (tr: TimeRange) => tr?.type !== 'folded';
+  const val = selected.every(s => s.molecule === firstMolecule && notFolded(s.timeRange) === notFolded(firstTimeRangeType));
+  console.log('Valid dataset selection for graphing:', val, selected.map(s => ({id: s.id, molecule: s.molecule, timeRangeType: s.timeRange?.type})));
+  return val;
 });
 
 const showfoldedNO2Graph = ref(false);
