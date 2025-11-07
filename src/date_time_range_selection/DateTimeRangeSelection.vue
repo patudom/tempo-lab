@@ -498,6 +498,16 @@ const customTimeRangeName = computed((): string => {
   if (selectedTimes.value.length > 0 && !allDay.value) {
     timesString = ` | Times: ${selectedTimes.value.join(', ')}`;
   }
+  if (tab.value === 'monthrange') {
+    // For monthrange tab, omit date range string
+    dateRangeString = '';
+  }
+  if (tab.value === 'daterange') {
+    // For daterange tab, omit months and years string
+    monthsString = '';
+    yearsString = '';
+  }
+  
   return `${dateRangeString}${monthsString}${yearsString}${daysString}${timesString}`.trim();
     
 });
