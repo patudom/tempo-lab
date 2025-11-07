@@ -142,7 +142,7 @@ watch(() => props.modelValue, value => {
 
 .cds-dialog {
   display: flex;
-  width: calc(100% - 1rem);
+  width: calc(100%);
 }
 .cds-dialog-card {
   align-self: center;
