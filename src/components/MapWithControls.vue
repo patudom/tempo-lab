@@ -250,6 +250,9 @@ watch(airQualityUrl, (newUrl) => {
 import { addPopulationDensityLayer } from '@/composables/addPopulationDensity';
 const popLayer = addPopulationDensityLayer();
 
+import { addLandUseLayer } from "@/composables/addLandUse";
+const sentinalLandUseLayer = addLandUseLayer();
+
 const hmsFire = addHMSFire(singleDateSelected, {
   layerName: 'hms-fire',
   visible: false,
@@ -264,6 +267,7 @@ const onMapReady = (m: Map) => {
   // pp.togglePowerPlants(false);
   aqiLayer.addToMap(m);
   popLayer.addEsriSource(m);
+  sentinalLandUseLayer.addEsriSource(m);
   hmsFire.addToMap(m);
   // Only move if target layer exists (avoid errors if initial KML load failed)
   try {

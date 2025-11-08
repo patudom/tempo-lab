@@ -83,6 +83,7 @@ const layerNames: Record<string, string | undefined> = {
   "power-plants-layer": "Power Plants",
   "stamen-toner-lines": "Roads",
   "pop-dens": "Population Density",
+  "land-use": "Sentinel Land Use",
   "hms-fire": "Fire Detections",
 };
 
