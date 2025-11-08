@@ -25,6 +25,7 @@ export interface ImageSerivceLayerOptions {
   renderingRule?: RenderingRuleOptions;
   visible?: boolean;
   clickValue?: boolean;
+  exportImageOptions?: Record<string, unknown>;
 }
 
 export function useEsriImageServiceLayer(
@@ -63,6 +64,7 @@ export function useEsriImageServiceLayer(
       'bbox': '{bbox-epsg-3857}',
       'interpolation': 'RSP_NearestNeighbor',
       'renderingRule': options.renderingRule || {},
+      ...options.exportImageOptions || {},
     };
   });
 
@@ -76,7 +78,7 @@ export function useEsriImageServiceLayer(
         source: esriLayerId,
         paint: {
           'raster-resampling': 'nearest',
-          'raster-opacity': opacityRef.value ?? 0.8,
+          'raster-opacity': (options.visible === false) ? 0.0 : (opacityRef.value ?? 0.8),
         },
       });
       let index = -1;
