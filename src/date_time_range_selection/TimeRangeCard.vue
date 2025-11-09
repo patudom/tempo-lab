@@ -77,7 +77,7 @@ const props = defineProps<{
   name?: string;
   timeRange: TimeRange;
 }>();
-console.log('TimeRangeCard props:', props.timeRange.config);
+// console.log('TimeRangeCard props:', props.timeRange.config);
 </script>
     
 

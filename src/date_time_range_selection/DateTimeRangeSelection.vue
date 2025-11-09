@@ -569,7 +569,7 @@ import { watchGoldenLayoutContainerSize } from '@/utils/golden_layout';
 // === LIFECYCLE HOOKS ===
 onMounted(() => {
   if (dtrsRoot.value) {
-    console.log(dtrsRoot.value);
+    // console.log(dtrsRoot.value);
     watchGoldenLayoutContainerSize(dtrsRoot.value as HTMLElement, (size) => {
       glContainerSize.value = size;
     });
@@ -584,9 +584,9 @@ onMounted(() => {
     endDateObj.value = end;
   }
 });
-watch(glContainerSize, (newSize) => {
-  console.log('DTRS Golden Layout container size changed:', newSize);
-});
+// watch(glContainerSize, (newSize) => {
+//   console.log('DTRS Golden Layout container size changed:', newSize);
+// });
 // === WATCHERS ===
 // Watch for prop changes and update refs
 watch(() => props.currentDate, (newDate) => {

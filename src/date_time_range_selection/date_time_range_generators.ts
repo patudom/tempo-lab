@@ -335,7 +335,6 @@ function generatePatternedRanges(config: TimeRangeConfigMultiple): MillisecondRa
     currentDate.setUTCDate(currentDate.getUTCDate() + 1);
   }
   
-  console.log(`Generated ${ranges.length} time ranges based on pattern.`);
   
   // Determine if we should merge consecutive ranges
   // We merge if:
@@ -347,7 +346,7 @@ function generatePatternedRanges(config: TimeRangeConfigMultiple): MillisecondRa
   if (filterOnMonths && config.months && !needsFinerThanMonths) {
     const monthCheck = isRingConsecutive(config.months, [...MONTHS], false);
     if (monthCheck.consecutive) {
-      console.log(`Detected cyclically consecutive months: ${monthCheck.start} to ${monthCheck.end}`);
+      // console.log(`Detected cyclically consecutive months: ${monthCheck.start} to ${monthCheck.end}`);
       shouldMerge = true;
     }
   }
@@ -356,14 +355,14 @@ function generatePatternedRanges(config: TimeRangeConfigMultiple): MillisecondRa
   if (filterOnWeekdays && config.weekdays && !needsFinerThanWeekdays) {
     const weekdayCheck = isRingConsecutive(config.weekdays, [...DAYS], false);
     if (weekdayCheck.consecutive) {
-      console.log(`Detected cyclically consecutive weekdays: ${weekdayCheck.start} to ${weekdayCheck.end}`);
+      // console.log(`Detected cyclically consecutive weekdays: ${weekdayCheck.start} to ${weekdayCheck.end}`);
       shouldMerge = true;
     }
   }
   
   const mergedRanges = mergeConsecutiveRanges(ranges, shouldMerge);
   if (mergedRanges.length < ranges.length) {
-    console.log(`Merged ${ranges.length - mergedRanges.length} consecutive ranges. Now ${mergedRanges.length} ranges.`);
+    // console.log(`Merged ${ranges.length - mergedRanges.length} consecutive ranges. Now ${mergedRanges.length} ranges.`);
   }
   
   return mergedRanges;
@@ -425,9 +424,6 @@ function validateTimePointRange(
   // Check for overlap: target time range overlaps with the actual range
   // const overlaps = targetWithToleranceStart <= range.end && targetWithToleranceEnd >= range.start;
   const within = targetWithToleranceStart >= range.start && targetWithToleranceEnd <= range.end;
-  if (!within) {
-    console.log(`Range ${new Date(range.start).toISOString()} - ${new Date(range.end).toISOString()} does not contain time point ${configuredTime} with tolerance ±${(toleranceMs[0]/MS_IN_HOUR).toFixed(2)}h.`);
-  }
   return within;
 }
 
@@ -502,7 +498,7 @@ export function validateRanges(ranges: MillisecondRange[], config: TimeRangeConf
     // check that all ranges fall within the date range
     ranges.forEach(r => {
       if (!dateInRange(r.start, startDate, endDate) || !dateInRange(r.end, startDate, endDate)) {
-        console.log('Range out of date range:', r, 'Date Range:', startDate, endDate);
+        // console.log('Range out of date range:', r, 'Date Range:', startDate, endDate);
         valid = false;
         count += 1;
         badRanges.push(r);
