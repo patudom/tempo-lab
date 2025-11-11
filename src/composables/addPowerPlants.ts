@@ -151,7 +151,17 @@ export function addPowerPlants(map: Ref<Map | null> | null) {
         ],
         "circle-opacity": 1,
         "circle-stroke-width": 1,
-        "circle-stroke-color": "#ffffff"
+        "circle-stroke-color": [
+          "match",
+          ["get", "PrimSource"],
+          // light colors get black, else white stroke
+          'solar',         "#000000",
+          'wind',     "#000000",
+          'petroleum', "#000000",
+          'other',          "#000000",
+          'natural gas',     "#000000",
+          /* default */    "#FFFFFF"
+        ]
       },
     });
     //
