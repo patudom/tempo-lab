@@ -263,7 +263,7 @@ const hmsFire = addHMSFire(singleDateSelected, {
 const onMapReady = (m: Map) => {
   console.log('Map ready event received');
   map.value = m; // ESRI source already added by EsriMap
-  pp.addheatmapLayer();
+  // pp.addheatmapLayer();
   // pp.togglePowerPlants(false);
   aqiLayer.addToMap(m);
   popLayer.addEsriSource(m);
@@ -278,8 +278,8 @@ const onMapReady = (m: Map) => {
     // ignore
   }
   
+  pp.addLayer();
   aqiLayer.layerVisible.value = false;
-  pp.togglePowerPlants(false);
   updateRegionLayers(regions.value);
 };
 
