@@ -77,8 +77,17 @@
                 :step="0.01"
                 label="Region Opacity"
                 :color="tempoRed"
+                density="compact"
+                hide-details
               >
               </v-slider>
+              <v-checkbox
+                v-model="regionVisibility"
+                label="Show regions"
+                density="compact"
+                hide-details
+              >
+              </v-checkbox>
               <v-list>
                 <v-list-item
                   v-for="(region, index) in regions"
@@ -862,6 +871,7 @@ const {
   focusRegion,
   showSamplingPreviewMarkers,
   regionOpacity,
+  regionVisibility,
   tempoRed,
 } = storeToRefs(store);
 

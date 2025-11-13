@@ -166,6 +166,7 @@ const store = useTempoStore();
 const {
   regions,
   regionOpacity,
+  regionVisibility,
   timestamp,
   timeIndex,
   minIndex,
@@ -445,8 +446,8 @@ function addLayer(
 ): { layer: GeoJSONSource } {
   const isRect = geometryType === 'rectangle';
   const layerInfo = isRect ?
-    addRectangleLayer((map.value as MapType)!, info as RectangleSelectionInfo, color, regionOpacity.value) :
-    addPointLayer((map.value as MapType)!, info as PointSelectionInfo, color);
+    addRectangleLayer((map.value as MapType)!, info as RectangleSelectionInfo, color, regionOpacity.value, regionVisibility.value) :
+    addPointLayer((map.value as MapType)!, info as PointSelectionInfo, color, regionVisibility.value);
   map.value?.moveLayer(layerInfo.layer.id);
   return layerInfo;
 }
@@ -510,6 +511,14 @@ watch(regionOpacity, (opacity: number) => {
   if (map.value !== null) {
     Object.values(regionLayers).forEach(layer => {
       setLayerOpacity(map.value as Map, layer.id, opacity);
+    });
+  }
+});
+
+watch(regionVisibility, (visible: boolean) => {
+  if (map.value !== null) {
+    Object.values(regionLayers).forEach(layer => {
+      setLayerVisibility(map.value as Map, layer.id, visible);
     });
   }
 });
