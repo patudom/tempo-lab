@@ -38,6 +38,7 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
 
   const selectionActive = ref<SelectionType>(null);
   const focusRegion = ref<UnifiedRegion | null>(null);
+  const regionOpacity = ref(0.7);
 
   const showFieldOfRegard = ref(false);
   const showRoads = ref(true);
@@ -348,6 +349,7 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
 
     selectionActive,
     focusRegion,
+    regionOpacity,
 
     showFieldOfRegard,
     showRoads,

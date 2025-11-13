@@ -148,7 +148,7 @@ import { COLORS } from "@/utils/color";
 import { EsriSampler } from "@/esri/services/sampling";
 import { useMultiMarker } from '@/composables/maplibre/useMultiMarker';
 
-import { setLayerVisibility } from "@/maplibre_controls";
+import { setLayerOpacity, setLayerVisibility } from "@/maplibre_controls";
 
 import EsriMap from "@/components/EsriMap.vue";
 import MapColorbarWrap from "@/components/MapColorbarWrap.vue";
@@ -165,6 +165,7 @@ const mapID = `map-${v4().replace("-", "")}`;
 const store = useTempoStore();
 const {
   regions,
+  regionOpacity,
   timestamp,
   timeIndex,
   minIndex,
@@ -444,7 +445,7 @@ function addLayer(
 ): { layer: GeoJSONSource } {
   const isRect = geometryType === 'rectangle';
   const layerInfo = isRect ?
-    addRectangleLayer((map.value as MapType)!, info as RectangleSelectionInfo, color) :
+    addRectangleLayer((map.value as MapType)!, info as RectangleSelectionInfo, color, regionOpacity.value) :
     addPointLayer((map.value as MapType)!, info as PointSelectionInfo, color);
   map.value?.moveLayer(layerInfo.layer.id);
   return layerInfo;
@@ -504,6 +505,14 @@ function updateRegionLayers(newRegions: UnifiedRegionType[]) {
 }
 
 watch(regions, updateRegionLayers, { deep: true });
+
+watch(regionOpacity, (opacity: number) => {
+  if (map.value !== null) {
+    Object.values(regionLayers).forEach(layer => {
+      setLayerOpacity(map.value as Map, layer.id, opacity);
+    });
+  }
+});
 
 watch(rectangleInfo, (info: RectangleSelectionInfo | null) => {
   if (info === null || map.value === null) {

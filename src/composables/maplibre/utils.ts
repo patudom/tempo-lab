@@ -21,6 +21,7 @@ export function addRectangleLayer(
   map: Map,
   info: RectangleSelectionInfo,
   color: string,
+  opacity=0.7,
 ) {
 
   const uuid = v4();
@@ -50,7 +51,7 @@ export function addRectangleLayer(
     source: uuid,
     paint: {
       "fill-color": color,
-      "fill-opacity": 0.7,
+      "fill-opacity": opacity,
     }
   });
 
