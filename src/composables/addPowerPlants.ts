@@ -123,7 +123,17 @@ export function addPowerPlants(map: Ref<Map | null> | null) {
       source: powerPlantsSourceId,
       minzoom: op.minzoom || 0,
       paint: {
-        "circle-radius": 6,
+        "circle-radius": [
+          "interpolate",
+          ["linear"],
+          ["get", "Install_MW"],
+
+          // These two points define a linear interpolation
+          // so if Install_MW is 0, the radius is 0
+          // and if Install_MW is 3000, the radius is 20
+          0, 0,
+          3000, 20,
+        ],
         "circle-color": [
           "match",
           ["get", "PrimSource"],
