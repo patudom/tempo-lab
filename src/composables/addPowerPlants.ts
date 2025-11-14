@@ -131,7 +131,7 @@ export function addPowerPlants(map: Ref<Map | null> | null) {
           // These two points define a linear interpolation
           // so if Install_MW is 0, the radius is 0
           // and if sqrt(Install_MW) is 55, the radius is 10
-          0, 0,
+          0, 1,
           55, 10,
         ],
         "circle-color": [
