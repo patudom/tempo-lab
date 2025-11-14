@@ -281,6 +281,7 @@ const onMapReady = (m: Map) => {
   }
   
   pp.addLayer();
+  pp.togglePowerPlants(false);
   aqiLayer.layerVisible.value = false;
   updateRegionLayers(regions.value);
 };
