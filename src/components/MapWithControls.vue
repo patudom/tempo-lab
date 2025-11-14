@@ -512,6 +512,7 @@ watch(regionOpacity, (opacity: number) => {
     Object.values(regionLayers).forEach(layer => {
       setLayerOpacity(map.value as Map, layer.id, opacity);
     });
+    setLayerOpacity(map.value as Map, "predicted-samples-locations-layer", opacity);
   }
 });
 
@@ -520,6 +521,7 @@ watch(regionVisibility, (visible: boolean) => {
     Object.values(regionLayers).forEach(layer => {
       setLayerVisibility(map.value as Map, layer.id, visible);
     });
+    setLayerVisibility(map.value as Map, "predicted-samples-locations-layer", visible);
   }
 });
 
@@ -565,7 +567,7 @@ const samplingPreviewMarkers = useMultiMarker(map as MapTypeRef , {
   color: '#0000ff',
   fillColor: '#0000ff',
   fillOpacity: 0.5,
-  opacity: 1,
+  opacity: regionOpacity.value,
   radius: 0.02 / 2, // degrees
   scale: 'world',
   outlineColor: '#0000ff',
