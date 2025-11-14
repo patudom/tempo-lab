@@ -260,6 +260,11 @@ const hmsFire = addHMSFire(singleDateSelected, {
   showLabel: false,
 });
 
+import { useEsriLayer } from "@/esri/maplibre/useEsriImageLayer";
+// just use the hcho layer for now
+const hchoLayer = useEsriLayer('hcho', timestamp, 1, true, 'tempo-hcho', false);
+const ozoneLayer = useEsriLayer('o3', timestamp, 1, true, 'tempo-ozone', false);
+
 const onMapReady = (m: Map) => {
   console.log('Map ready event received');
   map.value = m; // ESRI source already added by EsriMap
@@ -269,6 +274,8 @@ const onMapReady = (m: Map) => {
   popLayer.addEsriSource(m);
   sentinalLandUseLayer.addEsriSource(m);
   hmsFire.addToMap(m);
+  hchoLayer.addEsriSource(m);
+  ozoneLayer.addEsriSource(m);
   // Only move if target layer exists (avoid errors if initial KML load failed)
   try {
     if (m.getLayer('kml-layer-aqi')) {
@@ -309,7 +316,13 @@ const regionLayers: Record<string, GeoJSONSource> = {};
 
 const currentColormap = computed(() => {
   return (x: number): string => {
-    const rgb = colormap(colorMap.value, 0, 1, x);
+    let rgb: number[] = [128, 128, 128];
+    try {
+      rgb = colormap(colorMap.value, 0, 1, x);
+    }
+    catch {
+      rgb = colormap('viridis', 0, 1, x);
+    }
     return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]},1)`;
   };
 });

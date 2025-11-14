@@ -85,6 +85,8 @@ const layerNames: Record<string, string | undefined> = {
   "pop-dens": "Population Density",
   "land-use": "Sentinel Land Use",
   "hms-fire": "Fire Detections",
+  'tempo-hcho': "TEMPO HCHO",
+  'tempo-ozone': "TEMPO Ozone",
 };
 
 const layerInfo: Record<string, string | undefined> = {
