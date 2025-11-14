@@ -126,7 +126,7 @@ export function addPowerPlants(map: Ref<Map | null> | null) {
         "circle-radius": [
           "interpolate",
           ["linear"],
-          ["sqrt", ["get", "Install_MW"]],
+          ["sqrt", ["get", "Total_MW"]],
 
           // These two points define a linear interpolation
           // so if Install_MW is 0, the radius is 0
