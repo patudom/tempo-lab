@@ -126,13 +126,13 @@ export function addPowerPlants(map: Ref<Map | null> | null) {
         "circle-radius": [
           "interpolate",
           ["linear"],
-          ["get", "Install_MW"],
+          ["sqrt", ["get", "Install_MW"]],
 
           // These two points define a linear interpolation
           // so if Install_MW is 0, the radius is 0
-          // and if Install_MW is 3000, the radius is 20
+          // and if sqrt(Install_MW) is 55, the radius is 10
           0, 0,
-          3000, 20,
+          55, 10,
         ],
         "circle-color": [
           "match",
