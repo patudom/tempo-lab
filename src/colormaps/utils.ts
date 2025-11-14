@@ -21,7 +21,10 @@ function clamp(x: number, min: number, max: number): number {
 
 export function colormap(cmap: AllAvailableColorMaps, cmin: number, cmax: number, val: number): [number, number, number]
 { 
-  
+  if ((!Object.keys(colormaps).includes(cmap))) {
+    // return a viridis
+    cmap = 'viridis';
+  }
   let reversed = false;
   if (cmap.endsWith('_r')) {
     cmap = cmap.slice(0, -2) as AllAvailableColorMaps;

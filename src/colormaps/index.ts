@@ -1,4 +1,5 @@
 
+import { AnyCase } from '@/types';
 import { magma } from "./magma";
 import { inferno } from "./inferno";
 import { plasma } from "./plasma";
@@ -31,4 +32,4 @@ export const nonEsriColormaps = {
 
 export type AvailableColorMaps = 'magma' | 'inferno' | 'plasma' | 'viridis' | 'cividis' | 'svs' | 'gray' | 'sargassum' | 'haline';
 export type AvailableReverseColorMaps = `${AvailableColorMaps}_r`;
-export type AllAvailableColorMaps = AvailableColorMaps | AvailableReverseColorMaps | 'None';
+export type AllAvailableColorMaps = AnyCase<AvailableColorMaps | AvailableReverseColorMaps | 'None'>;
