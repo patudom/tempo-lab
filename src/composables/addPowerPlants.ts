@@ -201,7 +201,7 @@ export function addPowerPlants(map: Ref<Map | null> | null) {
         // Plant_Name, PrimSource, Total_MW
         const description = e.features[0].properties.Plant_Name + '<br/>' +
           'Primary Source: ' + e.features[0].properties.PrimSource + '<br/>' +
-          'Installed MW: ' + e.features[0].properties.Install_MW;
+          'Total MW: ' + e.features[0].properties.Total_MW;
 
         // Ensure that if the map is zoomed out such that multiple
         // copies of the feature are visible, the popup appears
