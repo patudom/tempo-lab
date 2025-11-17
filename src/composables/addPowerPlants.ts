@@ -123,7 +123,17 @@ export function addPowerPlants(map: Ref<Map | null> | null) {
       source: powerPlantsSourceId,
       minzoom: op.minzoom || 0,
       paint: {
-        "circle-radius": 6,
+        "circle-radius": [
+          "interpolate",
+          ["linear"],
+          ["sqrt", ["get", "Total_MW"]],
+
+          // These two points define a linear interpolation
+          // so if Install_MW is 0, the radius is 0
+          // and if sqrt(Install_MW) is 55, the radius is 10
+          0, 1,
+          55, 10,
+        ],
         "circle-color": [
           "match",
           ["get", "PrimSource"],
@@ -191,7 +201,7 @@ export function addPowerPlants(map: Ref<Map | null> | null) {
         // Plant_Name, PrimSource, Total_MW
         const description = e.features[0].properties.Plant_Name + '<br/>' +
           'Primary Source: ' + e.features[0].properties.PrimSource + '<br/>' +
-          'Installed MW: ' + e.features[0].properties.Install_MW;
+          'Total MW: ' + e.features[0].properties.Total_MW;
 
         // Ensure that if the map is zoomed out such that multiple
         // copies of the feature are visible, the popup appears

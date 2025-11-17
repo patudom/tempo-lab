@@ -16,19 +16,6 @@
           :info="layerInfo[element]"
           :display-name="displayNameTransform(element)"
         >
-          <template #actions="{ visible }">
-            <div v-if="powerPlantLayerIds.includes(element)">
-              <v-btn-toggle
-                v-model="powerPlantMode"
-                density="compact"
-                color="primary"
-                :disabled="!visible"
-              >
-                <v-btn>Heatmap</v-btn>
-                <v-btn>Points</v-btn>
-              </v-btn-toggle>
-            </div>
-          </template>
         </layer-control-item>
       </div>
     </template>
@@ -37,12 +24,11 @@
 
 
 <script setup lang="ts">
-import { computed, type MaybeRef, ref, toValue, toRef, watch } from 'vue';
+import { computed, type MaybeRef,  toValue, toRef } from 'vue';
 import draggable from 'vuedraggable';
 import M from 'maplibre-gl';
 
 import { useMaplibreLayerOrderControl } from "@/composables/useMaplibreLayerOrderControl";
-import { getLayerOpacity, setLayerOpacity, setLayerVisibility } from "@/maplibre_controls";
 import { capitalizeWords } from "@/utils/names";
 
 interface Props {
@@ -52,9 +38,6 @@ interface Props {
 
 const props = defineProps<Props>();
 const mapRef = toRef(() => props.mapRef);
-
-const powerPlantMode = ref(0);
-const powerPlantLayerIds = ["power-plants-heatmap", "power-plants-layer"];
 
 // https://vuejs.org/guide/typescript/composition-api.html#typing-component-emits
 
@@ -96,23 +79,6 @@ const layerInfo: Record<string, string | undefined> = {
 function displayNameTransform(layerId: string): string {
   return layerNames[layerId] ?? capitalizeWords(layerId.replace(/-/g, " "));
 }
-
-watch(powerPlantMode, (mode: number, oldMode: number) => {
-  const oldLayerId = powerPlantLayerIds[oldMode];
-  const order = [...currentOrder.value];
-  const index = order.indexOf(oldLayerId);
-  const newLayerId = powerPlantLayerIds[mode];
-  if (index >= 0) {
-    order[index] = newLayerId;
-  }
-  if (mapRef.value) {
-    setLayerOpacity(mapRef.value, newLayerId, getLayerOpacity(mapRef.value, oldLayerId));
-    setLayerVisibility(mapRef.value, oldLayerId, false);
-    setLayerVisibility(mapRef.value, newLayerId, true);
-  }
-  currentOrder.value = order;
-  controller?.setOrder(order);
-});
 </script>
 
 
