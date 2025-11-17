@@ -148,7 +148,7 @@ import { COLORS } from "@/utils/color";
 import { EsriSampler } from "@/esri/services/sampling";
 import { useMultiMarker } from '@/composables/maplibre/useMultiMarker';
 
-import { setLayerVisibility } from "@/maplibre_controls";
+import { setLayerOpacity, setLayerVisibility } from "@/maplibre_controls";
 
 import EsriMap from "@/components/EsriMap.vue";
 import MapColorbarWrap from "@/components/MapColorbarWrap.vue";
@@ -165,6 +165,8 @@ const mapID = `map-${v4().replace("-", "")}`;
 const store = useTempoStore();
 const {
   regions,
+  regionOpacity,
+  regionVisibility,
   timestamp,
   timeIndex,
   minIndex,
@@ -263,7 +265,7 @@ const hmsFire = addHMSFire(singleDateSelected, {
 const onMapReady = (m: Map) => {
   console.log('Map ready event received');
   map.value = m; // ESRI source already added by EsriMap
-  pp.addheatmapLayer();
+  // pp.addheatmapLayer();
   // pp.togglePowerPlants(false);
   aqiLayer.addToMap(m);
   popLayer.addEsriSource(m);
@@ -278,8 +280,9 @@ const onMapReady = (m: Map) => {
     // ignore
   }
   
-  aqiLayer.layerVisible.value = false;
+  pp.addLayer();
   pp.togglePowerPlants(false);
+  aqiLayer.layerVisible.value = false;
   updateRegionLayers(regions.value);
 };
 
@@ -444,8 +447,8 @@ function addLayer(
 ): { layer: GeoJSONSource } {
   const isRect = geometryType === 'rectangle';
   const layerInfo = isRect ?
-    addRectangleLayer((map.value as MapType)!, info as RectangleSelectionInfo, color) :
-    addPointLayer((map.value as MapType)!, info as PointSelectionInfo, color);
+    addRectangleLayer((map.value as MapType)!, info as RectangleSelectionInfo, color, regionOpacity.value, regionVisibility.value) :
+    addPointLayer((map.value as MapType)!, info as PointSelectionInfo, color, regionVisibility.value);
   map.value?.moveLayer(layerInfo.layer.id);
   return layerInfo;
 }
@@ -505,6 +508,24 @@ function updateRegionLayers(newRegions: UnifiedRegionType[]) {
 
 watch(regions, updateRegionLayers, { deep: true });
 
+watch(regionOpacity, (opacity: number) => {
+  if (map.value !== null) {
+    Object.values(regionLayers).forEach(layer => {
+      setLayerOpacity(map.value as Map, layer.id, opacity);
+    });
+    setLayerOpacity(map.value as Map, "predicted-samples-locations-layer", opacity);
+  }
+});
+
+watch(regionVisibility, (visible: boolean) => {
+  if (map.value !== null) {
+    Object.values(regionLayers).forEach(layer => {
+      setLayerVisibility(map.value as Map, layer.id, visible);
+    });
+    setLayerVisibility(map.value as Map, "predicted-samples-locations-layer", visible);
+  }
+});
+
 watch(rectangleInfo, (info: RectangleSelectionInfo | null) => {
   if (info === null || map.value === null) {
     rectangleSelectionActive.value = false;
@@ -547,7 +568,7 @@ const samplingPreviewMarkers = useMultiMarker(map as MapTypeRef , {
   color: '#0000ff',
   fillColor: '#0000ff',
   fillOpacity: 0.5,
-  opacity: 1,
+  opacity: regionOpacity.value,
   radius: 0.02 / 2, // degrees
   scale: 'world',
   outlineColor: '#0000ff',
