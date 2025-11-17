@@ -60,13 +60,13 @@ const displayOrder = computed({
 });
 
 const layerNames: Record<string, string | undefined> = {
-  "tempo-no2": "TEMPO Data",
+  "tempo-no2": "TEMPO NO2",
   "aqi-layer-aqi": "Air Quality Index",
   "power-plants-heatmap": "Power Plants",
   "power-plants-layer": "Power Plants",
   "stamen-toner-lines": "Roads",
   "pop-dens": "Population Density",
-  "land-use": "Sentinel Land Use",
+  "land-use": "Land Use",
   "hms-fire": "Fire Detections",
   'tempo-hcho': "TEMPO HCHO",
   'tempo-o3': "TEMPO Ozone",
