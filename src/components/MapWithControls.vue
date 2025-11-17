@@ -51,15 +51,17 @@
             'zoomend': updateURL,
           }"
           :timestamp="timestamp"
-          :molecule="molecule"
+          molecule="no2"
           :opacity="opacity"
           :show-field-of-regard="showFieldOfRegard"
           @zoomhome="onZoomhome"
           @ready="onMapReady"
+          @esri-layer="no2Layer = $event"
           @esri-timesteps-loaded="onEsriTimestepsLoaded"
           ref="maplibreMap"
           width="100%"
           height="450px"
+          maplibre-layer-name="tempo-no2"
         />
 
         <div v-if="showFieldOfRegard" class="map-legend"><hr class="line-legend">TEMPO Field of Regard</div>
@@ -94,7 +96,7 @@
         @end="() => {
           timeSliderUsedCount += 1;
           if (map) {
-            setLayerVisibility(map as Map, 'esri-source', true);
+            setLayerVisibility(map as Map, activeLayer, true);
           }
         }"
       >
@@ -117,7 +119,7 @@
         @molecule="(mol: MoleculeType) => {
           molecule = mol;
           if (map) {
-            setLayerVisibility(map as Map, 'esri-source', true);
+            setLayerVisibility(map as Map, activeLayer, true);
           }
         }"
       />
@@ -260,10 +262,12 @@ const hmsFire = addHMSFire(singleDateSelected, {
   showLabel: false,
 });
 
-import { useEsriLayer } from "@/esri/maplibre/useEsriImageLayer";
+import { type UseEsriLayer, useEsriLayer } from "@/esri/maplibre/useEsriImageLayer";
 // just use the hcho layer for now
 const hchoLayer = useEsriLayer('hcho', timestamp, 1, true, 'tempo-hcho', false);
-const ozoneLayer = useEsriLayer('o3', timestamp, 1, true, 'tempo-ozone', false);
+const ozoneLayer = useEsriLayer('o3', timestamp, 1, true, 'tempo-o3', false);
+const no2Layer = ref<UseEsriLayer | null>(null);
+const compareMode = ref(false);
 
 const onMapReady = (m: Map) => {
   console.log('Map ready event received');
@@ -289,6 +293,53 @@ const onMapReady = (m: Map) => {
   pp.togglePowerPlants(false);
   updateRegionLayers(regions.value);
 };
+
+
+watch(molecule, (newMolecule) => {
+  if (map.value) {
+    hchoLayer.setVisibility(newMolecule === 'hcho');
+    ozoneLayer.setVisibility(newMolecule === 'o3');
+    no2Layer.value?.setVisibility(newMolecule === 'no2');
+    map.value.moveLayer(`tempo-${newMolecule}`);
+  }
+});
+
+const activeLayer = computed(() => `tempo-${molecule.value}`);
+
+import { stretches, colorramps, type ColorRamps } from "@/esri/ImageLayerConfig";
+watch(compareMode, (cMode) => {
+
+  const rgbstretches = {
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    'NO2_Troposphere': [0, 15_000_000_000_000_000],
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    'Ozone_Column_Amount': [250, 430], // +- 2 sigma
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    'HCHO': [1_000_000_000_000_000, 15_000_000_000_000_000],
+  } as Record<string, [number, number]>;
+  const rgbcolorramps = {
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    'NO2_Troposphere': 'redfromwhite',
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    'Ozone_Column_Amount': 'greenfromwhite', 
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    'HCHO': 'bluefromwhite',
+  } as Record<string, ColorRamps>;
+  
+  
+  hchoLayer.renderOptions.value.colormap = (cMode ? rgbcolorramps : colorramps)['HCHO'];
+  ozoneLayer.renderOptions.value.colormap = (cMode ? rgbcolorramps : colorramps)['Ozone_Column_Amount'];
+  if (no2Layer.value) {
+    no2Layer.value.renderOptions.colormap = (cMode ? rgbcolorramps : colorramps)['NO2_Troposphere'];
+  }
+  hchoLayer.renderOptions.value.range = (cMode ? rgbstretches : stretches)['HCHO'];
+  ozoneLayer.renderOptions.value.range = (cMode ? rgbstretches : stretches)['Ozone_Column_Amount'];
+  if (no2Layer.value) {
+    no2Layer.value.renderOptions.range = (cMode ? rgbstretches : stretches)['NO2_Troposphere'];
+  }
+
+  
+});
 
 const showLocationMarker = ref(true);
 const {
@@ -321,10 +372,14 @@ const currentColormap = computed(() => {
       rgb = colormap(colorMap.value, 0, 1, x);
     }
     catch {
-      rgb = colormap('viridis', 0, 1, x);
+      console.log("no valid colormap. returning gray");
     }
     return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]},1)`;
   };
+});
+
+watch(colorMap, (value) => {
+  console.log('color map changed to', value);
 });
 
 const mapTitle = computed(() => {

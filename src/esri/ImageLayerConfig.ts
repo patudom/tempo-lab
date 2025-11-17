@@ -63,9 +63,9 @@ export const stretches = {
   'HCHO': [1_000_000_000_000_000, 15_000_000_000_000_000],
 } as Record<Variables, [number, number]>;
 export const colorramps = {
-  'NO2_Troposphere': 'Magma',
-  'Ozone_Column_Amount': 'Cividis', 
-  'HCHO': 'Viridis',
+  'NO2_Troposphere': 'Magma_r',
+  'Ozone_Column_Amount': 'Cividis_r', 
+  'HCHO': 'Viridis_r',
 } as Record<Variables, ColorRamps>;
 
 export const colorbarOptions = {
@@ -203,7 +203,12 @@ export const renderingRule = (range: [number, number], colormap: ColorRamps, res
     reverse = true;
     colormapName = colormap.slice(0, -2) as ColorRamps;
   }
-  return composeRasterRules(_stretchRule(Math.min(...range), Math.max(...range), reverse), _colorMapRule(colormapName), _resampleRule(resamplineRule));
+  return composeRasterRules(
+    _stretchRule(Math.min(...range), Math.max(...range), reverse), 
+
+    _colorMapRule(colormapName), 
+    _resampleRule(resamplineRule),
+  );
 };
 
 export interface RenderingRuleOptions {
