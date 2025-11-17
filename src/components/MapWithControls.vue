@@ -95,9 +95,9 @@
         hide-details
         @end="() => {
           timeSliderUsedCount += 1;
-          if (map) {
-            setLayerVisibility(map as Map, activeLayer, true);
-          }
+          // if (map) {
+          //   setLayerVisibility(map as Map, activeLayer, true);
+          // }
         }"
       >
         <template v-slot:thumb-label>
@@ -123,9 +123,9 @@
         class="flex-grow-1"
         @molecule="(mol: MoleculeType) => {
           molecule = mol;
-          if (map) {
-            setLayerVisibility(map as Map, activeLayer, true);
-          }
+          // if (map) {
+          //   setLayerVisibility(map as Map, activeLayer, true);
+          // }
         }"
       />
     </div>
@@ -304,7 +304,7 @@ watch(molecule, (newMolecule) => {
     hchoLayer.setVisibility(newMolecule === 'hcho');
     ozoneLayer.setVisibility(newMolecule === 'o3');
     no2Layer.value?.setVisibility(newMolecule === 'no2');
-    map.value.moveLayer(`tempo-${newMolecule}`);
+    // map.value.moveLayer(`tempo-${newMolecule}`, 'tempo-no2');
   }
 });
 
