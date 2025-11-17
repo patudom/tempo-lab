@@ -196,7 +196,7 @@ export function composeRasterRules(
   return currentRule;
 }
 
-export const renderingRule = (range: [number, number], colormap: ColorRamps, resamplineRule: keyof typeof ResamplingTypeEnum = 'NearestNeighbor') => {
+export const renderingRule = (range: [number, number], colormap: ColorRamps, resamplineRule: keyof typeof ResamplingTypeEnum = 'NearestNeighbor'): RasterFunctionObject => {
   let reverse = false;
   let colormapName = colormap;
   if (colormap.endsWith('_r')) {

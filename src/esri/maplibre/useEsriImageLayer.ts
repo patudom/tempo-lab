@@ -17,6 +17,7 @@ interface UseEsriLayer {
   updateEsriOpacity: (value?: number | null | undefined) => void;
   updateEsriTimeRange: () => void;
   addEsriSource: (map: Map) => void;
+  setVisibility: (visible: boolean) => void;
   renderOptions: Ref<RenderingRuleOptions>;
 }
 

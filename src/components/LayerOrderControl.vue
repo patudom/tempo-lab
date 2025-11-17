@@ -77,7 +77,7 @@ const displayOrder = computed({
 });
 
 const layerNames: Record<string, string | undefined> = {
-  "esri-source": "TEMPO Data",
+  "tempo-no2": "TEMPO Data",
   "aqi-layer-aqi": "Air Quality Index",
   "power-plants-heatmap": "Power Plants",
   "power-plants-layer": "Power Plants",
@@ -86,7 +86,7 @@ const layerNames: Record<string, string | undefined> = {
   "land-use": "Sentinel Land Use",
   "hms-fire": "Fire Detections",
   'tempo-hcho': "TEMPO HCHO",
-  'tempo-ozone': "TEMPO Ozone",
+  'tempo-o3': "TEMPO Ozone",
 };
 
 const layerInfo: Record<string, string | undefined> = {

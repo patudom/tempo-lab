@@ -115,6 +115,11 @@ const props = defineProps({
     type: Boolean, 
     required: false, 
     default: true 
+  },
+  maplibreLayerName: {
+    type: String || undefined,
+    required: false,
+    default: undefined
   }
 });
 
@@ -157,7 +162,9 @@ const opacityRef = toRef(props, 'opacity');
 const { loadingEsriTimeSteps, addEsriSource, esriTimesteps, renderOptions } = useEsriLayer(
   molecule,
   timestampRef,
-  opacityRef
+  opacityRef,
+  true,
+  props.maplibreLayerName
 );
 
 watch(esriTimesteps, (newSteps, old) => {
