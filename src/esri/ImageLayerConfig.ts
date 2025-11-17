@@ -60,7 +60,7 @@ export function _convolutionRule(size: 3 | 5): RasterFunctionObject {
 export const stretches = {
   'NO2_Troposphere': [0, 15_000_000_000_000_000],
   'Ozone_Column_Amount': [250, 430], // +- 2 sigma
-  'HCHO': [1_000_000_000_000_000, 15_000_000_000_000_000],
+  'HCHO': [1_000_000_000_000_000, 30_000_000_000_000_000],
 } as Record<Variables, [number, number]>;
 export const colorramps = {
   'NO2_Troposphere': 'Magma_r',

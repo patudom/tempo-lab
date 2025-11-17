@@ -4,10 +4,10 @@
       :horizontal="display.width.value <= 750"
       :current-colormap="currentColormap"
       :color-map="colorMap"
-      :start-value="colorbarOptions[molecule].stretch[0] / colorbarOptions[molecule].cbarScale"
-      :end-value="colorbarOptions[molecule].stretch[1] / colorbarOptions[molecule].cbarScale"
-      :molecule-label="colorbarOptions[molecule].label"
-      :cbar-scale="colorbarOptions[molecule].cbarScale"
+      :start-value="currentColorbarOptions.stretch[0] / currentColorbarOptions.cbarScale"
+      :end-value="currentColorbarOptions.stretch[1] / currentColorbarOptions.cbarScale"
+      :molecule-label="currentColorbarOptions.label"
+      :cbar-scale="currentColorbarOptions.cbarScale"
     >
       <v-card class="map-contents" style="width:100%; height: 100%;">
         <v-toolbar
@@ -114,6 +114,11 @@
       ></icon-button>
     </div>
     <div class="d-flex flex-row">
+      <v-checkbox
+        v-model="compareMode"
+        title="RGB Mode"
+        />
+        
       <map-controls
         class="flex-grow-1"
         @molecule="(mol: MoleculeType) => {
@@ -190,7 +195,6 @@ const {
 } = storeToRefs(store);
 
 const molecule = ref<MoleculeType>("no2");
-const colorMap = computed(() => colorbarOptions[molecule.value].colormap.toLowerCase());
 const currentTempoDataService = computed(() => store.getTempoDataService(molecule.value));
 
 function createSelectionComputed(selection: SelectionType): WritableComputedRef<boolean> {
@@ -307,25 +311,24 @@ watch(molecule, (newMolecule) => {
 const activeLayer = computed(() => `tempo-${molecule.value}`);
 
 import { stretches, colorramps, type ColorRamps } from "@/esri/ImageLayerConfig";
-watch(compareMode, (cMode) => {
-
-  const rgbstretches = {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    'NO2_Troposphere': [0, 15_000_000_000_000_000],
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    'Ozone_Column_Amount': [250, 430], // +- 2 sigma
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    'HCHO': [1_000_000_000_000_000, 15_000_000_000_000_000],
-  } as Record<string, [number, number]>;
-  const rgbcolorramps = {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    'NO2_Troposphere': 'redfromwhite',
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    'Ozone_Column_Amount': 'greenfromwhite', 
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    'HCHO': 'bluefromwhite',
-  } as Record<string, ColorRamps>;
+const rgbstretches = {
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  'NO2_Troposphere': [0, 7_500_000_000_000_000],
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  'Ozone_Column_Amount': [250, 430], // +- 2 sigma
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  'HCHO': [1_000_000_000_000_000, 15_000_000_000_000_000],
+} as Record<string, [number, number]>;
+const rgbcolorramps = {
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  'NO2_Troposphere': 'redfromwhite',
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  'Ozone_Column_Amount': 'greenfromwhite', 
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  'HCHO': 'bluefromwhite',
+} as Record<string, ColorRamps>;
   
+watch(compareMode, (cMode) => {
   
   hchoLayer.renderOptions.value.colormap = (cMode ? rgbcolorramps : colorramps)['HCHO'];
   ozoneLayer.renderOptions.value.colormap = (cMode ? rgbcolorramps : colorramps)['Ozone_Column_Amount'];
@@ -338,7 +341,6 @@ watch(compareMode, (cMode) => {
     no2Layer.value.renderOptions.range = (cMode ? rgbstretches : stretches)['NO2_Troposphere'];
   }
 
-  
 });
 
 const showLocationMarker = ref(true);
@@ -365,11 +367,35 @@ function activatePointSelectionMode() {
 
 const regionLayers: Record<string, GeoJSONSource> = {};
 
+// const colorMap = computed(() => colorbarOptions[molecule.value].colormap.toLowerCase());
+const colorMap = computed(() => {
+  const mol = molecule.value == 'no2' 
+    ? 'NO2_Troposphere' : molecule.value == 'hcho' 
+      ? 'HCHO' : 'Ozone_Column_Amount';
+  return compareMode.value ? rgbcolorramps[mol].toLowerCase() : colorramps[mol].toLowerCase();
+});
+
+type ColorbarOptionsKey = keyof typeof colorbarOptions;
+const currentColorbarOptions = computed<typeof colorbarOptions[ColorbarOptionsKey]>(() => {
+  const mol = molecule.value == 'no2' 
+    ? 'NO2_Troposphere' : molecule.value == 'hcho' 
+      ? 'HCHO' : 'Ozone_Column_Amount';
+  return {
+    ...colorbarOptions[molecule.value],
+    colormap: compareMode.value ? rgbcolorramps[mol] : colorramps[mol],
+    stretch: compareMode.value ? rgbstretches[mol] : stretches[mol],
+  };
+});
+
+watch(currentColorbarOptions, (cc) => {
+  console.log('current colorbar options changed to', cc);
+});
+
 const currentColormap = computed(() => {
   return (x: number): string => {
     let rgb: number[] = [128, 128, 128];
     try {
-      rgb = colormap(colorMap.value, 0, 1, x);
+      rgb = colormap(colorMap.value as AllAvailableColorMaps, 0, 1, x);
     }
     catch {
       console.log("no valid colormap. returning gray");
