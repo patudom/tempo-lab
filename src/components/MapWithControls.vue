@@ -260,6 +260,9 @@ const ozoneLayer = useTempoLayer({
   initRGB: showRGBMode.value,
 });
 const no2Layer = ref<UseEsriTempoLayer | null>(null);
+  
+import { useTempoLiteImages } from "@/composables/tempo-lite/TempoLite";
+const tempoLite = useTempoLiteImages();
 
 function syncLayerReady(layerName: string, serviceReady: boolean[] | undefined) {
   if (!serviceReady || serviceReady.length === 0) {
@@ -275,6 +278,7 @@ function addAdvancedLayers(m: Map | null) {
   }
   // pp.addheatmapLayer();
   // pp.togglePowerPlants(false);
+  tempoLite.addTo(m);
   aqiLayer.addToMap(m);
   popLayer.addEsriSource(m);
   sentinalLandUseLayer.addEsriSource(m);
