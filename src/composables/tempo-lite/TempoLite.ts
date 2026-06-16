@@ -16,12 +16,12 @@ function zpad(n: number, width: number = 2, character: string = "0"): string {
   return n.toString().padStart(width, character);
 }
 
-export function useTempoLiteImages() {
+export function useTempoLiteImages(forceTimestamps = true) {
   
   const layerId = 'tempo-lite';
 
   const store = useTempoStore();
-  const { timestamp, singleDateSelected } = storeToRefs(store);
+  const { timestamp, singleDateSelected, timestamps: esriTimestamps, timestampsLoaded: esriTimestampsLoaded } = storeToRefs(store);
   const erdTimestamps = ref<number[]>([]);
   const newTimestamps = ref<number[]>([]);
   const cloudTimestamps = ref<number[]>([]);
@@ -39,6 +39,11 @@ export function useTempoLiteImages() {
   const cloudTimestampsSet = ref(new Set());
   const extendedRangeTimestampsSet = ref(new Set());
   const timestampsSet = ref(new Set(fosterTimestamps.value));
+  
+  function forceLiteTimestamps() {
+    esriTimestamps.value = timestamps.value;
+    esriTimestampsLoaded.value = true;
+  }
 
   async function updateTimestamps() {
     return Promise.all([
@@ -52,14 +57,19 @@ export function useTempoLiteImages() {
         newTimestamps.value = ts.released;
         newTimestampsSet.value = new Set(ts.released);
         timestamps.value = timestamps.value.concat(erdTimestamps.value, newTimestamps.value).sort();
+        if (forceTimestamps) {
+          forceLiteTimestamps();
+        }
         timestampsSet.value = new Set(timestamps.value);
         cloudTimestamps.value = ts.clouds;
         cloudTimestampsSet.value = new Set(ts.clouds);
       })
     ]);
   }
-
+  
   updateTimestamps().then(() => { timestampsLoaded.value = true; });
+  
+  
 
   const uu = useUniqueTimeSelection(timestamps);
 
@@ -166,6 +176,7 @@ export function useTempoLiteImages() {
   return {
     ...imageOverlay,
     layerId,
+    forceLiteTimestamps,
   };
 
 }
