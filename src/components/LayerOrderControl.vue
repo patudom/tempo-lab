@@ -214,7 +214,7 @@ watch(layersReady, () => {
     return false;  
   });
   if (notReadyTempoLayers.some(e => e)) {
-    globalWarning.value = `The NASA Earthdata GIS service at <a style="color:currentColor;" href="https://gis.earthdata.nasa.gov/">https://gis.earthdata.nasa.gov/</a> is currently down, so TEMPO and Population Density data may not be available.`;
+    globalWarning.value = `The NASA Earthdata GIS service at <a style="color:currentColor;" href="https://gis.earthdata.nasa.gov/" target="_blank">https://gis.earthdata.nasa.gov/</a> that this app relies on is currently down. TEMPO and Population Density data may not be available.`;
   } else {
     globalWarning.value = '';
   }
