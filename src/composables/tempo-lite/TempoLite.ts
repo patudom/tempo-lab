@@ -21,7 +21,7 @@ export function useTempoLiteImages() {
   const layerId = 'tempo-lite';
 
   const store = useTempoStore();
-  const { date, timestamp, minIndex, maxIndex, singleDateSelected } = storeToRefs(store);
+  const { timestamp, minIndex, maxIndex, singleDateSelected } = storeToRefs(store);
   const erdTimestamps = ref<number[]>([]);
   const newTimestamps = ref<number[]>([]);
   const cloudTimestamps = ref<number[]>([]);
@@ -63,7 +63,27 @@ export function useTempoLiteImages() {
 
 
   const loadedImagesProgress = ref(0);
+  
+  const sortedTimes = computed(() => {
+    const setArray = Array.from(timestampsSet.value);
+    setArray.sort((a,b) =>a-b);
+    return setArray;
+  });
 
+  
+  /* get the closest timestamp to timestamp.value that is in timestampsSet */
+  const nearest2Timestamp = computed(() => {
+    if (timestamp.value === null) return null;
+    const setArray = sortedTimes.value;
+    const goal = timestamp.value;
+    return setArray.reduce(function(prev, curr) {
+      return (Math.abs(curr - goal) < Math.abs(prev - goal) ? curr : prev);
+    });
+  });
+
+  const date = computed(() => {
+    return nearest2Timestamp.value === null ? null : new Date(nearest2Timestamp.value);
+  });
 
   const imageName = computed(() => {
     if (!date.value) { return ''; }
@@ -71,8 +91,8 @@ export function useTempoLiteImages() {
   });
 
   const imageUrl = computed(() => {
-    if (!timestamp.value) { return ''; }
-    const url = getTempoDataUrl(timestamp.value);
+    if (!nearest2Timestamp.value) { return ''; }
+    const url = getTempoDataUrl(nearest2Timestamp.value);
     if (url === null) { return ''; }
     return url + imageName.value;
   });

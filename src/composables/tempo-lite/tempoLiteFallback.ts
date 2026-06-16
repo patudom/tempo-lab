@@ -80,17 +80,17 @@ export function useImageOverlay(
   function addTo(map: M.Map) {
     console.log("add to", overlayId);
     _map.value = map;
-    map.on('style.load', () => {
-      console.log(`adding overlay ${overlayId} to map`);
-      const source = addSource(map);
-      addLayer(map);
-      
-      if (source !== undefined) {
-        console.log(`overlay ${overlayId} added to map`);
-        overlay.value = source as M.ImageSource;
-        configureOverlay();
-      }
-    });
+
+    console.log(`adding overlay ${overlayId} to map`);
+    const source = addSource(map);
+    addLayer(map);
+    
+    if (source !== undefined) {
+      console.log(`overlay ${overlayId} added to map`);
+      overlay.value = source as M.ImageSource;
+      configureOverlay();
+    }
+
   }
   
   function removeFromMap() {

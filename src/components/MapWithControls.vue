@@ -306,6 +306,7 @@ function removeAdvancedLayers(m: Map | null) {
   if (m === null) {
     throw new Error('Tried to removeAdvancedLayers but map was null');
   }
+  tempoLite.removeFromMap();
   aqiLayer.removeFromMap(m);
   popLayer.removeEsriSource();
   sentinalLandUseLayer.removeEsriSource();
