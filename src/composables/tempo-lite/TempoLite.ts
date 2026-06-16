@@ -1,7 +1,7 @@
 
 import { ref, computed, watch } from "vue";
 import { useImageOverlay } from "./tempoLiteFallback";
-
+import { useUniqueTimeSelection } from "../useUniqueTimeSelection";
 import { _preloadImages } from "./PreloadImages";
 
 import { storeToRefs } from "pinia";
@@ -21,7 +21,7 @@ export function useTempoLiteImages() {
   const layerId = 'tempo-lite';
 
   const store = useTempoStore();
-  const { timestamp, minIndex, maxIndex, singleDateSelected } = storeToRefs(store);
+  const { timestamp, singleDateSelected } = storeToRefs(store);
   const erdTimestamps = ref<number[]>([]);
   const newTimestamps = ref<number[]>([]);
   const cloudTimestamps = ref<number[]>([]);
@@ -61,6 +61,7 @@ export function useTempoLiteImages() {
 
   updateTimestamps().then(() => { timestampsLoaded.value = true; });
 
+  const uu = useUniqueTimeSelection(timestamps);
 
   const loadedImagesProgress = ref(0);
   
@@ -135,7 +136,7 @@ export function useTempoLiteImages() {
       return;
     }
     // console.log('preloading images for ', this.thumbLabel);
-    const times = timestamps.value.slice(minIndex.value, maxIndex.value + 1);
+    const times = timestamps.value.slice(uu.minIndex.value, uu.maxIndex.value + 1);
     const images = times.map(ts => getTempoDataUrl(ts) + getTempoFilename(new Date(ts)));
     const promises = _preloadImages(images);
     let loaded = 0;
@@ -149,8 +150,13 @@ export function useTempoLiteImages() {
       });
     });
   }
+
   
-  watch(singleDateSelected, () => {
+  watch(singleDateSelected, (s) => {
+    uu.singleDateSelected.value = s;
+  });
+  
+  watch([uu.minIndex, uu.maxIndex], () => {
     imagePreload();
   });
   
