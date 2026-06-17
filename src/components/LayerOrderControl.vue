@@ -130,7 +130,11 @@ const tempoPrefix = "tempo-";
 
 const displayOrder = computed({
   get(): string[] {
-    return currentOrder.value.slice().reverse();
+    const reversed = currentOrder.value.slice().reverse();
+    // Push not ready layers to the bottom, still in order though
+    const ready = reversed.filter(isLayerReady);
+    const notReady = reversed.filter(id => !isLayerReady(id));
+    return [...ready, ...notReady];
   },
   set(value: string[]) {
     controller?.setManagedOrder(value.slice().reverse());
@@ -206,15 +210,16 @@ function displayNameTransform(layerId: string): string {
   return layerNames[layerId] ?? capitalizeWords(layerId.replace(/-/g, " "));
 }
 
-function warningMessage(layerId: string): string | null {
+function isLayerReady(layerId: string): boolean {
   const readiness = layersReady.value.get(layerId);
   if (!readiness || readiness.length === 0) {
-    return null;
+    return true; // was null, no warning message, so true
   }
-  if (readiness.every(ready => ready)) {
-    return null;
-  }
-  return serviceWarning;
+  return readiness.every(ready => ready); // actually have to check
+}
+
+function warningMessage(layerId: string): string | null {
+  return isLayerReady(layerId) ? null : serviceWarning;
 }
 
 function cbarLabel(cbarScale: number, unit: string) {
