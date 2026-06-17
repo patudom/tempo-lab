@@ -1,13 +1,15 @@
-import {ref, Ref, watch, onUnmounted, toValue, toRef} from 'vue';
+import {ref, shallowRef, Ref, watch, onUnmounted, toValue, toRef} from 'vue';
 import { BoundingBox } from '@/types';
 import M from 'maplibre-gl';
 
+import { setLayerVisibility } from "@/maplibre_controls";
 
 
 export interface MaplibreImageOverlayComposable {
   overlay: Ref<M.ImageSource | null>;
   addTo: (map: M.Map) => void;
   removeFromMap: () => void;
+  setVisibility: (visible: boolean) => void;
 }
 
 export function useImageOverlay(
@@ -76,7 +78,8 @@ export function useImageOverlay(
     return map.getLayer(overlayId);
   }
   
-  const _map = ref<M.Map | null>(null);
+  const _map = shallowRef<M.Map | null>(null);
+  const showLayer = ref(false);
   function addTo(map: M.Map) {
     console.log("add to", overlayId);
     _map.value = map;
@@ -84,7 +87,7 @@ export function useImageOverlay(
     console.log(`adding overlay ${overlayId} to map`);
     const source = addSource(map);
     addLayer(map);
-    
+    showLayer.value = true;
     if (source !== undefined) {
       console.log(`overlay ${overlayId} added to map`);
       overlay.value = source as M.ImageSource;
@@ -96,13 +99,16 @@ export function useImageOverlay(
   function removeFromMap() {
     if (_map.value) {
       _map.value.removeLayer(overlayId);
-      _map.value.removeSource(overlayId);
+      showLayer.value = false;
+      // _map.value.removeSource(overlayId);
     }
   }
   
   function updateOrClearImage(url: string) {
+
     if (url && overlay.value) {
       overlay.value.updateImage({url: url});
+      if (!showLayer.value) return;
       if (!overlay.value.map.getLayer(overlayId)) {
         overlay.value.map.addLayer(layer);
       }
@@ -135,7 +141,10 @@ export function useImageOverlay(
     }
   }
   
-  
+  function setVisibility(visible: boolean) {
+    if (_map.value === null) return;
+    setLayerVisibility(_map.value, overlayId, visible);
+  }
   
   
 
@@ -145,6 +154,6 @@ export function useImageOverlay(
     }
   });
   
-  return { overlay, addTo, removeFromMap} as MaplibreImageOverlayComposable;
+  return { overlay, addTo, removeFromMap, setVisibility} as MaplibreImageOverlayComposable;
 
 }

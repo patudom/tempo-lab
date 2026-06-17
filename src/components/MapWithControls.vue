@@ -278,7 +278,6 @@ function addAdvancedLayers(m: Map | null) {
   }
   // pp.addheatmapLayer();
   // pp.togglePowerPlants(false);
-  tempoLite.addTo(m);
   aqiLayer.addToMap(m);
   popLayer.addEsriSource(m);
   sentinalLandUseLayer.addEsriSource(m);
@@ -322,6 +321,8 @@ function removeAdvancedLayers(m: Map | null) {
 
 const onMapReady = (m: Map) => {
   map.value = m; // ESRI source already added by EsriMap
+  tempoLite.addTo(m);
+  tempoLite.setVisibility(false);
   if (showAdvancedLayers.value) addAdvancedLayers(m);
   updateRegionLayers(regions.value);
   m.resize();
@@ -348,6 +349,13 @@ watch(molecule, (newMolecule) => {
 
 const activeLayer = computed(() => `tempo-${molecule.value}`);
 
+
+
+// check if a service failed (empty arrays are still checking)
+function serviceFailed(readyArray: boolean[] | undefined): boolean {
+  return Array.isArray(readyArray) && readyArray.length > 0 && !readyArray.some(x => x);
+}
+
 watch(() => [
   no2Layer.value?.serviceReady,
   hchoLayer.serviceReady.value,
@@ -356,6 +364,21 @@ watch(() => [
   sentinalLandUseLayer.serviceReady.value,
 ], ([no2Ready, hchoReady, ozoneReady, popReady, landUseReady]) => {
   syncLayerReady('tempo-no2', no2Ready);
+  
+  
+  // Only take over with tempo-lite once the no2 service has actually failed
+  if (serviceFailed(no2Ready)) {
+    tempoLite.setVisibility(true);
+    tempoLite.forceLiteTimestamps();
+    no2Layer.value?.setVisibility(false);
+  }
+  
+  const no2Working = Array.isArray(no2Ready) && no2Ready.some(x => x);
+  if (no2Working) {
+    tempoLite.removeFromMap();
+  }
+
+  
 
   if (showAdvancedLayers.value) {
     syncLayerReady('tempo-hcho', hchoReady);

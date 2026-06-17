@@ -16,7 +16,7 @@ function zpad(n: number, width: number = 2, character: string = "0"): string {
   return n.toString().padStart(width, character);
 }
 
-export function useTempoLiteImages(forceTimestamps = true) {
+export function useTempoLiteImages(forceTimestamps = false) {
   
   const layerId = 'tempo-lite';
 
