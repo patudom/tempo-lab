@@ -2,7 +2,33 @@
   <v-app
     id="app"
     :style="cssVars"
-  >
+  > 
+    <v-snackbar
+      color="red"
+      absolute
+      eager
+      v-model="showAlert"
+      location="top"
+      :timeout="-1"
+      multi-line
+    > 
+      <div class="d-flex flex-row align-center ga-3">
+      <v-icon
+        color="white"
+        class="mr-2"
+      >mdi-alert</v-icon>
+      
+      <span v-html="globalWarning" />
+      </div>
+      <template v-slot:actions>
+        <v-btn
+          variant="tonal"
+          @click="showAlert = false"
+        >
+          Close
+        </v-btn>
+      </template>
+    </v-snackbar>
     <header-bar />
     <div ref="root" class="layout-root">
       <side-placeholder
@@ -106,7 +132,19 @@ const {
   tempoRed,
   datasetControlsOpen,
   layerControlsOpen,
+  globalWarning,
 } = storeToRefs(store);
+
+const showAlert = ref(!!globalWarning.value);
+watch(globalWarning, (newVal) => {
+  showAlert.value = !!newVal;
+}); 
+watch(showAlert, (newVal) => {
+  if (!newVal) {
+    store.globalWarning = "";
+  }
+});
+
 
 const query = new URLSearchParams(window.location.search);
 debugMode.value = (query.get("debug") ?? process.env.VUE_APP_TEMPO_LAB_DEBUG)?.toLowerCase() == "true";

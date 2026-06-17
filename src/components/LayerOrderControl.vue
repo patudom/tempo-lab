@@ -73,7 +73,7 @@
 
 
 <script setup lang="ts">
-import { computed, type MaybeRef,  toValue, toRef } from 'vue';
+import { computed, type MaybeRef,  toValue, toRef, watch } from 'vue';
 import { storeToRefs } from "pinia";
 import draggable from 'vuedraggable';
 import M from 'maplibre-gl';
@@ -90,7 +90,7 @@ import PopDensLegend from './PopDensLegend.vue';
 
 
 const store = useTempoStore();
-const { showRGBMode, layersReady } = storeToRefs(store);
+const { showRGBMode, layersReady, globalWarning } = storeToRefs(store);
 
 interface Props {
   mapRef: M.Map | null;
@@ -195,10 +195,30 @@ const layerInfo: Record<string, string | undefined> = {
 
 const hasLegend = ['land-use', 'aqi-layer-aqi', 'power-plants-layer', 'pop-dens'];
 const serviceWarning = "The service supporting this layer is down, all or some data may be unavailable.";
+// create custom warning for pop-dense, land-use, tempo data. still short but blames the provider
+const customServiceWarning = {
+  'tempo': "NASA's Earthdata GIS service for this layer is down. See https://gis.earthdata.nasa.gov/ for more information.",
+  'pop': "NASA's Earthdata GIS service for this layer is down. See https://gis.earthdata.nasa.gov/ for more information.",
+  'land': "ESRI's service for this layer is down. See https://livingatlas.arcgis.com/landcoverexplorer/ for more information.",
+};
 
 function displayNameTransform(layerId: string): string {
   return layerNames[layerId] ?? capitalizeWords(layerId.replace(/-/g, " "));
 }
+
+watch(layersReady, () => {
+  const notReadyTempoLayers = Array.from(layersReady.value).map(([layerId, ready]) => {
+    if (layerId.startsWith('tempo') && (!ready || ready.length === 0 || ready.every(ready => !ready))) {
+      return true;
+    }
+    return false;  
+  });
+  if (notReadyTempoLayers.some(e => e)) {
+    globalWarning.value = `The NASA Earthdata GIS service at <a style="color:currentColor;" href="https://gis.earthdata.nasa.gov/" target="_blank">https://gis.earthdata.nasa.gov/</a> that this app relies on is currently down. TEMPO and Population Density data may not be available.`;
+  } else {
+    globalWarning.value = '';
+  }
+}, { deep: true });
 
 function warningMessage(layerId: string): string | null {
   const readiness = layersReady.value.get(layerId);
@@ -208,7 +228,16 @@ function warningMessage(layerId: string): string | null {
   if (readiness.every(ready => ready)) {
     return null;
   }
-  return serviceWarning;
+  // return serviceWarning;
+  if (layerId.startsWith('tempo')) {
+    return customServiceWarning['tempo'];
+  } else if (layerId.startsWith('pop')) {
+    return customServiceWarning['pop'];
+  } else if (layerId.startsWith('land')) {
+    return customServiceWarning['land'];
+  } else {
+    return serviceWarning;
+  }
 }
 
 function cbarLabel(cbarScale: number, unit: string) {
