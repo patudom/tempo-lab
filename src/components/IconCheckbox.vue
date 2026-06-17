@@ -11,7 +11,7 @@
     </template>
     <template #input="{ model }">
       <!-- Using <component :is="..."/> didn't work with v-icon for some reason -->
-      <span class="icon-checkbox-before" :style="{'--color': onColor}">
+      <span class="icon-checkbox-before" :style="{'--color': model.value ? onColor : offColor}">
       <font-awesome-icon
           v-if="(model.value ? onIcon : offIcon)?.startsWith('fa-')"
           :icon="model.value ? onIcon : offIcon"
