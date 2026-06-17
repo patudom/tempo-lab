@@ -143,7 +143,7 @@ const displayOrder = computed({
 
 const layerNames: Record<string, string | undefined> = {
   "tempo-no2": "TEMPO NO2",
-  "tempo-lite": "TEMPO-lite",
+  "tempo-lite": "TEMPO NO2 (lite)",
   "aqi-layer-aqi": "Air Quality Index",
   "power-plants-heatmap": "Power Plants",
   "power-plants-layer": "Power Plants",
@@ -162,6 +162,7 @@ const layerInfo: Record<string, string | undefined> = {
                 This data layer shows the amount of nitrogen dioxide (NO<sub>2</sub>) in the lower part of the Earth’s atmosphere, called the troposphere. This measurement represents the total number of nitrogen dioxide molecules in a column of air above one square centimeter on the Earth’s surface (molecules/cm2). NO<sub>2</sub> is an air pollutant that can affect both air quality and human health. It is produced by burning fossil fuels (ie. vehicles and power plants), fires, and even lightning.
                 <br/><br/>
                 TEMPO’s sensor captures this data at about 2 km by 4.75 km at the center of the field of regard (FOR). The data is processed into a Level 3 product with a resolution of 0.02 by 0.02 degrees, and the imagery you see is displayed at about 2 km resolution. To ensure accuracy, the layer is filtered, and only includes high-quality data points, based on key quality checks and sunlight conditions (solar zenith angle).`,
+  // update text
   "tempo-lite": `<h3>TEMPO Nitrogen Dioxide (NO<sub>2</sub>) Data Layer</h3>
                 <br/>
                 This data layer shows the amount of nitrogen dioxide (NO<sub>2</sub>) in the lower part of the Earth’s atmosphere, called the troposphere. This measurement represents the total number of nitrogen dioxide molecules in a column of air above one square centimeter on the Earth’s surface (molecules/cm2). NO<sub>2</sub> is an air pollutant that can affect both air quality and human health. It is produced by burning fossil fuels (ie. vehicles and power plants), fires, and even lightning.
