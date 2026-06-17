@@ -67,6 +67,7 @@
             v-model="selectedSources"
             density="compact"
             hide-details
+            hide-icon
           >
           </icon-checkbox>
       </v-expansion-panel-text>
@@ -272,12 +273,12 @@ function applyPrimSourceFilter(sources: PrimSource[]) {
 }
 </script>
 
-<style scoped lang="less">
+<style lang="less">
 #power-plant-filter-controls {
   border-radius: 5px;
   margin: 5px;
   width: unset;
-}
+
 
 .global-filters {
   padding: 5px 10px;
@@ -303,8 +304,10 @@ function applyPrimSourceFilter(sources: PrimSource[]) {
 
 
 
-.expansion-panel-text {
+.v-expansion-panel-text.expansion-panel-text > .v-expansion-panel-text__wrapper {
   display: grid;
   grid-template-columns: repeat(var(--column-count), 1fr);
+}
+
 }
 </style>
