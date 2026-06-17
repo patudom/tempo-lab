@@ -67,7 +67,7 @@ export const colorramps = {
   'NO2_Troposphere': 'Magma_r',
   'Ozone_Column_Amount': 'Cividis', 
   'HCHO': 'Viridis_r',
-  'lite': 'svs',
+  'lite': 'svs_r',
 } as Record<Variables, ColorRamps>;
 
 export const rgbstretches = {
