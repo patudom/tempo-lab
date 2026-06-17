@@ -61,7 +61,7 @@ export const stretches = {
   'NO2_Troposphere': [0, 15_000_000_000_000_000],
   'Ozone_Column_Amount': [250, 430], // +- 2 sigma
   'HCHO': [1_000_000_000_000_000, 30_000_000_000_000_000],
-  'lite': [100_000_000_000_000, 1_500_000_000_000_000],
+  'lite': [1e14, 150 * 1e14],
 } as Record<Variables, [number, number]>;
 export const colorramps = {
   'NO2_Troposphere': 'Magma_r',
@@ -74,7 +74,7 @@ export const rgbstretches = {
   'NO2_Troposphere': [0, 7_500_000_000_000_000],
   'Ozone_Column_Amount': [250, 430], // +- 2 sigma
   'HCHO': [1_000_000_000_000_000, 15_000_000_000_000_000],
-  'lite': [100_000_000_000_000, 15_000_000_000_000_000],
+  'lite': [1e14, 150 * 1e14],
 } as Record<string, [number, number]>;
 export const rgbcolorramps = {
   // eslint-disable-next-line @typescript-eslint/naming-convention
