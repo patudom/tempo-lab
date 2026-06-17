@@ -5,6 +5,7 @@
     v-model="openPanels"
     :style="cssVars"
     color="#555"
+    variant="accordion"
   >
     <div class="global-filters">
       <div>Power Plant Filters</div>
