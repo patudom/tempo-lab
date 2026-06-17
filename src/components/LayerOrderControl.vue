@@ -21,7 +21,7 @@
           >
             <v-tooltip :text="warningMessage(element)!">
               <template #activator="{ props }">
-                <v-icon v-bind="props" color="error">mdi-alert</v-icon>
+                <v-icon v-bind="props" color="red">mdi-alert</v-icon>
               </template>
             </v-tooltip>
           </template>
@@ -143,7 +143,7 @@ const displayOrder = computed({
 
 const layerNames: Record<string, string | undefined> = {
   "tempo-no2": "TEMPO NO2",
-  "tempo-lite": "TEMPO NO2 (lite)",
+  "tempo-lite": "TEMPO NO2 (alt)",
   "aqi-layer-aqi": "Air Quality Index",
   "power-plants-heatmap": "Power Plants",
   "power-plants-layer": "Power Plants",
@@ -163,13 +163,14 @@ const layerInfo: Record<string, string | undefined> = {
                 <br/><br/>
                 TEMPO’s sensor captures this data at about 2 km by 4.75 km at the center of the field of regard (FOR). The data is processed into a Level 3 product with a resolution of 0.02 by 0.02 degrees, and the imagery you see is displayed at about 2 km resolution. To ensure accuracy, the layer is filtered, and only includes high-quality data points, based on key quality checks and sunlight conditions (solar zenith angle).`,
   // update text
-  "tempo-lite": `<h3>TEMPO Nitrogen Dioxide (NO<sub>2</sub>)</h3>
+  "tempo-lite": `<h3>TEMPO Nitrogen Dioxide (NO<sub>2</sub>)—Alternate</h3>
                 <br/>
+                <strong>Note:</strong> This alternate version of TEMPO's NO<sub>2</sub> data is being shown because the NASA GIS service is down. This version of the data can be explored more at <a href="https://projects.cosmicds.cfa.harvard.edu/tempo-lite/" target="_blank">TEMPO-Lite</a>.
+                <br/><br/>
                 This data layer shows the amount of nitrogen dioxide (NO<sub>2</sub>) in the lower part of the Earth’s atmosphere, called the troposphere. This measurement represents the total number of nitrogen dioxide molecules in a column of air above one square centimeter on the Earth’s surface (molecules/cm2). NO<sub>2</sub> is an air pollutant that can affect both air quality and human health. It is produced by burning fossil fuels (ie. vehicles and power plants), fires, and even lightning.
                 <br/><br/>
                 TEMPO’s sensor captures this data at about 2 km by 4.75 km at the center of the field of regard (FOR). The data is processed into a Level 3 product with a resolution of 0.02 by 0.02 degrees, and the imagery you see is displayed at about 2 km resolution. To ensure accuracy, the layer is filtered, and only includes high-quality data points, based on key quality checks and sunlight conditions (solar zenith angle).
-                <br/><br/>
-                <strong>Note:</strong> This preprocessed layer is being shown because the NASA GIS service is down. This version of the data can be explored more at <a href="https://projects.cosmicds.cfa.harvard.edu/tempo-lite/" target="_blank">TEMPO-Lite</a>.`,
+                `,
   "tempo-hcho": `<h3>TEMPO Formaldehyde (HCHO) Data Layer</h3>
                  <br/>
                  This layer shows the total amount of formaldehyde in a vertical column of Earth’s atmosphere. The measurement represents the number of formaldehyde molecules in a column of air above each square centimeter of Earth’s surface. Formaldehyde is a Volatile Organic Compound (VOC), a major category of air pollutant that impacts human health and is a precursor to ozone. It is produced by natural sources (trees) as well as man-made sources, such as exhaust from cars, manufacturing plants, and oil and gas extraction.
@@ -227,7 +228,8 @@ watch(layersReady, () => {
     return false;  
   });
   if (notReadyTempoLayers.some(e => e)) {
-    globalWarning.value = `The NASA Earthdata GIS service at <a style="color:currentColor;" href="https://gis.earthdata.nasa.gov/" target="_blank">https://gis.earthdata.nasa.gov/</a> that this app relies on is currently down. Certain TEMPO and Population Density data may not be available.`;
+    globalWarning.value = `The NASA Earthdata GIS service that this app relies on (at <a style="color:currentColor;" href="https://gis.earthdata.nasa.gov/" target="_blank">https://gis.earthdata.nasa.gov/</a>) is currently down. Certain TEMPO and Population Density data may not be available.<br/><br/>
+    An alternate version of TEMPO's NO<sub>2</sub> data layer is displayed here instead.`;
   } else {
     globalWarning.value = '';
   }
