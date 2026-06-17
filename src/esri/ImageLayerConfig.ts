@@ -61,20 +61,20 @@ export const stretches = {
   'NO2_Troposphere': [0, 15_000_000_000_000_000],
   'Ozone_Column_Amount': [250, 430], // +- 2 sigma
   'HCHO': [1_000_000_000_000_000, 30_000_000_000_000_000],
+  'lite': [1e14, 150 * 1e14],
 } as Record<Variables, [number, number]>;
 export const colorramps = {
   'NO2_Troposphere': 'Magma_r',
-  'Ozone_Column_Amount': 'Cividis_r', 
+  'Ozone_Column_Amount': 'Cividis', 
   'HCHO': 'Viridis_r',
+  'lite': 'svs_r',
 } as Record<Variables, ColorRamps>;
 
 export const rgbstretches = {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   'NO2_Troposphere': [0, 7_500_000_000_000_000],
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   'Ozone_Column_Amount': [250, 430], // +- 2 sigma
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   'HCHO': [1_000_000_000_000_000, 15_000_000_000_000_000],
+  'lite': [1e14, 150 * 1e14],
 } as Record<string, [number, number]>;
 export const rgbcolorramps = {
   // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -92,6 +92,15 @@ export const colorbarOptions = {
     cbarScale: 1e14, 
     colormap: colorramps['NO2_Troposphere'], 
     rgbcolormap: rgbcolorramps['NO2_Troposphere'],
+    label:'NO<sub>2</sub>',
+    unit: "mol/cm<sup>2</sup>",
+  },
+  'lite': {
+    stretch: stretches['lite'], 
+    rgbstretch: stretches['lite'], 
+    cbarScale: 1e14, 
+    colormap: colorramps['lite'], 
+    rgbcolormap: colorramps['lite'],
     label:'NO<sub>2</sub>',
     unit: "mol/cm<sup>2</sup>",
   },

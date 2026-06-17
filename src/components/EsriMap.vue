@@ -183,6 +183,14 @@ watch(esriTimesteps, (newSteps, old) => {
 
 watch(() => renderOptions.value.colormap, cmap => emit("colormap", cmap as AvailableColorMaps));
 
+
+watch(theEsriLayer.serviceReady, (ready) => {
+  const somewhatReady = ready.some(x => x);
+  if (!somewhatReady) {
+    theEsriLayer.setVisibility(false);
+  }
+});
+
 watch(map, (newMap, oldMap) => {
   if (oldMap) {
     store.deregisterMap(oldMap as unknown as Map);

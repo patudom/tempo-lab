@@ -13,8 +13,8 @@
               v-model:open="showAggregationControls"
               open-direction="right"
               icon="mdi-calculator"
-              closed-tooltip-text="Show stacking and binning controls"
-              open-tooltip-text="Close stacking and binning controls"
+              closed-tooltip-text="Show stacking and averaging controls controls"
+              open-tooltip-text="Close stacking and averaging controls controls"
               open-arrow-color="surface-variant"
               closed-arrow-color="surface-variant"
               tooltips
@@ -64,7 +64,7 @@
               <template #default="{ descriptor }">
                 <div  class="df__graph-container">
                   <folded-plotly-graph
-                    :datasets="graphData"
+                    :datasets="selectedFoldType === 'noneOfNone' ? [graphData[0]] : graphData"
                     :show-errors="showErrors"
                     :fold-type="selectedFoldType"
                     :colors="[theColor, '#333']"
@@ -105,12 +105,7 @@
                     {{ aggregationWarning }}
                   </div>
                 </div>
-                <!-- Save button visible when aggregation controls panel is collapsed -->
-                <div v-if="!showAggregationControls && canSave" class="d-flex justify-end mt-3">
-                  <v-btn color="primary" @click="saveFolding" :disabled="!canSave" size="small" prepend-icon="mdi-content-save-outline">
-                    Save Folded Data
-                  </v-btn>
-                </div>
+                <!-- no save folded data button when aggregation panel is closed -->
               </template>
             </local-scope>
             </v-card>
