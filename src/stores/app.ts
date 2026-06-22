@@ -529,6 +529,9 @@ export function postDeserializeTempoStore(store: TempoStore) {
 export function updateStoreFromJSON(store: TempoStore, json: string): boolean {
   try {
     const state = deserializeTempoStore(json);
+    if (store.timestampsLoaded) {
+      delete state.timestamps;
+    }
     store.$patch(state);
     postDeserializeTempoStore(store);
     return true;
