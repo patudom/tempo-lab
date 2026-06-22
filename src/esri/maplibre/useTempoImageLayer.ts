@@ -1,4 +1,4 @@
-import { ref, watch, Ref, MaybeRef, toRef, nextTick, computed } from 'vue';
+import { ref, watch, Ref, MaybeRef, toRef, nextTick, computed, shallowRef } from 'vue';
 import { renderingRule, stretches, colorramps, rgbcolorramps, RenderingRuleOptions, ColorRamps } from '../ImageLayerConfig';
 import { type Map, type MapSourceDataEvent } from 'maplibre-gl';
 import { validate as uuidValidate } from "uuid";
@@ -38,7 +38,7 @@ export function useTempoLayer(esriLayerOptions: UseEsriTempoLayerOptions): UseEs
 
   const esriLayerId = esriLayerOptions.layerName ?? 'esri-source';
   const esriImageSource = ref<maplibregl.RasterTileSource | null>(null);
-  const map = ref<Map | null>(null);
+  const map = shallowRef<Map | null>(null);
   const molecule = toRef(esriLayerOptions.initialMolecule);
   const store = useTempoStore();
 
@@ -293,9 +293,9 @@ export function useTempoLayer(esriLayerOptions: UseEsriTempoLayerOptions): UseEs
   watch(noEsriData, (value: boolean) => {
     if (value) {
       updateEsriOpacity(0);
-      removeLayer(map.value as Map | null);
+      removeLayer(map.value);
     } else {
-      addLayer(map.value as Map | null);
+      addLayer(map.value);
     }
   });
 
