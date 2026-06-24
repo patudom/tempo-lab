@@ -132,7 +132,7 @@ const displayOrder = computed({
   get(): string[] {
     const reversed = currentOrder.value.slice().reverse();
     // Push not ready layers to the bottom, still in order though
-    const ready = reversed.filter(isLayerReady);
+    const ready = reversed.filter(isLayerReady as () => boolean);
     const notReady = reversed.filter(id => !isLayerReady(id));
     return [...ready, ...notReady];
   },
@@ -216,6 +216,14 @@ const customServiceWarning = {
   'land': "ESRI's service for this layer is down. See https://livingatlas.arcgis.com/landcoverexplorer/ for more information.",
 };
 
+const _partialServiceWarning = "The service supporting this layer is down, all or some data may be unavailable.";
+// create custom warning for pop-dense, land-use, tempo data. still short but blames the provider
+const partialCustomServiceWarning = {
+  'tempo': "Due to a disruption of NASA's Earthdata GIS service some data may be unavailable. ",
+  'pop': "Due to a disruption of NASA's Earthdata GIS service some data may be unavailable. ",
+  'land': "Due to a disruption ESRI's service for this layer is down. See https://livingatlas.arcgis.com/landcoverexplorer/ for more information.",
+};
+
 function displayNameTransform(layerId: string): string {
   return layerNames[layerId] ?? capitalizeWords(layerId.replace(/-/g, " "));
 }
@@ -235,29 +243,43 @@ watch(layersReady, () => {
   }
 }, { deep: true });
 
-function isLayerReady(layerId: string): boolean {
+// use function overrirde to enforce what can be returned
+function isLayerReady(layerId: string, includePartial: true): true | {ready: boolean, partial: boolean};
+// eslint-disable-next-line no-redeclare
+function isLayerReady(layerId: string, includePartial: false): boolean;
+// eslint-disable-next-line no-redeclare
+function isLayerReady(layerId: string, includePartial = false) {
   const readiness = layersReady.value.get(layerId);
   if (!readiness || readiness.length === 0) {
     return true; // was null, no warning message, so true
+  }
+  if (includePartial) {
+    return {
+      ready: readiness.every(ready => ready),
+      partial: readiness.some(ready => ready) && !readiness.every(ready => ready)
+    };
   }
   return readiness.every(ready => ready); // actually have to check
 }
 
 
 function warningMessage(layerId: string): string | null {
-
-  if (isLayerReady(layerId)) {
+  const ready = isLayerReady(layerId, true);
+  console.log('LAYER CONTROL', layerId, ready);
+  // if ready is truthy, no error message
+  if (ready === true || ready.ready === true) {
     return null;
   }
+
   // return serviceWarning;
   if (layerId.startsWith('tempo')) {
-    return customServiceWarning['tempo'];
+    return ready.partial ? partialCustomServiceWarning['tempo'] : customServiceWarning['tempo'];
   } else if (layerId.startsWith('pop')) {
-    return customServiceWarning['pop'];
+    return ready.partial ? partialCustomServiceWarning['pop'] : customServiceWarning['pop'];
   } else if (layerId.startsWith('land')) {
-    return customServiceWarning['land'];
+    return ready.partial ? partialCustomServiceWarning['land'] : customServiceWarning['land'];
   } else {
-    return serviceWarning;
+    return ready.partial ? _partialServiceWarning : serviceWarning;
   }
 }
 
