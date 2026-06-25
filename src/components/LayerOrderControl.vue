@@ -134,7 +134,7 @@ const displayOrder = computed({
     const reversed = currentOrder.value.slice().reverse();
     // Push not ready layers to the bottom, still in order though
     const ready = reversed.filter(isLayerReady as () => boolean);
-    const notReady = reversed.filter(id => !isLayerReady(id));
+    const notReady = reversed.filter(id => !isLayerReady(id, false));
     return [...ready, ...notReady];
   },
   set(value: string[]) {
@@ -266,7 +266,6 @@ function isLayerReady(layerId: string, includePartial = false) {
 
 function warningMessage(layerId: string): string | null {
   const ready = isLayerReady(layerId, true);
-  console.log('LAYER CONTROL', layerId, ready);
   // if ready is truthy, no error message
   if (ready === true || ready.ready === true) {
     return null;

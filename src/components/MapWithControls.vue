@@ -274,22 +274,33 @@ function syncLayerReady(layerName: string, serviceReady: boolean[] | undefined) 
 
 function addAdvancedLayers(m: Map | null) {
   if (m === null) {
-    throw new Error('Tried to addAdvancedLayers but map was null');
+    console.warn('Tried to addAdvancedLayers but map was null');
+    return;
   }
+  
+  // let each of these fail without preventing the rest of the layers from loading
+  const tryCatch = (label: string, cb: () => void) => {
+    // tryCatch util
+    try {
+      cb();
+    } catch (error) {
+      console.error(`[${label}] Failed to add layer`, error);
+    }
+  };
   // pp.addheatmapLayer();
   // pp.togglePowerPlants(false);
-  aqiLayer.addToMap(m);
-  popLayer.addEsriSource(m);
-  sentinalLandUseLayer.addEsriSource(m);
-  hmsFire.addToMap(m);
-  hchoLayer.addEsriSource(m);
-  ozoneLayer.addEsriSource(m);
+  tryCatch('aqi-layer-aqi', () => aqiLayer.addToMap(m));
+  tryCatch('pop-dens', () => popLayer.addEsriSource(m));
+  tryCatch('land-use', () => sentinalLandUseLayer.addEsriSource(m));
+  tryCatch('hms-fire', () => hmsFire.addToMap(m));
+  tryCatch('tempo-hcho', () => hchoLayer.addEsriSource(m));
+  tryCatch('tempo-o3', () => ozoneLayer.addEsriSource(m));
   syncLayerReady('tempo-hcho', hchoLayer.serviceReady.value);
   syncLayerReady('tempo-o3', ozoneLayer.serviceReady.value);
   syncLayerReady('pop-dens', popLayer.serviceReady.value);
   syncLayerReady('land-use', sentinalLandUseLayer.serviceReady.value);
   
-  pp.addLayer();
+  tryCatch('power-plants-layer', () => pp.addLayer());
   // pp.togglePowerPlants(false);
 }
 

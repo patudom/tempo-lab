@@ -45,7 +45,7 @@ export interface IconCheckboxProps {
   hideIcon?: boolean;
 }
 
-const modelValue = defineModel();
+const modelValue = defineModel<boolean | string[]>({required: true});
 const props = withDefaults(defineProps<IconCheckboxProps>(), {
   onColor: "white",
   offColor: "gray",
