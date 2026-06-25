@@ -1,7 +1,7 @@
 import { ref, computed, type WritableComputedRef, type Ref, onBeforeUnmount } from 'vue';
 import M from 'maplibre-gl';
 import { Popup } from 'maplibre-gl';
-import { useKML } from './useKML';
+import { useKML } from '../composables/useKML';
 
 // AQI styleUrl -> color mapping (hex), derived from the
 // legend here https://gispub.epa.gov/airnow/?tab=archive

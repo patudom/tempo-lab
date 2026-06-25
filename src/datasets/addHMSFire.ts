@@ -1,7 +1,7 @@
 import { ref, watch, computed, type WritableComputedRef, type Ref, onBeforeUnmount } from 'vue';
 import M from 'maplibre-gl';
 import { Popup } from 'maplibre-gl';
-import { useKML } from './useKML';
+import { useKML } from '../composables/useKML';
 
 
 
