@@ -232,6 +232,22 @@ const popLayer = addPopulationDensityLayer();
 import { addLandUseLayer } from "@/datasets/addLandUse";
 const sentinalLandUseLayer = addLandUseLayer();
 
+import { addAsthmaLayer } from "@/datasets/addAsthma";
+const asthmaCounties = addAsthmaLayer('places-asthma-counties', 2);
+const asthmaTracts = addAsthmaLayer('places-asthma-tracts', 3);
+
+function syncAsthmaStatus(layer: ReturnType<typeof addAsthmaLayer>) {
+  watch(() => layer.status.value, (s) => {
+    if (s === 'zoom-in') {
+      store.setLayerReady(layer.layerId, [false]);
+      return;
+    }
+    store.setLayerReady(layer.layerId, [true]);
+  }, { immediate: true });
+}
+syncAsthmaStatus(asthmaCounties);
+syncAsthmaStatus(asthmaTracts);
+
 const hmsFire = addHMSFire(singleDateSelected, {
   layerName: 'hms-fire',
   visible: false,
@@ -302,6 +318,8 @@ function addAdvancedLayers(m: Map | null) {
   
   tryCatch('power-plants-layer', () => pp.addLayer());
   // pp.togglePowerPlants(false);
+  tryCatch(asthmaCounties.layerId, () => asthmaCounties.addToMap(m));
+  tryCatch(asthmaTracts.layerId, () => asthmaTracts.addToMap(m));
 }
 
 function removeAdvancedLayers(m: Map | null) {
@@ -317,10 +335,14 @@ function removeAdvancedLayers(m: Map | null) {
   hchoLayer.removeEsriSource();
   ozoneLayer.removeEsriSource();
   pp.removeLayer();
+  asthmaCounties.removeFromMap(m);
+  asthmaTracts.removeFromMap(m);
   store.clearLayerReady('tempo-hcho');
   store.clearLayerReady('tempo-o3');
   store.clearLayerReady('pop-dens');
   store.clearLayerReady('land-use');
+  store.clearLayerReady('places-asthma-counties');
+  store.clearLayerReady('places-asthma-tracts');
 }
 
 const onMapReady = (m: Map) => {
