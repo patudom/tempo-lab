@@ -193,11 +193,11 @@ type UnifiedRegionType = typeof regions.value[number];
 
 const display = useDisplay();
 
-import { addPowerPlants } from "@/composables/addPowerPlants";
-import { addHMSFire } from "@/composables/addHMSFire";
+import { addPowerPlants } from "@/datasets/addPowerPlants";
+import { addHMSFire } from "@/datasets/addHMSFire";
 
 const pp = addPowerPlants(map as Ref<Map | null> | null, false);
-import { addQUI } from '@/composables/addAQI';
+import { addAQI } from '@/datasets/addAQI';
 
 // base it of singleDateSelected
 const airQualityUrl = computed(() => {
@@ -211,7 +211,7 @@ const airQualityUrl = computed(() => {
   const day = date.getUTCDate().toString().padStart(2, '0');
   return `https://s3-us-west-1.amazonaws.com/files.airnowtech.org/airnow/${year}/${year}${month}${day}/KMLPointMaps_PM2.5-24hr.kml`;
 });
-const aqiLayer = addQUI(airQualityUrl.value, { 
+const aqiLayer = addAQI(airQualityUrl.value, { 
   propertyToShow: 'aqi', 
   labelMinZoom: 5, 
   layerName: 'aqi', 
@@ -226,10 +226,10 @@ watch(airQualityUrl, (newUrl) => {
 });
 
 
-import { addPopulationDensityLayer } from '@/composables/addPopulationDensity';
+import { addPopulationDensityLayer } from '@/datasets/addPopulationDensity';
 const popLayer = addPopulationDensityLayer();
 
-import { addLandUseLayer } from "@/composables/addLandUse";
+import { addLandUseLayer } from "@/datasets/addLandUse";
 const sentinalLandUseLayer = addLandUseLayer();
 
 const hmsFire = addHMSFire(singleDateSelected, {
@@ -288,14 +288,6 @@ function addAdvancedLayers(m: Map | null) {
   syncLayerReady('tempo-o3', ozoneLayer.serviceReady.value);
   syncLayerReady('pop-dens', popLayer.serviceReady.value);
   syncLayerReady('land-use', sentinalLandUseLayer.serviceReady.value);
-  // Only move if target layer exists (avoid errors if initial KML load failed)
-  try {
-    if (m.getLayer('kml-layer-aqi')) {
-      m.moveLayer('states-custom','kml-layer-aqi');
-    }
-  } catch {
-    // ignore
-  }
   
   pp.addLayer();
   // pp.togglePowerPlants(false);
@@ -303,7 +295,8 @@ function addAdvancedLayers(m: Map | null) {
 
 function removeAdvancedLayers(m: Map | null) {
   if (m === null) {
-    throw new Error('Tried to removeAdvancedLayers but map was null');
+    console.warn('Tried to removeAdvancedLayers but map was null');
+    return;
   }
   // tempoLite.removeFromMap();
   aqiLayer.removeFromMap(m);

@@ -110,6 +110,7 @@ const _emit = defineEmits<Emits>();
   
 const connections = {
   'stamen-toner-lines': ['coastline-custom', 'states-custom', 'stamen-toner-lines'],
+  'aqi-layer-aqi': ['aqi-layer-aqi','aqi-layer-aqi-label'], // colored dot on bottom, label on top
 };
 const getConnectedItems = (layer: string): string[] => {
   return connections[layer] ?? [];
