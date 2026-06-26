@@ -266,6 +266,8 @@ function isLayerReady(layerId: string, includePartial: true): true | {ready: boo
 function isLayerReady(layerId: string, includePartial: false): boolean;
 // eslint-disable-next-line no-redeclare
 function isLayerReady(layerId: string, includePartial = false) {
+  // tract layers use [false] to signal zoom-in, not a service outage — always treat as positioned-ready
+  if (layerId.includes('tracts')) return true;
   const readiness = layersReady.value.get(layerId);
   if (!readiness || readiness.length === 0) {
     return true; // was null, no warning message, so true
@@ -281,6 +283,11 @@ function isLayerReady(layerId: string, includePartial = false) {
 
 
 function warningMessage(layerId: string): string | null {
+  // [false] for tracts means zoom-in required, not a service failure — check before isLayerReady
+  if (layerId.includes('tracts')) {
+    const readiness = layersReady.value.get(layerId);
+    return (readiness && !readiness.every(r => r)) ? 'Zoom in to see census tract data' : null;
+  }
   const ready = isLayerReady(layerId, true);
   // if ready is truthy, no error message
   if (ready === true || ready.ready === true) {
