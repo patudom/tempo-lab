@@ -111,6 +111,8 @@ const _emit = defineEmits<Emits>();
 const connections = {
   'stamen-toner-lines': ['coastline-custom', 'states-custom', 'stamen-toner-lines'],
   'aqi-layer-aqi': ['aqi-layer-aqi','aqi-layer-aqi-label'], // colored dot on bottom, label on top
+  'places-asthma-tracts': ['places-asthma-tracts-outline'],
+  'places-asthma-counties': ['places-asthma-counties-outline']
 };
 const getConnectedItems = (layer: string): string[] => {
   return connections[layer] ?? [];
@@ -133,7 +135,7 @@ const displayOrder = computed({
   get(): string[] {
     const reversed = currentOrder.value.slice().reverse();
     // Push not ready layers to the bottom, still in order though
-    const ready = reversed.filter(isLayerReady as () => boolean);
+    const ready = reversed.filter(id => isLayerReady(id, false));
     const notReady = reversed.filter(id => !isLayerReady(id, false));
     return [...ready, ...notReady];
   },
