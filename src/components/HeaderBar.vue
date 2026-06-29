@@ -215,9 +215,9 @@ function reportError(_error: string, message: string) {
 #title {
   color: var(--smithsonian-yellow);
   font-weight: 600;
-  font-size: 2.5rem;
+  font-size: clamp(1rem, 4vw, 2.5rem);
   text-align: center;
-  text-wrap: nowrap;
+  text-wrap: wrap;
   flex-grow: 1;
 }
 
