@@ -27,6 +27,16 @@
     </cds-dialog> -->
 
     <!-- </div> -->
+    <cds-dialog 
+      title="About the Data" 
+      v-model="showAboutData" 
+      :color="accentColor2" 
+      max-height="80vh" 
+      max-width="700px"
+    >
+      <about-data />
+    </cds-dialog>
+
     <cds-dialog title="What's new" v-model="showChanges" :color="accentColor2">
       <ul class="snackbar-alert-ul">
         <li class="change-item mb-5" v-for="change in changes" :key="change.date" :data-date="change.date">
@@ -107,12 +117,11 @@
               User Guide
             </v-list-item>
             
-            <v-list-item 
+            <v-list-item
               tabindex="0"
               aria-label="Show dialog telling about the data"
               @click="showAboutData = true"
               @keyup.enter="showAboutData = true"
-              disabled
               >
               About the Data
             </v-list-item>
@@ -169,6 +178,7 @@ import { supportsTouchscreen } from "@cosmicds/vue-toolkit";
 
 import { useTempoStore } from "@/stores/app";
 import changes from "@/changes";
+import AboutData from "@/components/AboutData.vue";
 
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faArrowsRotate } from "@fortawesome/free-solid-svg-icons";
