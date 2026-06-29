@@ -57,7 +57,7 @@
           
           <!-- Right Panel: Timeseries Graph -->
           <div class="df__right-pane">
-            <v-card class="df__right-pane-card" style="height: auto;">
+            <v-card class="df__right-pane-card" style="height: 100%;" elevation="0">
               <local-scope
                 :descriptor="selection?.molecule ? moleculeDescriptor(selection?.molecule) : null"
               >
@@ -749,9 +749,17 @@ watch(() => props.selection, () => {
   overflow-x: auto;
 }
 
+
 .df__left-pane {
   min-width: min-content;
   max-width: fit-content;
+}
+
+
+
+.df__left-pane > .side-panel-control > .content-container {
+  height: 100% !important;
+  border: 1px solid red !important;
 }
 
 .df__right-pane {
