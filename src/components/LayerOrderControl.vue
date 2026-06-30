@@ -113,7 +113,8 @@ const connections = {
   'stamen-toner-lines': ['coastline-custom', 'states-custom', 'stamen-toner-lines'],
   'aqi-layer-aqi': ['aqi-layer-aqi','aqi-layer-aqi-label'], // colored dot on bottom, label on top
   'places-asthma-tracts': ['places-asthma-tracts-outline'],
-  'places-asthma-counties': ['places-asthma-counties-outline']
+  'places-asthma-counties': ['places-asthma-counties-outline'],
+  'hms-fire': ['hms-fire-circle', 'hms-fire-clustered']
 };
 const getConnectedItems = (layer: string): string[] => {
   return connections[layer] ?? [];
