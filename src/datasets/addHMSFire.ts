@@ -8,6 +8,12 @@ import { useKML } from '@/composables/useKML';
 import { useGeoJsonLayer } from '@/composables/useGeoJsonLayer';
 import { syncLayerOpacity, syncLayerVisibility } from '@/composables/useSyncedVisibilityAndOpacity';
 
+/**
+ * We select only VIIRS data from SUOMI and NOAA - 375 m resolution
+ * The GOES data product is considered provisionally on FIRMS https://firms.modaps.eosdis.nasa.gov/
+ * GOES is 2km resolution
+ * 
+ */
 
 
 export type InternalMapLayerEventType = M.MapMouseEvent & {features?: M.MapGeoJSONFeature[];};
@@ -26,6 +32,22 @@ export const replaceYearDay = (s: string | null): string | null => {
 };
 
 import { glccLabel } from '../utils/glcc';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function toSciExpression(valueExpr: any, precision = 1): any {
+  const pow10 = Math.pow(10, precision);
+
+  const exponent = ['floor', ['log10', ['abs', valueExpr]]];
+  const scale = ['^', 10, ['var', 'exp']];
+  const mantissaRaw = ['/', valueExpr, scale];
+  const mantissaRounded = ['/', ['round', ['*', mantissaRaw, pow10]], pow10];
+
+  return [
+    'let',
+    'exp', exponent,
+    ['concat', ['to-string', mantissaRounded], 'e', ['to-string', ['var', 'exp']]]
+  ];
+}
 
 function circleRadiusExpression(meters: number, stops = [0, 5, 10, 15, 20]): M.DataDrivenPropertyValueSpecification<number> {
   return [
@@ -73,6 +95,7 @@ export interface UseKMLOptions {
   showClusters?: boolean;       // whether to cluster nearby points into circles; defaults to true
   showCircles?: boolean;       // whether to show the per-point FRP circle layer; defaults to false
   visible?: boolean;              // initial visibility state; defaults to true
+  showIcons?: boolean; // show icons
 }
 
 // description
@@ -84,12 +107,25 @@ function description2props(desc: string | null): Record<string, string | number>
     const [key, value] = pair.split(':').map(s => s.trim());
     if (key && value) {
       const v = parseFloat(value);
-      acc[key] = isNaN(v) ? v : v;
+      acc[key] = isNaN(v) ? value : v;
     }
     return acc;
   }, props);
   return props;
 }
+
+type HmsSats = 'GOES-EAST' | 'GOES-WEST' | 'SUOMI NPP' | 'NOAA 20' | 'NOAA 21';
+type HmsMethods = 'VIIRS' | 'NGFS';
+
+// 'circle-color': [ // color scheme for satellites
+//   'match', ['get', 'Satellite'],
+//   'GOES-EAST',  '#E07020',
+//   'GOES-WEST',  '#2060E0',
+//   'SUOMI NPP',  '#20A040',
+//   'NOAA 20',    '#9040C0',
+//   'NOAA 21',    '#C04080',
+//   '#888888'
+// ],
 
 // Post-process GeoJSON to apply styleUrl-based HMS coloring
 const postProcessGeoJson = (geoJson: GeoJSON.FeatureCollection, yd: number): GeoJSON.FeatureCollection => {
@@ -105,8 +141,10 @@ const postProcessGeoJson = (geoJson: GeoJSON.FeatureCollection, yd: number): Geo
     // FRP comes off of the description
     if (
       processedFeature.properties.FRP !== undefined &&
-      processedFeature.properties.FRP > 0  &&
-      processedFeature.properties.YearDay > yd - 2
+      processedFeature.properties.FRP > 1  && // prevents negative radii on the images. 
+      processedFeature.properties.YearDay > yd - 1 &&
+      processedFeature.properties.Method !== 'NGFS' // only keep viirs
+      // (processedFeature.properties.Satellite as string).slice(0,4) !== 'GOES'
     ) {
       processedFeatures.push(processedFeature);
     }
@@ -156,8 +194,9 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
   const showPopup = options.showPopup ?? true;
   const showClusters = options.showClusters ?? true;
   const showCircles = options.showCircles ?? false;
+  const showIcons = options.showIcons ?? true;
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  const TRANSITION_ZOOM = 8;
+  const TRANSITION_ZOOM = 7;
 
   // Store runtime state in refs (avoid caching on the function)
   const mapRef = shallowRef<M.Map | null>(null);
@@ -173,6 +212,10 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
   const onMoveRef = ref<InternalMapLayerEventTypeHandler | null>(null);
   const onLeaveRef = ref<InternalMapLayerEventTypeHandler | null>(null);
   const onStyleDataRef = ref<InternalMapLayerEventTypeHandler | null>(null);
+
+  const clusterPopupRef = ref<Popup | null>(null);
+  const clusterOnMoveRef = ref<InternalMapLayerEventTypeHandler | null>(null);
+  const clusterOnLeaveRef = ref<((e: M.MapMouseEvent) => void) | null>(null);
 
   // Track the last known layer visibility across URL changes (persisted)
   const lastKnownVisible = ref<boolean>(options.visible ?? true); 
@@ -278,6 +321,38 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
     onLeaveRef.value = onLeave;
   }
 
+  function setupClusterPopup(map: M.Map) {
+    const popup = new Popup({ closeButton: false, closeOnClick: false, maxWidth: '220px', className: 'hms-popup' });
+
+    const onMove = (e: InternalMapLayerEventType) => {
+      const f = e.features && e.features[0];
+      if (!f) return;
+      const count: number = f.properties?.point_count ?? 0;
+      const frp: number = f.properties?.totalFRP ?? 0;
+      map.getCanvas().style.cursor = 'pointer';
+      popup
+        .setLngLat(e.lngLat)
+        .setHTML(`
+          <div style="font:12px sans-serif;color:#000">
+          # of Fires: ${count.toLocaleString()}
+          <br>Total FRP: ${frp.toLocaleString(undefined, { maximumFractionDigits: 0 })} MW
+          <br>Avg. FRP: ${(count > 0 ? frp/count : frp).toLocaleString(undefined, { maximumFractionDigits: 0 })} MW
+          </div>`)
+        .addTo(map);
+    };
+    const onLeave = () => {
+      map.getCanvas().style.cursor = '';
+      popup.remove();
+    };
+
+    map.on('mousemove', clusterLayerId, onMove);
+    map.on('mouseleave', clusterLayerId, onLeave);
+
+    clusterPopupRef.value = popup;
+    clusterOnMoveRef.value = onMove;
+    clusterOnLeaveRef.value = onLeave;
+  }
+
   function syncLastKnownVisible(map: M.Map) {
     const syncLabelVisibility = () => {
       if (!map.getLayer(layerId)) return;
@@ -306,41 +381,48 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
     return postProcessGeoJson(geoJsonData.value, yearDay.value);
   }, null);
   
-  const clusterExpress: DataDrivenPropertyValueSpecification<number> = 
-  ['log10', 
-    ['/',
-      ["get", "totalFRP"],
-      1
-    ]
-  ];
-  const clusterLayer: Omit<CircleLayerSpecification,'source'> = {
+
+  // const clusterLayer: Omit<CircleLayerSpecification,'source'> = {
+  //   id: clusterLayerId,
+  //   type: 'circle',
+  //   filter: ['has', 'point_count'],
+  //   layout: {
+  //     'visibility': lastKnownVisible.value ? 'visible' : 'none'
+  //   },
+  //   paint: {
+  //     'circle-radius': ['*', 4.5,  ['log10', ["get", "totalFRP"]]],
+  //     'circle-color': [
+  //       "interpolate", 
+  //       ["linear"], 
+  //       ['log10', ["get", "totalFRP"]],
+  //       0, "rgb(255, 255, 204)",       // pale yellow
+  //       1, "rgb(255, 237, 160)",
+  //       2.5, "rgb(254, 178, 76)",
+  //       5, "rgb(240, 59, 32)",
+  //       6, "rgb(189, 0, 38)",
+  //       7, "rgb(128, 0, 38)",           // dark red
+  //       8, "rgb(77, 0, 75)"            // very da       // very dark red
+  //     ],
+  //   }
+  // };
+  
+  // instead of the circles above, we will stick with out icons
+  const clusterLayer: Omit<SymbolLayerSpecification, 'source'> = {
     id: clusterLayerId,
-    type: 'circle',
+    type: 'symbol',
     filter: ['has', 'point_count'],
     layout: {
+      'icon-image': 'hms-fire-icon',
+      'icon-size': ['*', .03, ['log10', ['get', 'totalFRP']]],
+      'icon-allow-overlap': true,
       'visibility': lastKnownVisible.value ? 'visible' : 'none'
     },
-    paint: {
-      'circle-radius': ['*', 4, clusterExpress],
-      'circle-color': [
-        "interpolate", 
-        ["linear"], 
-        ['log10', ["get", "totalFRP"]],
-        0, "rgb(255, 255, 204)",       // pale yellow
-        1, "rgb(255, 237, 160)",
-        2.5, "rgb(254, 178, 76)",
-        5, "rgb(240, 59, 32)",
-        6, "rgb(189, 0, 38)",
-        7, "rgb(128, 0, 38)",           // dark red
-        8, "rgb(77, 0, 75)"            // very da       // very dark red
-      ],
-    }
+    paint: { 'icon-opacity': 1 }
   };
 
   const symbolLayer: Omit<SymbolLayerSpecification, 'source'> = {
     id: layerId,
     type: 'symbol',
-    minzoom: TRANSITION_ZOOM,
     paint: { 'icon-opacity': 1 },
     layout: {
       'icon-image': 'hms-fire-icon',
@@ -357,7 +439,6 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
       'visibility': lastKnownVisible.value ? 'visible' : 'none'
     },
     filter: ['all',
-      ['>', ['get', 'FRP'], 1],
       ['!', ['has', 'point_count']]
     ]
   };
@@ -365,35 +446,30 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
   const hmsCircleLayer: Omit<CircleLayerSpecification, 'source'> = {
     id: cicleLayerId,
     type: 'circle',
-    minzoom: TRANSITION_ZOOM,
     // paint with a pale yellow to dark red scale based on FRP
     layout: {
       'visibility': lastKnownVisible.value ? 'visible' : 'none'
     },
     paint: {
       // 375 meter radius using zoom, 'Lat', and 'Lon'
-      'circle-radius': circleRadiusExpression(375/4),
+      'circle-radius': circleRadiusExpression(375/2),
       'circle-color': [
         "interpolate", 
-        ["linear"], 
-        ["get", "FRP"],
-        0, "rgb(255, 255, 204)",       // pale yellow
-        1, "rgb(255, 237, 160)",
-        5, "rgb(254, 178, 76)",
-        10, "rgb(240, 59, 32)",
-        20, "rgb(189, 0, 38)",
-        50, "rgb(128, 0, 38)",           // dark red
-        1000, "rgb(77, 0, 75)"            // very dark red
+        ["linear"], ["get", "FRP"],
+        0, "rgb(255, 255, 204)", 
+        1, "rgb(255, 237, 160)", 
+        10, "rgb(254, 178, 76)",
+        50, "rgb(240, 59, 32)", 
+        150, "rgb(189, 0, 38)", 
+        350, "rgb(128, 0, 38)", 
+        1000, "rgb(77, 0, 75)"
       ],
       'circle-opacity': 0.5,
       'circle-stroke-color': 'black',
       // 'circle-stroke-width': 0.5,
       // 'circle-stroke-opacity': 0.8
     },
-    // filter for TimeDay 
-    // filter: ['>', ['get', 'YearDay'], yearDay.value-2],
     filter: ['all',
-      ['>', ['get', 'FRP'], 1],
       ['!', ['has', 'point_count']]
     ]
   };
@@ -413,10 +489,10 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
       sourceSpec: {
         cluster: showClusters,
         clusterMaxZoom: TRANSITION_ZOOM,
-        clusterRadius: 48,
+        clusterRadius: 10,
         clusterProperties: {
           'totalFRP': ['+', ['get','FRP']],
-        }
+        },
       },
       sourceId,
     }
@@ -439,6 +515,9 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
 
     if (showPopup && popupRef.value === null) {
       setupLayerPopup(map, layerId);
+    }
+    if (showClusters && clusterPopupRef.value === null) {
+      setupClusterPopup(map);
     }
     if (onStyleDataRef.value === null) {
       syncLastKnownVisible(map);
@@ -490,6 +569,10 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
     if (popupRef.value) popupRef.value.remove();
     if (onStyleDataRef.value) map.off('styledata', onStyleDataRef.value);
 
+    if (clusterOnMoveRef.value) map.off('mousemove', clusterLayerId, clusterOnMoveRef.value);
+    if (clusterOnLeaveRef.value) map.off('mouseleave', clusterLayerId, clusterOnLeaveRef.value);
+    if (clusterPopupRef.value) clusterPopupRef.value.remove();
+
     // Remove layers and source (keeps layer config so a later addToMap re-adds them)
     geoLayer.cleanup();
 
@@ -498,6 +581,9 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
     onEnterRef.value = null;
     onMoveRef.value = null;
     onLeaveRef.value = null;
+    clusterPopupRef.value = null;
+    clusterOnMoveRef.value = null;
+    clusterOnLeaveRef.value = null;
   };
   
   onBeforeUnmount(() => {
