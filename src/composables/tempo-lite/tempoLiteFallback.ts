@@ -10,6 +10,7 @@ export interface MaplibreImageOverlayComposable {
   addTo: (map: M.Map) => void;
   removeFromMap: () => void;
   setVisibility: (visible: boolean) => void;
+  showLayer: Ref<boolean>
 }
 
 export function useImageOverlay(
@@ -154,6 +155,6 @@ export function useImageOverlay(
     }
   });
   
-  return { overlay, addTo, removeFromMap, setVisibility} as MaplibreImageOverlayComposable;
+  return { overlay, addTo, removeFromMap, setVisibility, showLayer} as MaplibreImageOverlayComposable;
 
 }

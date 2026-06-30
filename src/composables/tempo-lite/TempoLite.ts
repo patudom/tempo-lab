@@ -167,7 +167,9 @@ export function useTempoLiteImages(forceTimestamps = false) {
   });
   
   watch([uu.minIndex, uu.maxIndex], () => {
-    imagePreload();
+    if (imageOverlay.showLayer.value) {
+      imagePreload();
+    }
   });
   
   
