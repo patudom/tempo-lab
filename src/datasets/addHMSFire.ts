@@ -279,6 +279,11 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
         lastKnownVisible.value = isVisible;
       }
       // get rid of the label sync, doing that through syncLayerVisibility below
+      
+      // load this if we are just becoming visible
+      if (isVisible && !geoJsonData.value && !loading.value) {
+        loadKML().catch(err => console.error('HMS: Error loading KML on visibility change:', err));
+      }
     };
     
     syncLabelVisibility();
@@ -444,12 +449,8 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
     if (map.getLayer(cicleLayerId)) map.setLayoutProperty(cicleLayerId, 'visibility', vis);
     if (map.getLayer(clusterLayerId)) map.setLayoutProperty(clusterLayerId, 'visibility', vis);
 
-    if (!geoJsonData.value) {
+    if (lastKnownVisible.value && !geoJsonData.value) {
       await loadKML();
-    }
-    if (!geoJsonData.value) {
-      console.error('[hms-fire] No GeoJSON data available');
-      return;
     }
 
     if (showPopup && popupRef.value === null) {
@@ -480,7 +481,9 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
   // Change URL and refresh layer
   const setUrl = async (newUrl: string): Promise<void> => {
     internalSetUrl(newUrl)
-      .then(() => loadKML())
+      .then(() => {
+        if (lastKnownVisible.value) loadKML();
+      })
       .catch((err) => {
         console.error('HMS: Error setting new KML URL:', err);
       });

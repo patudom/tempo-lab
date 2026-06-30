@@ -287,6 +287,11 @@ export function addAQI(url: string, options: UseKMLOptions = {}): AQILayer {
           map.setLayoutProperty(labelLayerId, 'visibility', mainVis);
         }
       }
+
+      // load it if it is needed
+      if (isVisible && !geoJsonData.value && !loading.value) {
+        loadKML().catch(err => console.error('AQI: Error loading KML on visibility change:', err));
+      }
     };
     
     syncLabelVisibility();
@@ -310,13 +315,9 @@ export function addAQI(url: string, options: UseKMLOptions = {}): AQILayer {
     if (map.getLayer(layerId)) map.setLayoutProperty(layerId, 'visibility', vis);
     if (map.getLayer(labelLayerId)) map.setLayoutProperty(labelLayerId, 'visibility', vis);
 
-    // Load KML if not already loaded
-    if (!geoJsonData.value) {
-      // console.log('AQI: No GeoJSON data, loading KML from URL:', kmlUrl.value);
+    // only load if visible
+    if (lastKnownVisible.value && !geoJsonData.value) {
       await loadKML();
-    }
-    if (!geoJsonData.value) {
-      throw new Error('No GeoJSON data available');
     }
 
     if (propertyToShow && showLabel) {
@@ -359,7 +360,10 @@ export function addAQI(url: string, options: UseKMLOptions = {}): AQILayer {
   // Change URL and refresh layer
   const setUrl = async (newUrl: string): Promise<void> => {
     internalSetUrl(newUrl) // will automatically, clear old data, load new url, and abort currently running fetch if any
-      .then(() => loadKML())
+      .then(() => {
+        // only load if visible. setupVisibilitySync will load it when needed
+        if (lastKnownVisible.value) loadKML();
+      })
       .catch((err) => {
         console.error('AQI: Error setting new KML URL:', err);
       });
