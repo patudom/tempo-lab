@@ -3,8 +3,8 @@ import { renderingRule, stretches, colorramps, rgbcolorramps, RenderingRuleOptio
 import { type Map, type MapSourceDataEvent } from 'maplibre-gl';
 import { validate as uuidValidate } from "uuid";
 
-import { ImageService } from '@/esri/ImageServiceLayer/ImageService';
-import { useEsriTimesteps } from '../../composables/useEsriTimesteps';
+import { ImageService } from '@/esri/frontier_ImageServiceLayer/ImageService';
+import { useEsriTimesteps } from '@/esri/useEsriTimesteps';
 import { MoleculeType } from '../utils';
 import { useTempoStore } from '@/stores/app';
 

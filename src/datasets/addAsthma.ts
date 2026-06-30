@@ -1,5 +1,5 @@
 import { sampleColormap } from "@/colormaps/utils";
-import { useEsriFeatureLayer } from "@/composables/useEsriFeatureService";
+import { useEsriFeatureLayer } from "@/esri/maplibre/useEsriFeatureService";
 import type { ExpressionSpecification, LayerSpecification } from "maplibre-gl";
 
 const PLACES_BASE_URL =

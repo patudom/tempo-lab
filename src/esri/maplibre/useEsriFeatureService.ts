@@ -1,7 +1,7 @@
 import { ref, type Ref, watch, computed } from "vue";
 import type { Map, GeoJSONSource, LayerSpecification } from "maplibre-gl";
 import { EsriFeatureLayer } from "@/esri/services/FeatureServer";
-import { useMaplibreLayerVisibility } from "./useMaplibreLayerVisibility";
+import { useMaplibreLayerVisibility } from "../../composables/useMaplibreLayerVisibility";
 
 export type FeatureLayerStatus = "idle" | "loading" | "zoom-in" | "ready";
 
