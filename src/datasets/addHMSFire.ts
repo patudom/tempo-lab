@@ -1,9 +1,11 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { ref, shallowRef,watch, computed, type WritableComputedRef, type Ref, onBeforeUnmount } from 'vue';
 import M from 'maplibre-gl';
 import { Popup } from 'maplibre-gl';
-import type { SymbolLayerSpecification, CircleLayerSpecification } from 'maplibre-gl';
+import type { SymbolLayerSpecification, CircleLayerSpecification, LayerSpecification, DistributiveOmit, DataDrivenPropertyValueSpecification } from 'maplibre-gl';
 import { useKML } from '@/composables/useKML';
 import { useGeoJsonLayer } from '@/composables/useGeoJsonLayer';
+import { syncLayerOpacity, syncLayerVisibility } from '@/composables/useSyncedVisibilityAndOpacity';
 
 
 
@@ -67,6 +69,8 @@ export interface UseKMLOptions {
   layerName: string;               // custom id base for source/layers, e.g. 'fire'
   showPopup?: boolean;            // whether to show popup on click/hover
   showLabel?: boolean;           // whether to show labels
+  showClusters?: boolean;       // whether to cluster nearby points into circles; defaults to true
+  showCircles?: boolean;       // whether to show the per-point FRP circle layer; defaults to false
   visible?: boolean;              // initial visibility state; defaults to true
 }
 
@@ -142,6 +146,10 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
   });
 
   const showPopup = options.showPopup ?? true;
+  const showClusters = options.showClusters ?? true;
+  const showCircles = options.showCircles ?? false;
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const TRANSITION_ZOOM = 8;
 
   // Store runtime state in refs (avoid caching on the function)
   const mapRef = shallowRef<M.Map | null>(null);
@@ -149,6 +157,8 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
   const sourceId = `${idBase}-source`;
   const layerId = idBase;
   const labelLayerId = layerId + '-label';
+  const cicleLayerId = layerId + '-circle';
+  const clusterLayerId = layerId + '-clustered';
 
   const popupRef = ref<Popup | null>(null);
   const onEnterRef = ref<InternalMapLayerEventTypeHandler | null>(null);
@@ -189,8 +199,11 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
       
       const vis = val ? 'visible' : 'none';
       map.setLayoutProperty(layerId, 'visibility', vis);
-      if (map.getLayer(layerId + '-circle')) {
-        map.setLayoutProperty(layerId + '-circle', 'visibility', vis);
+      if (map.getLayer(cicleLayerId)) {
+        map.setLayoutProperty(cicleLayerId, 'visibility', vis);
+      }
+      if (map.getLayer(clusterLayerId)) {
+        map.setLayoutProperty(clusterLayerId, 'visibility', vis);
       }
       if (map.getLayer(labelLayerId)) {
         map.setLayoutProperty(labelLayerId, 'visibility', vis);
@@ -254,8 +267,7 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
     onLeaveRef.value = onLeave;
   }
 
-  function setupVisibilitySync(map: M.Map) {
-    // Keep label visibility equal to main layer & sync external visibility changes
+  function syncLastKnownVisible(map: M.Map) {
     const syncLabelVisibility = () => {
       if (!map.getLayer(layerId)) return;
       const mainVis = (map.getLayoutProperty(layerId, 'visibility') as string) || 'visible';
@@ -263,18 +275,13 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
       if (lastKnownVisible.value !== isVisible) {
         lastKnownVisible.value = isVisible;
       }
-      if (map.getLayer(labelLayerId)) {
-        const labelVis = (map.getLayoutProperty(labelLayerId, 'visibility') as string) || 'visible';
-        if (labelVis !== mainVis) {
-          map.setLayoutProperty(labelLayerId, 'visibility', mainVis);
-        }
-      }
+      // get rid of the label sync, doing that through syncLayerVisibility below
     };
     
     syncLabelVisibility();
     // idle takes a bit longer than styledata, and the user can tell
     // but idle would be less frequent i think
-    map.on('styledata', syncLabelVisibility); 
+    map.on('styledata', syncLabelVisibility);
     onStyleDataRef.value = syncLabelVisibility;
   }
   
@@ -287,10 +294,42 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
       features: processed.features.filter(f => f.properties && f.properties.YearDay > yd - 2)
     };
   });
+  
+  const clusterExpress: DataDrivenPropertyValueSpecification<number> = 
+  ['log10', 
+    ['/',
+      ["get", "totalFRP"],
+      1
+    ]
+  ];
+  const clusterLayer: Omit<CircleLayerSpecification,'source'> = {
+    id: clusterLayerId,
+    type: 'circle',
+    filter: ['has', 'point_count'],
+    layout: {
+      'visibility': lastKnownVisible.value ? 'visible' : 'none'
+    },
+    paint: {
+      'circle-radius': ['*', 4, clusterExpress],
+      'circle-color': [
+        "interpolate", 
+        ["linear"], 
+        ['log10', ["get", "totalFRP"]],
+        0, "rgb(255, 255, 204)",       // pale yellow
+        1, "rgb(255, 237, 160)",
+        2.5, "rgb(254, 178, 76)",
+        5, "rgb(240, 59, 32)",
+        6, "rgb(189, 0, 38)",
+        7, "rgb(128, 0, 38)",           // dark red
+        8, "rgb(77, 0, 75)"            // very da       // very dark red
+      ],
+    }
+  };
 
   const symbolLayer: Omit<SymbolLayerSpecification, 'source'> = {
     id: layerId,
     type: 'symbol',
+    minzoom: TRANSITION_ZOOM,
     paint: { 'icon-opacity': 1 },
     layout: {
       'icon-image': ['coalesce', ['get', 'styleUrl'], 'circle-15'],
@@ -306,22 +345,23 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
       'icon-allow-overlap': true,
       'visibility': lastKnownVisible.value ? 'visible' : 'none'
     },
-    filter: [
-      '>', ['get', 'FRP'], 1
+    filter: ['all',
+      ['>', ['get', 'FRP'], 1],
+      ['!', ['has', 'point_count']]
     ]
   };
 
   const hmsCircleLayer: Omit<CircleLayerSpecification, 'source'> = {
-    id: layerId+'-circle',
+    id: cicleLayerId,
     type: 'circle',
-    minzoom: 9,
+    minzoom: TRANSITION_ZOOM,
     // paint with a pale yellow to dark red scale based on FRP
     layout: {
       'visibility': lastKnownVisible.value ? 'visible' : 'none'
     },
     paint: {
       // 375 meter radius using zoom, 'Lat', and 'Lon'
-      'circle-radius': circleRadiusExpression(375/2),
+      'circle-radius': circleRadiusExpression(375/4),
       'circle-color': [
         "interpolate", 
         ["linear"], 
@@ -341,14 +381,32 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
     },
     // filter for TimeDay 
     // filter: ['>', ['get', 'YearDay'], yearDay.value-2],
+    filter: ['all',
+      ['>', ['get', 'FRP'], 1],
+      ['!', ['has', 'point_count']]
+    ]
   };
 
+  const layersToShow: DistributiveOmit<LayerSpecification,'source'>[] = [symbolLayer];
+  if (showCircles) {
+    layersToShow.push(hmsCircleLayer);
+  }
+  if (showClusters) {
+    layersToShow.push(clusterLayer);
+  }
   const geoLayer = useGeoJsonLayer(
     idBase || 'hms-fire',
     processedData,
     {
-      layerOptions: [symbolLayer, hmsCircleLayer],
-      sourceSpec: {},
+      layerOptions: layersToShow,
+      sourceSpec: {
+        cluster: showClusters,
+        clusterMaxZoom: TRANSITION_ZOOM,
+        clusterRadius: 48,
+        clusterProperties: {
+          'totalFRP': ['+', ['get','FRP']],
+        }
+      },
       sourceId,
     }
   );
@@ -380,7 +438,8 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
 
     const vis = lastKnownVisible.value ? 'visible' : 'none';
     if (map.getLayer(layerId)) map.setLayoutProperty(layerId, 'visibility', vis);
-    if (map.getLayer(layerId + '-circle')) map.setLayoutProperty(layerId + '-circle', 'visibility', vis);
+    if (map.getLayer(cicleLayerId)) map.setLayoutProperty(cicleLayerId, 'visibility', vis);
+    if (map.getLayer(clusterLayerId)) map.setLayoutProperty(clusterLayerId, 'visibility', vis);
 
     if (!geoJsonData.value) {
       await loadKML();
@@ -394,11 +453,11 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
       setupLayerPopup(map, layerId);
     }
     if (onStyleDataRef.value === null) {
-      setupVisibilitySync(map);
+      syncLastKnownVisible(map);
     }
-    
-    // syncLayerOpacity(map, layerId, layerId+'-circle');
-    // syncLayerVisibility(map, layerId, layerId+'-circle');
+
+    syncLayerOpacity(map, layerId, cicleLayerId, clusterLayerId, labelLayerId);
+    syncLayerVisibility(map, layerId, cicleLayerId, clusterLayerId, labelLayerId);
     
   };
   

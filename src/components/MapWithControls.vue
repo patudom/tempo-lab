@@ -253,6 +253,7 @@ const hmsFire = addHMSFire(singleDateSelected, {
   visible: false,
   showPopup: true,
   showLabel: false,
+  showClusters: true,
 });
 
 import { type UseEsriTempoLayer, useTempoLayer } from "@/esri/maplibre/useTempoImageLayer";
