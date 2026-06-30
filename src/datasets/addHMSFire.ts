@@ -82,7 +82,8 @@ function description2props(desc: string | null): Record<string, string | number>
   vals.reduce((acc, pair) => {
     const [key, value] = pair.split(':').map(s => s.trim());
     if (key && value) {
-      acc[key] = isNaN(parseFloat(value)) ? value : parseFloat(value);
+      const v = parseFloat(value);
+      acc[key] = isNaN(v) ? v : v;
     }
     return acc;
   }, props);
@@ -91,7 +92,8 @@ function description2props(desc: string | null): Record<string, string | number>
 
 // Post-process GeoJSON to apply styleUrl-based HMS coloring
 const postProcessGeoJson = (geoJson: GeoJSON.FeatureCollection): GeoJSON.FeatureCollection => {
-  const processedFeatures = geoJson.features.map((feature) => {
+  const processedFeatures: GeoJSON.Feature[] = [];
+  geoJson.features.forEach((feature) => {
     const processedFeature = { ...feature };
     const props = processedFeature.properties || {};
     // const styleUrl = props.styleUrl ?? props.styleURL ?? null;
@@ -99,16 +101,17 @@ const postProcessGeoJson = (geoJson: GeoJSON.FeatureCollection): GeoJSON.Feature
       ...props,
       ...props.description ? description2props(props.description as string) : {},
     };
+    // FRP comes off of the description
+    if (processedFeature.properties.FRP!==undefined && processedFeature.properties.FRP > 0) {
+      processedFeatures.push(processedFeature);
+    }
     return processedFeature;
   });
   
-  const features = processedFeatures
-    .filter(f => f.properties && f.properties.FRP > 0)
-    .sort((a, b) => (a?.properties?.FRP || 0) - (b?.properties?.FRP || 0)); // descending FRP
-
+  console.log(`HMS found ${processedFeatures.length} fires`);
   return {
     ...geoJson,
-    features: features,
+    features: processedFeatures,
   };
 };
 
