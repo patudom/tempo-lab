@@ -224,6 +224,9 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
       }
       return map.loadImage(url)
         .then((img) => {
+          if (map.hasImage(name)) {
+            return;
+          }
           map.addImage(name, img.data);
         });
     }));
