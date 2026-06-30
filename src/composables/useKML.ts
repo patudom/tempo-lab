@@ -30,6 +30,7 @@ export function useKML(url: string): KMLResource {
   const { loading, error, abortController, abortableFetch, abort } = useAbortableFetch();
   const kmlUrl = ref(url);
   const geoJsonData = ref<GeoJSON.FeatureCollection | null>(null);
+  const loadingUrl = ref<string | null>(null);
 
   // Convert KML to GeoJSON
   const _convertKmlToGeoJson = (kmlContent: string): GeoJSON.FeatureCollection => {
@@ -51,13 +52,22 @@ export function useKML(url: string): KMLResource {
   async function loadKML() {
     
     const requestedUrl = kmlUrl.value;
+    console.log(`loading kml ${requestedUrl}`);
 
-    // Abort any in-flight request
+    // Already loading or already loaded this URL — don't restart.
+    // Checked without requiring an active controller so cached responses
+    // (which complete before the next styledata event) are also covered.
+    if (loadingUrl.value === requestedUrl) {
+      return;
+    }
+
+    // Abort any in-flight request for a different URL
     if (abortController.value) {
       abort('Aborting previous KML fetch due to new request');
     }
     
 
+    loadingUrl.value = requestedUrl;
     return abortableFetch(requestedUrl).then((response) => {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -113,6 +123,7 @@ export function useKML(url: string): KMLResource {
     
     geoJsonData.value = null;
     error.value = null;
+    loadingUrl.value = null;
   }
 
   // Watch for URL changes to auto-reload (will be idempotent due to early return)

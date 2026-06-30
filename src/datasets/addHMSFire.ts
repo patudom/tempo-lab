@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { ref, shallowRef,watch, computed, type WritableComputedRef, type Ref, onBeforeUnmount } from 'vue';
+import { computedAsync } from '@vueuse/core';
 import M from 'maplibre-gl';
 import { Popup } from 'maplibre-gl';
 import type { SymbolLayerSpecification, CircleLayerSpecification, LayerSpecification, DistributiveOmit, DataDrivenPropertyValueSpecification } from 'maplibre-gl';
@@ -91,7 +92,7 @@ function description2props(desc: string | null): Record<string, string | number>
 }
 
 // Post-process GeoJSON to apply styleUrl-based HMS coloring
-const postProcessGeoJson = (geoJson: GeoJSON.FeatureCollection): GeoJSON.FeatureCollection => {
+const postProcessGeoJson = (geoJson: GeoJSON.FeatureCollection, yd: number): GeoJSON.FeatureCollection => {
   const processedFeatures: GeoJSON.Feature[] = [];
   geoJson.features.forEach((feature) => {
     const processedFeature = { ...feature };
@@ -102,7 +103,11 @@ const postProcessGeoJson = (geoJson: GeoJSON.FeatureCollection): GeoJSON.Feature
       ...props.description ? description2props(props.description as string) : {},
     };
     // FRP comes off of the description
-    if (processedFeature.properties.FRP!==undefined && processedFeature.properties.FRP > 0) {
+    if (
+      processedFeature.properties.FRP !== undefined &&
+      processedFeature.properties.FRP > 0  &&
+      processedFeature.properties.YearDay > yd - 2
+    ) {
       processedFeatures.push(processedFeature);
     }
     return processedFeature;
@@ -296,15 +301,10 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
     onStyleDataRef.value = syncLabelVisibility;
   }
   
-  const processedData = computed<GeoJSON.FeatureCollection | null>(() => {
+  const processedData = computedAsync<GeoJSON.FeatureCollection | null>(async () => {
     if (!geoJsonData.value) return null;
-    const processed = postProcessGeoJson(geoJsonData.value);
-    const yd = yearDay.value;
-    return {
-      ...processed,
-      features: processed.features.filter(f => f.properties && f.properties.YearDay > yd - 2)
-    };
-  });
+    return postProcessGeoJson(geoJsonData.value, yearDay.value);
+  }, null);
   
   const clusterExpress: DataDrivenPropertyValueSpecification<number> = 
   ['log10', 
@@ -452,15 +452,16 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
     if (map.getLayer(cicleLayerId)) map.setLayoutProperty(cicleLayerId, 'visibility', vis);
     if (map.getLayer(clusterLayerId)) map.setLayoutProperty(clusterLayerId, 'visibility', vis);
 
-    if (lastKnownVisible.value && !geoJsonData.value) {
-      await loadKML();
-    }
 
     if (showPopup && popupRef.value === null) {
       setupLayerPopup(map, layerId);
     }
     if (onStyleDataRef.value === null) {
       syncLastKnownVisible(map);
+    }
+
+    if (lastKnownVisible.value && !geoJsonData.value) {
+      await loadKML();
     }
 
     syncLayerOpacity(map, layerId, cicleLayerId, clusterLayerId, labelLayerId);
@@ -485,7 +486,9 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
   const setUrl = async (newUrl: string): Promise<void> => {
     internalSetUrl(newUrl)
       .then(() => {
-        if (lastKnownVisible.value) loadKML();
+        if (lastKnownVisible.value) {
+          loadKML();
+        }
       })
       .catch((err) => {
         console.error('HMS: Error setting new KML URL:', err);
