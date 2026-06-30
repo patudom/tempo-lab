@@ -221,20 +221,20 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
 
 
   
-  function preloadImages(map: M.Map, images: Record<string, string>)  {
-    return Promise.all(Object.entries(images).map(([name, url]) => {
-      url = "./FireIcon.png";
-      if (map.hasImage(name)) {
-        return;
-      }
-      return map.loadImage(url)
-        .then((img) => {
-          if (map.hasImage(name)) {
-            return;
-          }
-          map.addImage(name, img.data);
-        });
-    }));
+  function preloadImages(map: M.Map) {
+    const url = "./FireIcon.png";
+    const name = 'hms-fire-icon';
+    
+    if (map.hasImage(name)) {
+      return;
+    }
+    return map.loadImage(url)
+      .then((img) => {
+        if (map.hasImage(name)) {
+          return;
+        }
+        map.addImage(name, img.data);
+      });
   }
 
   
@@ -343,7 +343,7 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
     minzoom: TRANSITION_ZOOM,
     paint: { 'icon-opacity': 1 },
     layout: {
-      'icon-image': ['coalesce', ['get', 'styleUrl'], 'circle-15'],
+      'icon-image': 'hms-fire-icon',
       'icon-size': [
         "*", 
         .025, 
@@ -422,30 +422,14 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
     }
   );
 
-  // Preload icons whenever data.
-  // layer and MapLibre picks them up automatically without re-adding anything.
-  watch(geoJsonData, (data) => {
-    const map = mapRef.value;
-    if (!data || !map) return;
-    const images: Record<string, string> = {};
-    data.features.forEach((feature) => {
-      const props = feature.properties || {};
-      const iconUrl: string = props.icon;
-      const styleUrl = props.styleUrl || iconUrl.split('/').pop();
-      if (iconUrl && typeof iconUrl === 'string' && styleUrl && !(styleUrl in images)) {
-        images[styleUrl] = iconUrl;
-      }
-    });
-    // Preload all icons
-    preloadImages(map, images).catch(err => console.error('HMS: Error preloading images:', err));
-  });
-
   // Add GeoJSON to map
   const addToMap = async (map: M.Map): Promise<void> => {
     mapRef.value = map;
 
     // Mount source + layers immediately; data populates reactively once KML loads.
     geoLayer.addToMap(map);
+
+    preloadImages(map);
 
     const vis = lastKnownVisible.value ? 'visible' : 'none';
     if (map.getLayer(layerId)) map.setLayoutProperty(layerId, 'visibility', vis);
