@@ -28,7 +28,10 @@
           <template #info
             v-if="layerInfo[element]"
           >
-            <div v-html="layerInfo[element]"></div>
+            <h3 v-html="layerInfo[element].title"></h3>
+            <p v-html="layerInfo[element].description"></p>
+            <p class="mt-2">Timescale:<span v-if="layerInfo[element].timescale" v-html="layerInfo[element].timescale"></span></p>
+            <p class="mt-1 text-caption" v-html="layerInfo[element].source"></p>
           </template>
           <template #extras="{ visible }"
           >

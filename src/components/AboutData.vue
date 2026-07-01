@@ -5,7 +5,10 @@
       :key="layerId"
       class="about-data-item"
     >
-      <div v-html="layerInfo[layerId]"></div>
+      <h3 v-html="layerInfo[layerId].title"></h3>
+      <p v-html="layerInfo[layerId].description"></p>
+      <p class="mt-1" v-html="layerInfo[layerId].source"></p>
+      <p v-html="layerInfo[layerId].da"></p>
     </div>
   </div>
 </template>
