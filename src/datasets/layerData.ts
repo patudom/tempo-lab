@@ -167,8 +167,10 @@ export const layerInfo: Record<string, {title: string, description: string, sour
       For asthma, PLACES shows estimates of how many adults currently have asthma in each county.
       To make these estimates, it uses information from national health surveys and U.S. Census data.
       <br/><br/>
-      This helps people compare asthma rates in different communities and better understand where asthma may be a bigger health concern.`,
-    source: `Source: <a href="https://www.cdc.gov" target="_blank" rel="noopener noreferrer">CDC</a>.`,
+      This helps people compare asthma rates in different communities and better understand where asthma may be a bigger health concern.
+      <br/><br/>
+      We use the 2025 release of PLACES`,
+    source: `Source: <a href="https://www.cdc.gov/places/" target="_blank" rel="noopener noreferrer">CDC PLACES</a>.`,
     da: `Data available at <a href="https://www.cdc.gov/places/" target="_blank" rel="noopener noreferrer">CDC PLACES: Local Data for Better Health</a>`,
   },
   "places-asthma-tracts": {
@@ -180,8 +182,10 @@ export const layerInfo: Record<string, {title: string, description: string, sour
       For asthma, PLACES shows estimates of how many adults currently have asthma in each census tract.
       To make these estimates, it uses information from national health surveys and U.S. Census data.
       <br/><br/>
-      This helps people compare asthma rates in different communities and better understand where asthma may be a bigger health concern.`,
-    source: `Source: <a href="https://www.cdc.gov" target="_blank" rel="noopener noreferrer">CDC</a>.`,
+      This helps people compare asthma rates in different communities and better understand where asthma may be a bigger health concern.
+      <br/><br/>
+      We use the 2025 release of PLACES`,
+    source: `Source: <a href="https://www.cdc.gov/places/" target="_blank" rel="noopener noreferrer">CDC PLACES</a>.`,
     da: `Data available at <a href="https://www.cdc.gov/places/" target="_blank" rel="noopener noreferrer">CDC PLACES: Local Data for Better Health</a>`,
   },
 
