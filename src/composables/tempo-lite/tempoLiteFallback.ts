@@ -99,7 +99,9 @@ export function useImageOverlay(
   
   function removeFromMap() {
     if (_map.value) {
-      _map.value.removeLayer(overlayId);
+      if (_map.value.getLayer(overlayId)) {
+        _map.value.removeLayer(overlayId);
+      }
       showLayer.value = false;
       // _map.value.removeSource(overlayId);
     }
@@ -114,7 +116,9 @@ export function useImageOverlay(
         overlay.value.map.addLayer(layer);
       }
     } else if (overlay.value) {
-      overlay.value.map.removeLayer(overlayId);
+      if (overlay.value.map.getLayer(overlayId)) {
+        overlay.value.map.removeLayer(overlayId);
+      }
     }
     
   }
