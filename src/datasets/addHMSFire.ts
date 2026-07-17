@@ -194,7 +194,7 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
   const showCircles = options.showCircles ?? false;
   const showIcons = options.showIcons ?? true;
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  const TRANSITION_ZOOM = 7;
+  const TRANSITION_ZOOM = 8.5;
 
   // Store runtime state in refs (avoid caching on the function)
   const mapRef = shallowRef<M.Map | null>(null);
@@ -447,7 +447,7 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
       sourceSpec: {
         cluster: showClusters,
         clusterMaxZoom: TRANSITION_ZOOM,
-        clusterRadius: 10,
+        clusterRadius: 15,
         clusterProperties: {
           'totalFRP': ['+', ['get','FRP']],
         },
