@@ -316,6 +316,7 @@ function addAdvancedLayers(m: Map | null) {
   syncLayerReady('tempo-o3', ozoneLayer.serviceReady.value);
   syncLayerReady('pop-dens', popLayer.serviceReady.value);
   syncLayerReady('land-use', sentinalLandUseLayer.serviceReady.value);
+  syncLayerReady('hms-fire', [hmsFire.loading.value]);
   
   tryCatch('power-plants-layer', () => pp.addLayer());
   // pp.togglePowerPlants(false);
@@ -390,7 +391,8 @@ watch(() => [
   ozoneLayer.serviceReady.value,
   popLayer.serviceReady.value,
   sentinalLandUseLayer.serviceReady.value,
-], ([no2Ready, hchoReady, ozoneReady, popReady, landUseReady]) => {
+  [hmsFire.loading.value],
+], ([no2Ready, hchoReady, ozoneReady, popReady, landUseReady, hmsReady]) => {
   syncLayerReady('tempo-no2', no2Ready);
   
   
@@ -413,6 +415,7 @@ watch(() => [
     syncLayerReady('tempo-o3', ozoneReady);
     syncLayerReady('pop-dens', popReady);
     syncLayerReady('land-use', landUseReady);
+    syncLayerReady('hms-fire', hmsReady);
     return;
   }
 
@@ -420,6 +423,7 @@ watch(() => [
   store.clearLayerReady('tempo-o3');
   store.clearLayerReady('pop-dens');
   store.clearLayerReady('land-use');
+  store.clearLayerReady('hms-fire');
 }, { deep: true, immediate: true });
 
 import { stretches, colorramps, rgbstretches, rgbcolorramps, type ColorRamps } from "@/esri/ImageLayerConfig";

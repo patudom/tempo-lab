@@ -58,6 +58,9 @@
                 </colorbar-horizontal>
               </template>
             </local-scope>
+            
+            <!-- Loading bar -->
+             <v-progress-linear v-if="(element === 'hms-fire') && firstOrFalse(layersReady.get('hms-fire'))" indeterminate />
             <!-- Legend -->
 
             <NarrowExpansionPanel v-show="visible" :item="element" v-if="hasLegend.includes(element)" :label="element==='power-plants-layer' ? 'Show Filter' : 'Show Legend'">
@@ -122,6 +125,14 @@ const connections = {
 const getConnectedItems = (layer: string): string[] => {
   return connections[layer] ?? [];
 };
+
+
+function firstOrFalse(arr: boolean[] | undefined) {
+  if (arr === undefined || arr.length === 0) {
+    return false;
+  }
+  return arr[0];
+}
 
 const { 
   currentOrder, 
@@ -210,6 +221,9 @@ function isLayerReady(layerId: string, includePartial = false) {
 
 function warningMessage(layerId: string): string | null {
   // [false] for tracts means zoom-in required, not a service failure — check before isLayerReady
+  if (layerId === 'hms-fire') {
+    return 'Fire layer is large and may take a few seconds to fully load';
+  }
   if (layerId.includes('tracts')) {
     const readiness = layersReady.value.get(layerId);
     return (readiness && !readiness.every(r => r)) ? 'Zoom in to see census tract data' : null;

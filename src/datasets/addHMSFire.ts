@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { ref, shallowRef,watch, computed, type WritableComputedRef, type Ref, onBeforeUnmount } from 'vue';
-import { computedAsync } from '@vueuse/core';
+import { ref, shallowRef, watch, computed, type Ref, onBeforeUnmount } from 'vue';
 import M from 'maplibre-gl';
 import { Popup } from 'maplibre-gl';
 import type { SymbolLayerSpecification, CircleLayerSpecification, LayerSpecification, DistributiveOmit, DataDrivenPropertyValueSpecification } from 'maplibre-gl';
@@ -81,7 +80,6 @@ export interface HMSLayer {
   geoJsonData: Ref<GeoJSON.FeatureCollection | null>
   loading: Ref<boolean>
   error: Ref<Error | null>
-  layerVisible: WritableComputedRef<boolean>
   toggleHMSVisibility: (vis?: boolean | undefined) => void
   setUrl: (newUrl: string) => Promise<void>
 }
@@ -220,49 +218,6 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
   // Track the last known layer visibility across URL changes (persisted)
   const lastKnownVisible = ref<boolean>(options.visible ?? true); 
 
-  // layerVisible reflects actual map state; falls back to lastKnownVisible if layer missing
-  const layerVisible = computed<boolean>({
-    get() {
-      const map = mapRef.value;
-      if (!map) {
-        console.warn(`HMS: Tried to get ${layerId} but map is not set`);
-        return lastKnownVisible.value;
-      }
-      if (!map.getLayer(layerId)) {
-        console.warn(`HMS: Tried to get ${layerId} but layer is not present on map`);
-        return lastKnownVisible.value;
-      }
-      
-      const vis = map.getLayoutProperty(layerId, 'visibility');
-      return vis === 'visible';
-    },
-    set(val: boolean) {
-      lastKnownVisible.value = val;
-      const map = mapRef.value;
-      if (!map) {
-        console.warn(`HMS: Tried to get ${layerId} but map is not set`);
-        return lastKnownVisible.value;
-      }
-      if (!map.getLayer(layerId)) {
-        console.warn(`HMS: Tried to get ${layerId} but layer is not present on map`);
-        return lastKnownVisible.value;
-      }
-      
-      const vis = val ? 'visible' : 'none';
-      map.setLayoutProperty(layerId, 'visibility', vis);
-      if (map.getLayer(cicleLayerId)) {
-        map.setLayoutProperty(cicleLayerId, 'visibility', vis);
-      }
-      if (map.getLayer(clusterLayerId)) {
-        map.setLayoutProperty(clusterLayerId, 'visibility', vis);
-      }
-      if (map.getLayer(labelLayerId)) {
-        map.setLayoutProperty(labelLayerId, 'visibility', vis);
-      }
-    }
-  });
-
-
   
   function preloadImages(map: M.Map) {
     const url = "./FireIcon.png";
@@ -376,10 +331,13 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
     onStyleDataRef.value = syncLabelVisibility;
   }
   
-  const processedData = computedAsync<GeoJSON.FeatureCollection | null>(async () => {
+  const processedData = computed<GeoJSON.FeatureCollection | null>(() => {
     if (!geoJsonData.value) return null;
-    return postProcessGeoJson(geoJsonData.value, yearDay.value);
-  }, null);
+    console.time('HMS: postProcessGeoJson');
+    const p = postProcessGeoJson(geoJsonData.value, yearDay.value);
+    console.timeEnd('HMS: postProcessGeoJson');
+    return p;
+  });
   
 
   // const clusterLayer: Omit<CircleLayerSpecification,'source'> = {
@@ -531,22 +489,11 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
     syncLayerVisibility(map, layerId, cicleLayerId, clusterLayerId, labelLayerId);
     
   };
-  
-  
-  
-  // Optional: debug logging
-  // watch(layerVisible, (newVis) => {
-  //   console.log('HMS layer visibility changed to:', newVis);
-  // });
 
-  // Toggle visibility for main and label layers using the computed setter
-  const toggleFireVisibility = (val?: boolean | undefined): void => {
-    const next = val ?? !layerVisible.value;
-    layerVisible.value = next;
-  };
 
   // Change URL and refresh layer
   const setUrl = async (newUrl: string): Promise<void> => {
+    
     internalSetUrl(newUrl)
       .then(() => {
         if (lastKnownVisible.value) {
@@ -594,6 +541,10 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
     }
   });
   
+  watch(loading, (newLoading) => {
+    console.log(`HMS: loading state changed to ${newLoading}`);
+  });
+
   return {
     addToMap,
     layerId,
@@ -601,8 +552,6 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
     geoJsonData,
     loading,
     error,
-    layerVisible,
-    toggleFireVisibility,
     setUrl
   };
 }
