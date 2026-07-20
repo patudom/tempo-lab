@@ -12,6 +12,7 @@ import { useUniqueTimeSelection } from "@/composables/useUniqueTimeSelection";
 import { useTimezone, type Timezone } from "@/composables/useTimezone";
 import { atleast1d } from "@/utils/atleast1d";
 import { formatSingleRange, rangeForSingleDay } from "@/utils/timeRange";
+import { createIntroTour } from "@/utils/tours";
 
 const createTempoStore = (backend: MappingBackends) => defineStore("tempods", () => {
   const debugMode = ref(false);
@@ -86,6 +87,14 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
   const accentColor = ref("#068ede");
   const accentColor2 = ref("#ffcc33");
   const tempoRed = ref("#b60e32");
+
+  let introTour: Tour | null;
+  function getTour(): Tour {
+    if (introTour === null) {
+      introTour = createIntroTour();
+    }
+    return introTour;
+  }
 
 
   function getTempoDataService(molecule: MoleculeType): TempoDataService {
@@ -455,6 +464,7 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
     clearLayerReady,
 
     reset,
+    getTour,
   };
 });
 

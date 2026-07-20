@@ -26,6 +26,20 @@
         </template>
       </side-placeholder>
 
+      <v-dialog
+        v-model="showPopup"
+      >
+        <v-btn>Give me a quick tour!</v-btn>
+        <v-btn
+          @click="showPopup = false"
+        >I want to dive right in!</v-btn>
+
+        <v-checkbox
+          v-model="dontShowPopupAgain"
+          label="Don't show this again"
+        ></v-checkbox>
+      </v-dialog>
+
       <v-tooltip
         text="Change panel width"
         location="end center"
@@ -131,6 +145,9 @@ const cssVars = computed(() => {
 });
 
 const localStorageKey = "tempods";
+const localStorageSkipPopup = "tempods-intro-popup";
+const showPopup = ref(true);
+const dontShowPopupAgain = ref(false);
 let animationFrame = 0;
 
 function setBasis(panel: HTMLElement, sizePx: number) {
@@ -147,6 +164,9 @@ onBeforeMount(() => {
   if (storedState) {
     updateStoreFromJSON(store, storedState);
   }
+
+  dontShowPopupAgain.value = window.localStorage.getItem(localStorageSkipPopup)?.toLowerCase() != "true";
+  showPopup.value = dontShowPopupAgain.value;
 });
 
 function updateSizes(layersDefault: boolean = false, datasetsDefault: boolean = false) {
@@ -294,8 +314,13 @@ function onLayersPanelOpenChange(open: boolean) {
   setHandleVisibility(leftHandle, open);
 }
 
+function onDontShowPopupAgainChange(dontShow: boolean) {
+  window.localStorage.setItem(localStorageSkipPopup, String(dontShow));
+}
+
 watch(datasetControlsOpen, onDatasetPanelOpenChange);
 watch(layerControlsOpen, onLayersPanelOpenChange);
+watch(dontShowPopupAgain, onDontShowPopupAgainChange);
 </script>
 
 <style lang="less">
