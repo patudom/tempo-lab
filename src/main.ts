@@ -45,6 +45,7 @@ import {
   faDroplet,
   faEarthAmericas,
   faAtom,
+  faSignsPost,
 } from "@fortawesome/free-solid-svg-icons";
 
 import { VueDatePicker } from "@vuepic/vue-datepicker";
@@ -71,6 +72,7 @@ library.add(faSolarPanel);
 library.add(faDroplet);
 library.add(faEarthAmericas);
 library.add(faAtom);
+library.add(faSignsPost);
 
 // TODO: This doesn't work. Why??
 // import "golden-layout/dist/css/goldenlayout-base.css";

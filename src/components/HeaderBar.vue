@@ -72,7 +72,10 @@
       size="lg"
     >
       <v-tooltip location="bottom" activator="parent" :disabled="mobile" text="Start intro tour"></v-tooltip>
-      <v-icon>mdi-map-legend</v-icon>
+        <font-awesome-icon
+          icon="fa-signs-post"
+          size="lg"
+        />
     </v-btn>
 
      <v-btn
