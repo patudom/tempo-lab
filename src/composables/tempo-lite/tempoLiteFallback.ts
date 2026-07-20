@@ -10,6 +10,7 @@ export interface MaplibreImageOverlayComposable {
   addTo: (map: M.Map) => void;
   removeFromMap: () => void;
   setVisibility: (visible: boolean) => void;
+  showLayer: Ref<boolean>
 }
 
 export function useImageOverlay(
@@ -98,7 +99,9 @@ export function useImageOverlay(
   
   function removeFromMap() {
     if (_map.value) {
-      _map.value.removeLayer(overlayId);
+      if (_map.value.getLayer(overlayId)) {
+        _map.value.removeLayer(overlayId);
+      }
       showLayer.value = false;
       // _map.value.removeSource(overlayId);
     }
@@ -113,7 +116,9 @@ export function useImageOverlay(
         overlay.value.map.addLayer(layer);
       }
     } else if (overlay.value) {
-      overlay.value.map.removeLayer(overlayId);
+      if (overlay.value.map.getLayer(overlayId)) {
+        overlay.value.map.removeLayer(overlayId);
+      }
     }
     
   }
@@ -154,6 +159,6 @@ export function useImageOverlay(
     }
   });
   
-  return { overlay, addTo, removeFromMap, setVisibility} as MaplibreImageOverlayComposable;
+  return { overlay, addTo, removeFromMap, setVisibility, showLayer} as MaplibreImageOverlayComposable;
 
 }
