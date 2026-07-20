@@ -205,6 +205,7 @@ function isLayerReady(layerId: string, includePartial: false): boolean;
 function isLayerReady(layerId: string, includePartial = false) {
   // tract layers use [false] to signal zoom-in, not a service outage — always treat as positioned-ready
   if (layerId.includes('tracts')) return true;
+  if (layerId === 'hms-fire') return true;
   const readiness = layersReady.value.get(layerId);
   if (!readiness || readiness.length === 0) {
     return true; // was null, no warning message, so true
