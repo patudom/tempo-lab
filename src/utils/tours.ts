@@ -88,8 +88,14 @@ export function createIntroTour(): Tour {
 
   const mapControls = document.querySelector(".map-view") as HTMLElement;
   tour.addStep({
-    attachTo: { element: mapControls, on: "top"},
+    attachTo: { element: mapControls, on: "top" },
     text: "Adjust the date and timezone of the map display",
+  });
+
+  const tourButton = document.querySelector("#tour-button") as HTMLElement;
+  tour.addStep({
+    attachTo: { element: tourButton, on: "left" },
+    text: "Click here to (re)open tour",
     buttons: [backButton, endButton],
   });
 

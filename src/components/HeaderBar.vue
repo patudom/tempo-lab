@@ -62,6 +62,7 @@
         if (!introTour) { introTour = createIntroTour(); }
         introTour.start();
       }"
+      id="tour-button"
       class="intro-tour-button"
       aria-label="Start intro tour"
       variant="outlined"
