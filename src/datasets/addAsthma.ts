@@ -11,8 +11,16 @@ const PREV_MIN = 5;
 const PREV_MAX = 15;
 const COLOR_STEPS = 7;
 const MIN_ZOOM = 6;
+const COLORMAP = "purples";
 
-const purpleStops = sampleColormap("purples", COLOR_STEPS).flatMap((rgb, i) => {
+export const asthmaColorbar = {
+  colormap: COLORMAP,
+  min: PREV_MIN,
+  max: PREV_MAX,
+  label: "% of adults with asthma",
+};
+
+const purpleStops = sampleColormap(COLORMAP, COLOR_STEPS).flatMap((rgb, i) => {
   const val = PREV_MIN + (PREV_MAX - PREV_MIN) * (i / (COLOR_STEPS - 1));
   return [val, `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`];
 });

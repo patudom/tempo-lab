@@ -21,7 +21,8 @@
           >
             <v-tooltip :text="warningMessage(element)!">
               <template #activator="{ props }">
-                <v-icon v-bind="props" color="red">mdi-alert</v-icon>
+                <v-icon v-if="element !== 'hms-fire'" v-bind="props" color="red">mdi-alert-octagon</v-icon>
+                <v-icon v-else v-bind="props" color="yellow">mdi-alert</v-icon>
               </template>
             </v-tooltip>
           </template>
@@ -58,7 +59,22 @@
                 </colorbar-horizontal>
               </template>
             </local-scope>
-            
+            <colorbar-horizontal
+              v-else-if="element.includes('asthma')"
+              v-show="visible"
+              :cmap-name="asthmaColorbar.colormap"
+              :cmap="colormapFunction(asthmaColorbar.colormap)"
+              background-color="transparent"
+              height="15px"
+              font-size="9pt"
+              :nsteps="255"
+              :start-value="String(asthmaColorbar.min)"
+              :end-value="String(asthmaColorbar.max)"
+              :extend="true"
+            >
+              <template #label>{{ asthmaColorbar.label }}</template>
+            </colorbar-horizontal>
+
             <!-- Loading bar -->
              <v-progress-linear v-if="(element === 'hms-fire') && firstOrFalse(layersReady.get('hms-fire'))" indeterminate />
             <!-- Legend -->
@@ -90,6 +106,7 @@ import { colorbarOptions } from "@/esri/ImageLayerConfig";
 import { colormapFunction } from "@/colormaps/utils";
 import { useTempoStore } from "@/stores/app";
 import { layerNames, layerInfo } from "@/datasets/layerData";
+import { asthmaColorbar } from "@/datasets/addAsthma";
 import NarrowExpansionPanel from './NarrowExpansionPanel.vue';
 import LandUseLegend from './LandUseLegend.vue';
 import AQILegend from './AQILegend.vue';
