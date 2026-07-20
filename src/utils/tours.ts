@@ -26,6 +26,9 @@ export function createIntroTour(): Tour {
     useModalOverlay: true,
     defaultStepOptions: {
       buttons: defaultButtons,
+      cancelIcon: {
+        enabled: true,
+      },
       when: {
         show() {
           const currentStep = tour.getCurrentStep();
