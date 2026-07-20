@@ -49,11 +49,29 @@ export function createIntroTour(): Tour {
     },
   });
 
+  const map = document.querySelector("canvas.maplibregl-canvas") as HTMLElement;
+  tour.addStep({
+    attachTo: { element: map, on: "top" },
+    text: "The map displays TEMPO data and other layers!",
+    buttons: [nextButton],
+  });
+
+  const mapControls = document.querySelector(".map-view") as HTMLElement;
+  tour.addStep({
+    attachTo: { element: mapControls, on: "top" },
+    text: "Adjust the date and timezone of the map display",
+  });
+
+  const timeSlider = document.querySelector(".slider-row") as HTMLElement;
+  tour.addStep({
+    attachTo: { element: timeSlider, on: "top" },
+    text: "Control the time for the currently displayed day using the slider",
+  });
+
   const layersPanel = document.querySelector("#layers-panel") as HTMLElement;
   tour.addStep({
     attachTo: { element: layersPanel, on: "right" }, 
     text: "This is the layers panel!",
-    buttons: [nextButton],
   });
 
   const openCloseLayers = layersPanel.querySelector(".open-close-container") as HTMLElement;
@@ -72,24 +90,6 @@ export function createIntroTour(): Tour {
   tour.addStep({
     attachTo: { element: openCloseDatasets, on: "left" },
     text: "The datasets panel can also be opened and closed",
-  });
-
-  const map = document.querySelector("canvas.maplibregl-canvas") as HTMLElement;
-  tour.addStep({
-    attachTo: { element: map, on: "top" },
-    text: "The map displays TEMPO data and other layers!",
-  });
-
-  const timeSlider = document.querySelector(".slider-row") as HTMLElement;
-  tour.addStep({
-    attachTo: { element: timeSlider, on: "top" },
-    text: "Control the time for the currently displayed day using the slider",
-  });
-
-  const mapControls = document.querySelector(".map-view") as HTMLElement;
-  tour.addStep({
-    attachTo: { element: mapControls, on: "top" },
-    text: "Adjust the date and timezone of the map display",
   });
 
   const tourButton = document.querySelector("#tour-button") as HTMLElement;
