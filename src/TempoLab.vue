@@ -26,9 +26,16 @@
         </template>
       </side-placeholder>
 
-      <intro-tour-choice
+      <v-dialog
         v-model="showPopup"
-      ></intro-tour-choice>
+        width="50%"
+      >
+        <intro-tour-choice
+          @close="() => showPopup = false"
+          @tour="() => getIntroTour(store).start()"
+          @dont-show="(value: boolean) => dontShowPopupAgain = value"
+        ></intro-tour-choice>
+      </v-dialog>
 
       <v-tooltip
         text="Change panel width"
@@ -460,11 +467,5 @@ body {
     height: 100%;
     border-radius: 10px;
   }
-}
-
-.intro-popup {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
 }
 </style>

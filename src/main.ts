@@ -28,6 +28,7 @@ import PowerPlantsFilterControl from "./components/PowerPlantsFilterControl.vue"
 import IconCheckbox from "./components/IconCheckbox.vue";
 import SaveState from "./components/SaveState.vue";
 import SidePlaceholder from "./components/SidePlaceholder.vue";
+import IntroTourChoice from "./components/IntroTourChoice.vue";
 
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { library } from "@fortawesome/fontawesome-svg-core";
@@ -136,6 +137,7 @@ createApp(TempoLab, {})
   .component('local-scope', LocalScope)
   .component('save-state', SaveState)
   .component('side-placeholder', SidePlaceholder)
+  .component('intro-tour-choice', IntroTourChoice)
 
   // Mount
   .mount("#app");
