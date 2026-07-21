@@ -1,5 +1,8 @@
 import { useShepherd } from "vue-shepherd";
-import type { StepOptionsButton, Tour } from "shepherd.js";
+import type { Step, StepOptionsButton, Tour } from "shepherd.js";
+
+import type { TempoStore } from "@/stores/app";
+import { storeToRefs } from "pinia";
 
 const backButton: StepOptionsButton = {
   action() { return this.back(); },
@@ -21,7 +24,12 @@ const endButton: StepOptionsButton = {
 
 const defaultButtons: StepOptionsButton[] = [backButton, nextButton];
 
-export function createIntroTour(): Tour {
+export function getIntroTour(store: TempoStore): Tour {
+
+  const { datasetControlsOpen, layerControlsOpen } = storeToRefs(store);
+
+  console.log(datasetControlsOpen, layerControlsOpen);
+
   const tour = useShepherd({
     useModalOverlay: true,
     defaultStepOptions: {
@@ -70,26 +78,46 @@ export function createIntroTour(): Tour {
 
   const layersPanel = document.querySelector("#layers-panel") as HTMLElement;
   tour.addStep({
-    attachTo: { element: layersPanel, on: "right" }, 
+    attachTo: { element: layersPanel, on: "right" },
     text: "This is the layers panel!",
+    when: {
+      show: (_step: Step) => {
+        layerControlsOpen.value = true;
+      },
+    },
   });
 
   const openCloseLayers = layersPanel.querySelector(".open-close-container") as HTMLElement;
   tour.addStep({
     attachTo: { element: openCloseLayers, on: "right" },
     text: "The layers panel can be opened and closed",
+    when: {
+      show: (_step: Step) => {
+        layerControlsOpen.value = false;
+      },
+    },
   });
 
   const datasetsPanel = document.querySelector("#datasets-panel") as HTMLElement;
   tour.addStep({
     attachTo: { element: datasetsPanel, on: "left" }, 
     text: "This is the datasets panel!",
+    when: {
+      show: (_step: Step) => {
+        datasetControlsOpen.value = true;
+      },
+    },
   });
 
   const openCloseDatasets = datasetsPanel.querySelector(".open-close-container") as HTMLElement;
   tour.addStep({
     attachTo: { element: openCloseDatasets, on: "left" },
     text: "The datasets panel can also be opened and closed",
+    when: {
+      show: (_step: Step) => {
+        datasetControlsOpen.value = false;
+      },
+    },
   });
 
   const tourButton = document.querySelector("#tour-button") as HTMLElement;

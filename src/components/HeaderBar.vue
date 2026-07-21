@@ -59,7 +59,7 @@
 
     <v-btn
       @click="() => {
-        store.getTour().start();
+        getIntroTour(store).start();
       }"
       id="tour-button"
       class="intro-tour-button"
@@ -193,6 +193,7 @@ import changes from "@/changes";
 
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faArrowsRotate } from "@fortawesome/free-solid-svg-icons";
+import { getIntroTour } from "@/utils/tours";
 
 library.add(faArrowsRotate);
 

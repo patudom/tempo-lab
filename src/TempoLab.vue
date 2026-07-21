@@ -28,16 +28,34 @@
 
       <v-dialog
         v-model="showPopup"
+        width="50%"
       >
-        <v-btn>Give me a quick tour!</v-btn>
-        <v-btn
-          @click="showPopup = false"
-        >I want to dive right in!</v-btn>
-
-        <v-checkbox
-          v-model="dontShowPopupAgain"
-          label="Don't show this again"
-        ></v-checkbox>
+        <v-card>
+          <v-card-text class="intro-popup">
+            <v-row>
+              <v-col cols="6">
+                <v-btn
+                  @click="() => {
+                    getIntroTour(store).start();
+                    showPopup = false;
+                  }"
+                >Give me a quick tour!</v-btn>
+              </v-col>
+              <v-col cols="6">
+                <v-btn
+                  @click="showPopup = false"
+                >I want to dive right in!</v-btn>
+              </v-col>
+            </v-row>
+            <v-row>
+              <v-spacer />
+              <v-checkbox
+                v-model="dontShowPopupAgain"
+                label="Don't show this again"
+              ></v-checkbox>
+            </v-row>
+          </v-card-text>
+        </v-card>
       </v-dialog>
 
       <v-tooltip
@@ -103,6 +121,7 @@ import { computed, onBeforeMount, onMounted, ref, type Ref, useTemplateRef, watc
 import { storeToRefs } from "pinia";
 
 import { useTempoStore, updateStoreFromJSON, serializeTempoStore } from "@/stores/app";
+import { getIntroTour } from "@/utils/tours";
 
 const root = useTemplateRef<HTMLDivElement>("root");
 const leftHandle = useTemplateRef<HTMLDivElement>("left-handle");
@@ -145,7 +164,7 @@ const cssVars = computed(() => {
 });
 
 const localStorageKey = "tempods";
-const localStorageSkipPopup = "tempods-intro-popup";
+const localStorageSkipPopup = "tempods-skip-intro-popup";
 const showPopup = ref(true);
 const dontShowPopupAgain = ref(false);
 let animationFrame = 0;
@@ -165,8 +184,9 @@ onBeforeMount(() => {
     updateStoreFromJSON(store, storedState);
   }
 
-  dontShowPopupAgain.value = window.localStorage.getItem(localStorageSkipPopup)?.toLowerCase() != "true";
-  showPopup.value = dontShowPopupAgain.value;
+  const popupPreference = window.localStorage.getItem(localStorageSkipPopup);
+  dontShowPopupAgain.value = popupPreference === "true";
+  showPopup.value = !dontShowPopupAgain.value;
 });
 
 function updateSizes(layersDefault: boolean = false, datasetsDefault: boolean = false) {
@@ -468,5 +488,11 @@ body {
     height: 100%;
     border-radius: 10px;
   }
+}
+
+.intro-popup {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
 </style>
