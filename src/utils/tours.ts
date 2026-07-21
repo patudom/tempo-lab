@@ -1,5 +1,6 @@
 import { useShepherd } from "vue-shepherd";
 import type { Step, StepOptionsButton, Tour } from "shepherd.js";
+import { offset } from "@floating-ui/dom";
 
 import type { TempoStore } from "@/stores/app";
 import { storeToRefs } from "pinia";
@@ -24,24 +25,31 @@ const endButton: StepOptionsButton = {
 
 const defaultButtons: StepOptionsButton[] = [backButton, nextButton];
 
+export function addProgressBar(step: Step) {
+  console.log(step);
+  const currentStepElement = step.getElement();
+  const tour = step.tour;
+  const content = currentStepElement?.querySelector(".shepherd-content");
+  const footer = currentStepElement?.querySelector(".shepherd-footer");
+  const progressContainer = document.createElement("div");
+  progressContainer.classList.add("progress-container");
+  const progress = document.createElement("div");
+  progress.classList.add("progress-bar");
+  const percent = 100 * (tour.steps.indexOf(step) + 1) / tour.steps.length;
+  progress.style.width = `${percent}%`;
+  progress.style.backgroundColor = "#068ede";
+  progressContainer.appendChild(progress);
+  if (footer) {
+    content?.insertBefore(progressContainer, footer);
+  }
+}
+
 export function getIntroTour(store: TempoStore): Tour {
 
   const { datasetControlsOpen, layerControlsOpen } = storeToRefs(store);
 
-  function defaultStepShow() {
-    const currentStep = tour.getCurrentStep();
-    const currentStepElement = currentStep?.getElement();
-    const content = currentStepElement?.querySelector(".shepherd-content");
-    const footer = currentStepElement?.querySelector(".shepherd-footer");
-    const progressContainer = document.createElement("div");
-    progressContainer.classList.add("progress-container");
-    const progress = document.createElement("div");
-    progress.classList.add("progress-bar");
-    const percent = 100 * (tour.steps.indexOf(currentStep) + 1) / tour.steps.length;
-    progress.style.width = `${percent}%`;
-    progress.style.backgroundColor = "#068ede";
-    progressContainer.appendChild(progress);
-    content?.insertBefore(progressContainer, footer);
+  function defaultStepShow(step: Step) {
+    addProgressBar(step);
   }
 
   const tour = useShepherd({
@@ -53,7 +61,7 @@ export function getIntroTour(store: TempoStore): Tour {
       },
       when: {
         show() {
-          defaultStepShow();
+          defaultStepShow(this as Step);
         },
       },
     },
@@ -83,10 +91,15 @@ export function getIntroTour(store: TempoStore): Tour {
     attachTo: { element: layersPanel, on: "right" },
     text: "This is the layers panel!",
     when: {
-      show: (_step: Step) => {
-        defaultStepShow();
+      show: () => {
+        defaultStepShow(tour.currentStep);
         layerControlsOpen.value = true;
       },
+    },
+    floatingUIOptions: {
+      middleware: [
+        offset({crossAxis: 75 - 0.5 * layersPanel.getBoundingClientRect().height}),
+      ],
     },
   });
 
@@ -95,8 +108,8 @@ export function getIntroTour(store: TempoStore): Tour {
     attachTo: { element: openCloseLayers, on: "right" },
     text: "The layers panel can be opened and closed",
     when: {
-      show: (_step: Step) => {
-        defaultStepShow();
+      show: () => {
+        defaultStepShow(tour.currentStep);
         layerControlsOpen.value = false;
       },
     },
@@ -105,10 +118,10 @@ export function getIntroTour(store: TempoStore): Tour {
   const datasetsPanel = document.querySelector("#datasets-panel") as HTMLElement;
   tour.addStep({
     attachTo: { element: datasetsPanel, on: "left" }, 
-    text: "This is the datasets panel!",
+    text: "This is the datasets panel! From this panel you can create and view graphs that look like this",
     when: {
-      show: (_step: Step) => {
-        defaultStepShow();
+      show: () => {
+        defaultStepShow(tour.currentStep);
         datasetControlsOpen.value = true;
       },
     },
@@ -119,8 +132,8 @@ export function getIntroTour(store: TempoStore): Tour {
     attachTo: { element: openCloseDatasets, on: "left" },
     text: "The datasets panel can also be opened and closed",
     when: {
-      show: (_step: Step) => {
-        defaultStepShow();
+      show: () => {
+        defaultStepShow(tour.currentStep);
         datasetControlsOpen.value = false;
       },
     },

@@ -34,3 +34,11 @@ const emit = defineEmits<{
   (event: "dont-show", value: boolean): void;
 }>();
 </script>
+
+<style>
+.intro-popup {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+</style>
