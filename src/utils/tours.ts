@@ -26,11 +26,13 @@ const endButton: StepOptionsButton = {
 const defaultButtons: StepOptionsButton[] = [backButton, nextButton];
 
 export function addProgressBar(step: Step) {
-  console.log(step);
-  const currentStepElement = step.getElement();
+  const stepElement = step.getElement();
   const tour = step.tour;
-  const content = currentStepElement?.querySelector(".shepherd-content");
-  const footer = currentStepElement?.querySelector(".shepherd-footer");
+  if (!stepElement) {
+    return;
+  }
+  const content = stepElement.querySelector(".shepherd-content");
+  const footer = stepElement.querySelector(".shepherd-footer");
   const progressContainer = document.createElement("div");
   progressContainer.classList.add("progress-container");
   const progress = document.createElement("div");
@@ -42,6 +44,22 @@ export function addProgressBar(step: Step) {
   if (footer) {
     content?.insertBefore(progressContainer, footer);
   }
+}
+
+function addImage(step: Step, src: URL) {
+  const stepElement = step.getElement();
+  const textContainer = stepElement?.querySelector(".shepherd-text");
+  if (!(stepElement && textContainer)) {
+    return;
+  }
+  const img = document.createElement("img");
+  const width = stepElement.getBoundingClientRect().width;
+  img.src = src.href;
+  img.style.width = `${width - 20}px`;
+  img.style.display = "block";
+  img.style.margin = "auto";
+  img.style.paddingBottom = "10px";
+  textContainer.appendChild(img);
 }
 
 export function getIntroTour(store: TempoStore): Tour {
@@ -118,9 +136,10 @@ export function getIntroTour(store: TempoStore): Tour {
   const datasetsPanel = document.querySelector("#datasets-panel") as HTMLElement;
   tour.addStep({
     attachTo: { element: datasetsPanel, on: "left" }, 
-    text: "This is the datasets panel! From this panel you can create and view graphs that look like this",
+    text: "This is the datasets panel! From this panel you can create and view graphs that look like this:",
     when: {
       show: () => {
+        addImage(tour.currentStep, new URL("@/assets/example_graph.png", import.meta.url));
         defaultStepShow(tour.currentStep);
         datasetControlsOpen.value = true;
       },
