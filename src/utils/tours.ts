@@ -28,7 +28,21 @@ export function getIntroTour(store: TempoStore): Tour {
 
   const { datasetControlsOpen, layerControlsOpen } = storeToRefs(store);
 
-  console.log(datasetControlsOpen, layerControlsOpen);
+  function defaultStepShow() {
+    const currentStep = tour.getCurrentStep();
+    const currentStepElement = currentStep?.getElement();
+    const content = currentStepElement?.querySelector(".shepherd-content");
+    const footer = currentStepElement?.querySelector(".shepherd-footer");
+    const progressContainer = document.createElement("div");
+    progressContainer.classList.add("progress-container");
+    const progress = document.createElement("div");
+    progress.classList.add("progress-bar");
+    const percent = 100 * (tour.steps.indexOf(currentStep) + 1) / tour.steps.length;
+    progress.style.width = `${percent}%`;
+    progress.style.backgroundColor = "#068ede";
+    progressContainer.appendChild(progress);
+    content?.insertBefore(progressContainer, footer);
+  }
 
   const tour = useShepherd({
     useModalOverlay: true,
@@ -39,35 +53,17 @@ export function getIntroTour(store: TempoStore): Tour {
       },
       when: {
         show() {
-          const currentStep = tour.getCurrentStep();
-          const currentStepElement = currentStep?.getElement();
-          const content = currentStepElement?.querySelector(".shepherd-content");
-          const footer = currentStepElement?.querySelector(".shepherd-footer");
-          const progressContainer = document.createElement("div");
-          progressContainer.classList.add("progress-container");
-          const progress = document.createElement("div");
-          progress.classList.add("progress-bar");
-          const percent = 100 * (tour.steps.indexOf(currentStep) + 1) / tour.steps.length;
-          progress.style.width = `${percent}%`;
-          progress.style.backgroundColor = "#068ede";
-          progressContainer.appendChild(progress);
-          content?.insertBefore(progressContainer, footer);
+          defaultStepShow();
         },
       },
     },
   });
 
-  const map = document.querySelector("canvas.maplibregl-canvas") as HTMLElement;
+  const map = document.querySelector(".map-contents") as HTMLElement;
   tour.addStep({
-    attachTo: { element: map, on: "top" },
+    attachTo: { element: map, on: "bottom" },
     text: "The map displays TEMPO data and other layers!",
     buttons: [nextButton],
-  });
-
-  const mapControls = document.querySelector(".map-view") as HTMLElement;
-  tour.addStep({
-    attachTo: { element: mapControls, on: "top" },
-    text: "Adjust the date and timezone of the map display",
   });
 
   const timeSlider = document.querySelector(".slider-row") as HTMLElement;
@@ -76,12 +72,19 @@ export function getIntroTour(store: TempoStore): Tour {
     text: "Control the time for the currently displayed day using the slider",
   });
 
+  const mapControls = document.querySelector(".map-view") as HTMLElement;
+  tour.addStep({
+    attachTo: { element: mapControls, on: "top" },
+    text: "Adjust the date and timezone of the map display",
+  });
+
   const layersPanel = document.querySelector("#layers-panel") as HTMLElement;
   tour.addStep({
     attachTo: { element: layersPanel, on: "right" },
     text: "This is the layers panel!",
     when: {
       show: (_step: Step) => {
+        defaultStepShow();
         layerControlsOpen.value = true;
       },
     },
@@ -93,6 +96,7 @@ export function getIntroTour(store: TempoStore): Tour {
     text: "The layers panel can be opened and closed",
     when: {
       show: (_step: Step) => {
+        defaultStepShow();
         layerControlsOpen.value = false;
       },
     },
@@ -104,6 +108,7 @@ export function getIntroTour(store: TempoStore): Tour {
     text: "This is the datasets panel!",
     when: {
       show: (_step: Step) => {
+        defaultStepShow();
         datasetControlsOpen.value = true;
       },
     },
@@ -115,6 +120,7 @@ export function getIntroTour(store: TempoStore): Tour {
     text: "The datasets panel can also be opened and closed",
     when: {
       show: (_step: Step) => {
+        defaultStepShow();
         datasetControlsOpen.value = false;
       },
     },
