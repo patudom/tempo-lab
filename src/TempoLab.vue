@@ -2,7 +2,33 @@
   <v-app
     id="app"
     :style="cssVars"
-  >
+  > 
+    <v-snackbar
+      color="red"
+      absolute
+      eager
+      v-model="showAlert"
+      location="top"
+      :timeout="-1"
+      multi-line
+    > 
+      <div class="d-flex flex-row align-center ga-3">
+      <v-icon
+        color="white"
+        class="mr-2"
+      >mdi-alert</v-icon>
+      
+      <span v-html="globalWarning" />
+      </div>
+      <template v-slot:actions>
+        <v-btn
+          variant="tonal"
+          @click="showAlert = false"
+        >
+          Close
+        </v-btn>
+      </template>
+    </v-snackbar>
     <header-bar />
     <div ref="root" class="layout-root">
       <side-placeholder
@@ -118,7 +144,18 @@ const {
   tempoRed,
   datasetControlsOpen,
   layerControlsOpen,
+  globalWarning,
 } = storeToRefs(store);
+
+const showAlert = ref(!!globalWarning.value);
+watch(globalWarning, (newVal) => {
+  showAlert.value = !!newVal;
+}); 
+watch(showAlert, (newVal) => {
+  if (!newVal) {
+    store.globalWarning = "";
+  }
+});
 
 
 const query = new URLSearchParams(window.location.search);
@@ -365,14 +402,20 @@ body {
 
 #layers-panel, #datasets-panel {
   overflow-y: scroll;
+  /* these were already 0, just make 
+  what we're starting with clearer */
+  margin: 0;
+  padding: 0;
 }
 
 #layers-panel {
-  margin-right: 5px;
+  /* can set to 5px to give handle back space */
+  margin-inline: 5px;
 }
 
 #datasets-panel {
-  padding-left: 2px;
+  /* can set to 5px to give handle back space */
+  margin-inline: 5px;
 }
 
 .comparison-data-controls,
@@ -449,6 +492,10 @@ body {
   border-radius: 2px;
   background: rgba(255,255,255,0.35);
   box-shadow: -6px 0 0 rgba(255,255,255,0.18), 6px 0 0 rgba(255,255,255,0.18);
+}
+
+.handle:hover::after {
+  box-shadow: -6px 0 0 rgba(255,255,255,0.42), 6px 0 0 rgba(255,255,255,0.42);
 }
 
 .panel-size-dragging, .panel-size-dragging * {

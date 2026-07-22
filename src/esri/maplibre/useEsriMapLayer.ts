@@ -1,9 +1,9 @@
-import { ref, watch, Ref, MaybeRef, toRef, computed } from 'vue';
+import { ref, shallowRef, watch, Ref, MaybeRef, toRef, computed } from 'vue';
 import { RenderingRuleOptions } from '@/esri/ImageLayerConfig';
 import { Map, type MapSourceDataEvent } from 'maplibre-gl';
 import { validate as uuidValidate } from "uuid";
 
-import { ImageService } from '@/esri/ImageServiceLayer/ImageService';
+import { ImageService } from '@/esri/frontier_ImageServiceLayer/ImageService';
 import { TempoDataService } from '@/esri/services/TempoDataService';
 import { type PointBounds } from '@/esri/geometry';
 
@@ -43,7 +43,7 @@ export function useEsriImageServiceLayer(
   const url = ref(serviceUrl);
   const esriLayerId = layerId;
   const esriImageSource = ref<maplibregl.RasterTileSource | null>(null);
-  const map = ref<Map | null>(null);
+  const map = shallowRef<Map | null>(null);
   const variableRef = toRef(variable);
   
   const tds = new TempoDataService(serviceUrl, variableRef.value);
@@ -119,7 +119,9 @@ export function useEsriImageServiceLayer(
       console.log(`ESRI source ${esriLayerId} loaded`);
       esriImageSource.value = map.value?.getSource(esriLayerId) as maplibregl.RasterTileSource;
       updateEsriOpacity();
-      dynamicMapService.value.setDate(new Date(timestamp.value-1), new Date(timestamp.value+1));
+      if (dynamicMapService.value) {
+        dynamicMapService.value.setDate(new Date(timestamp.value - 1), new Date(timestamp.value + 1));
+      }
       if (options.visible !== undefined && !options.visible) {
         map.value?.setLayoutProperty(esriLayerId, 'visibility', 'none');
       }
@@ -184,7 +186,7 @@ export function useEsriImageServiceLayer(
   
   watch(timestamp, (_value) => {
     console.log(`[${esriLayerId}] esri imageset timestamp set to `, _value ? new Date(_value) : null);
-    if ( _hasEsriSource() ) {
+    if ( _hasEsriSource() && dynamicMapService.value) {
       dynamicMapService.value.setDate(new Date(_value-1), new Date(_value+1));
     } else {
       console.error(`[${esriLayerId}] ESRI source not yet available`);

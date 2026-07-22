@@ -10,10 +10,11 @@
     <div
       v-for="(map, index) in maps"
       :key="index"
+      class="mx-1"
     >
       <layer-order-control
         :mapRef="map"
-        :order="['power-plants-layer', 'aqi-layer-aqi', 'pop-dens', 'land-use','hms-fire', 'tempo-o3', 'tempo-hcho', 'tempo-no2', 'stamen-toner-lines', 'stamen-toner-labels']"
+        :order="['power-plants-layer', 'places-asthma-counties', 'places-asthma-tracts', 'aqi-layer-aqi', 'pop-dens', 'land-use','hms-fire', 'tempo-o3', 'tempo-hcho', 'tempo-no2', 'tempo-lite', 'stamen-toner-lines', 'stamen-toner-labels']"
       >
       </layer-order-control>
       <!-- center with d-block mx-auto -->
@@ -67,6 +68,8 @@ const {
 <style scoped lang="less">
 .comparison-data-controls {
   font-size: 11pt !important;
+  min-width: 250px;
+  overflow-y: auto;
 }
 
 :deep(.v-checkbox .v-label) {

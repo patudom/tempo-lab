@@ -51,6 +51,8 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
   const showAdvancedLayers = ref(false);
   const showRGBMode = ref(false);
 
+  const globalWarning = ref("");
+
   const showAggregationControls = ref(false);
 
   const selectedTimezone = ref<Timezone>("US/Eastern");
@@ -366,7 +368,8 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
 
   return {
     debugMode,
-
+    globalWarning,
+    
     accentColor,
     accentColor2,
     tempoRed,
@@ -495,7 +498,7 @@ export function deserializeTempoStore(value: string): StateTree {
   return parsed;
 }
 
-const OMIT = new Set(["debugMode", "selectionActive", "maps", "layersReady"]);
+const OMIT = new Set(["debugMode", "selectionActive", "maps", "layersReady", "globalWarning"]);
 export function serializeTempoStore(store: TempoStore): string {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const state: Record<string, any> = {};
@@ -525,6 +528,9 @@ export function postDeserializeTempoStore(store: TempoStore) {
 export function updateStoreFromJSON(store: TempoStore, json: string): boolean {
   try {
     const state = deserializeTempoStore(json);
+    if (store.timestampsLoaded) {
+      delete state.timestamps;
+    }
     store.$patch(state);
     postDeserializeTempoStore(store);
     return true;
