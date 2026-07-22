@@ -64,6 +64,9 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
   const shownLayers = ref<string[]>([]);
   const layersReady = ref<globalThis.Map<string, LayerReadiness>>(new globalThis.Map<string, LayerReadiness>());
 
+  // probably should be a map of some sort, but for now it is only used with hms-fire layer which is prone to breaking
+  const layerAction = ref<{ layerId: string; action: string } | null>(null);
+
   // This part is still assuming that multiple maps will be temporally linked
   // If/when we want to make that not the case, we'll need to rethink this
   // and some of the consuming components
@@ -232,6 +235,10 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
       ready: [...serviceReady],
     });
     layersReady.value = next;
+  }
+
+  function doLayerAction(layerId: string, action: string) {
+    layerAction.value = { layerId, action };
   }
 
   function clearLayerReady(layerName: string) {
@@ -459,6 +466,8 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
     layersReady,
     setLayerReady,
     clearLayerReady,
+    layerAction,
+    doLayerAction,
 
     reset,
   };
@@ -503,7 +512,7 @@ export function deserializeTempoStore(value: string): StateTree {
   return parsed;
 }
 
-const OMIT = new Set(["debugMode", "selectionActive", "maps", "layersReady", "globalWarning"]);
+const OMIT = new Set(["debugMode", "selectionActive", "maps", "layersReady", "globalWarning", "layerAction"]);
 export function serializeTempoStore(store: TempoStore): string {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const state: Record<string, any> = {};

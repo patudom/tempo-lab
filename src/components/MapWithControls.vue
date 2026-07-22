@@ -254,6 +254,13 @@ const hmsFire = addHMSFire(singleDateSelected, {
   showClusters: true,
 });
 
+// for now we only handle the hms-fire actions
+watch(() => store.layerAction, (action) => {
+  if (action?.layerId === 'hms-fire' && action.action === 'retry') {
+    hmsFire.retry();
+  }
+}, { deep: true });
+
 import { type UseEsriTempoLayer, useTempoLayer } from "@/esri/maplibre/useTempoImageLayer";
 // just use the hcho layer for now
 const hchoLayer = useTempoLayer({

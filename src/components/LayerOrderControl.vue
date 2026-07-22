@@ -77,6 +77,16 @@
 
             <!-- Loading bar -->
              <v-progress-linear v-if="layerErrorType(element) === 'loading'" indeterminate />
+
+            <!-- Retry but only for hms-fire right now -->
+            <v-btn
+              v-if="layerErrorType(element) === 'error' && element === 'hms-fire'"
+              size="x-small"
+              variant="tonal"
+              color="red"
+              prepend-icon="mdi-refresh"
+              @click="store.doLayerAction(element, 'retry')"
+            >Try again</v-btn>
             <!-- Legend -->
 
             <NarrowExpansionPanel v-show="visible" :item="element" v-if="hasLegend.includes(element)" :label="element==='power-plants-layer' ? 'Show Filter' : 'Show Legend'">

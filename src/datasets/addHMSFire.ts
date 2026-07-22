@@ -85,6 +85,7 @@ export interface HMSLayer {
   status: ComputedRef<LayerStatus>
   toggleHMSVisibility: (vis?: boolean | undefined) => void
   setUrl: (newUrl: string) => Promise<void>
+  retry: () => Promise<void>
 }
 
 // Optional settings for labels
@@ -496,7 +497,7 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
 
   // Change URL and refresh layer
   const setUrl = async (newUrl: string): Promise<void> => {
-    
+
     internalSetUrl(newUrl)
       .then(() => {
         if (lastKnownVisible.value) {
@@ -506,6 +507,14 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
       .catch((err) => {
         console.error('HMS: Error setting new KML URL:', err);
       });
+  };
+
+  // Force a fresh request (e.g. "try again" after an error): clear the loaded-URL
+  // guard, wait a beat, then reload the same URL.
+  const retry = async (): Promise<void> => {
+    await internalSetUrl(url.value);
+    await new Promise(resolve => setTimeout(resolve, 500));
+    await loadKML();
   };
 
   // Remove from map
@@ -558,6 +567,7 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
     loading,
     error,
     status,
-    setUrl
+    setUrl,
+    retry
   };
 }
