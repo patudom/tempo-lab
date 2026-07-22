@@ -1,11 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { ref, shallowRef, watch, computed, type Ref, onBeforeUnmount } from 'vue';
+import { ref, shallowRef, watch, computed, type Ref, type ComputedRef, onBeforeUnmount } from 'vue';
 import M from 'maplibre-gl';
 import { Popup } from 'maplibre-gl';
 import type { SymbolLayerSpecification, CircleLayerSpecification, LayerSpecification, DistributiveOmit, DataDrivenPropertyValueSpecification } from 'maplibre-gl';
 import { useKML } from '@/composables/useKML';
 import { useGeoJsonLayer } from '@/composables/useGeoJsonLayer';
 import { syncLayerOpacity, syncLayerVisibility } from '@/composables/useSyncedVisibilityAndOpacity';
+import { fireStatus } from '@/datasets/layerStatus';
+import type { LayerStatus } from '@/types';
 
 /**
  * We select only VIIRS data from SUOMI and NOAA - 375 m resolution
@@ -80,6 +82,7 @@ export interface HMSLayer {
   geoJsonData: Ref<GeoJSON.FeatureCollection | null>
   loading: Ref<boolean>
   error: Ref<Error | null>
+  status: ComputedRef<LayerStatus>
   toggleHMSVisibility: (vis?: boolean | undefined) => void
   setUrl: (newUrl: string) => Promise<void>
 }
@@ -545,6 +548,8 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
     console.log(`HMS: loading state changed to ${newLoading}`);
   });
 
+  const status = computed<LayerStatus>(() => fireStatus(loading.value, error.value));
+
   return {
     addToMap,
     layerId,
@@ -552,6 +557,7 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
     geoJsonData,
     loading,
     error,
+    status,
     setUrl
   };
 }

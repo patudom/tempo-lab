@@ -1,4 +1,4 @@
-import { ref, watch, Ref, MaybeRef, toRef, nextTick, computed, shallowRef } from 'vue';
+import { ref, watch, Ref, MaybeRef, toRef, nextTick, computed, shallowRef, type ComputedRef } from 'vue';
 import { renderingRule, stretches, colorramps, rgbcolorramps, RenderingRuleOptions, ColorRamps } from '../ImageLayerConfig';
 import { type Map, type MapSourceDataEvent } from 'maplibre-gl';
 import { validate as uuidValidate } from "uuid";
@@ -7,6 +7,8 @@ import { ImageService } from '@/esri/frontier_ImageServiceLayer/ImageService';
 import { useEsriTimesteps } from '@/esri/useEsriTimesteps';
 import { MoleculeType } from '../utils';
 import { useTempoStore } from '@/stores/app';
+import { serviceStatus } from '@/datasets/layerStatus';
+import type { LayerStatus } from '@/types';
 
 
 export interface UseEsriTempoLayer {
@@ -22,6 +24,7 @@ export interface UseEsriTempoLayer {
   setVisibility: (visible: boolean) => void;
   renderOptions: Ref<RenderingRuleOptions>;
   serviceReady: Ref<boolean[]>
+  status: ComputedRef<LayerStatus>;
 }
 
 export interface UseEsriTempoLayerOptions {
@@ -66,7 +69,9 @@ export function useTempoLayer(esriLayerOptions: UseEsriTempoLayerOptions): UseEs
     }
     serviceReady.value = servicesReady;
   });
-  
+
+  const status = computed<LayerStatus>(() => serviceStatus(esriLayerId, serviceReady.value));
+
   const options = computed(() => {
     return  {
       'format': 'jpgpng',
@@ -312,5 +317,6 @@ export function useTempoLayer(esriLayerOptions: UseEsriTempoLayerOptions): UseEs
     renderOptions,
     setVisibility,
     serviceReady,
+    status,
   } as UseEsriTempoLayer;
 }

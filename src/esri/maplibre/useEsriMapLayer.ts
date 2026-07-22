@@ -1,4 +1,4 @@
-import { ref, shallowRef, watch, Ref, MaybeRef, toRef, computed } from 'vue';
+import { ref, shallowRef, watch, Ref, MaybeRef, toRef, computed, type ComputedRef } from 'vue';
 import { RenderingRuleOptions } from '@/esri/ImageLayerConfig';
 import { Map, type MapSourceDataEvent } from 'maplibre-gl';
 import { validate as uuidValidate } from "uuid";
@@ -6,6 +6,8 @@ import { validate as uuidValidate } from "uuid";
 import { ImageService } from '@/esri/frontier_ImageServiceLayer/ImageService';
 import { TempoDataService } from '@/esri/services/TempoDataService';
 import { type PointBounds } from '@/esri/geometry';
+import { serviceStatus } from '@/datasets/layerStatus';
+import type { LayerStatus } from '@/types';
 
 
 
@@ -21,6 +23,7 @@ export interface UseEsriLayer {
   removeEsriSource: () => void;
   renderOptions: Ref<RenderingRuleOptions>;
   serviceReady: Ref<boolean[]>;
+  status: ComputedRef<LayerStatus>;
 }
 
 export interface ImageSerivceLayerOptions {
@@ -56,6 +59,8 @@ export function useEsriImageServiceLayer(
     }
     serviceReady.value = servicesReady;
   });
+
+  const status = computed<LayerStatus>(() => serviceStatus(esriLayerId, serviceReady.value));
 
 
   const opacityRef = toRef(opacity);
@@ -224,6 +229,7 @@ export function useEsriImageServiceLayer(
     addEsriSource,
     removeEsriSource,
     serviceReady,
+    status,
   } as UseEsriLayer;
 }
 
