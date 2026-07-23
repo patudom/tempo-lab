@@ -44,6 +44,16 @@ export function addProgressDots(step: Step) {
     if (index === currentIndex) {
       dot.classList.add("active");
     }
+    dot.setAttribute("role", "button");
+    dot.setAttribute("tabindex", "0");
+    dot.setAttribute("aria-label", `Go to step ${index + 1}`);
+    const goToStep = () => tour.show(index);
+    dot.addEventListener("click", goToStep);
+    dot.addEventListener("keyup", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        goToStep();
+      }
+    });
     dotsContainer.appendChild(dot);
   });
   footer.appendChild(dotsContainer);

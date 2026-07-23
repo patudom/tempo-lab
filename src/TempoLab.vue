@@ -523,12 +523,26 @@ body {
     height: 8px;
     border-radius: 50%;
     background-color: rgba(255, 255, 255, 0.25);
+    cursor: pointer;
     transition: width 0.15s ease, height 0.15s ease, background-color 0.15s ease;
+  }
+
+  .progress-dot:hover {
+    background-color: rgba(255, 255, 255, 0.5);
+  }
+
+  .progress-dot:focus-visible {
+    outline: 1px solid var(--smithsonian-yellow);
+    outline-offset: 2px;
   }
 
   .progress-dot.active {
     width: 12px;
     height: 12px;
+    background-color: var(--smithsonian-yellow);
+  }
+
+  .progress-dot.active:hover {
     background-color: var(--smithsonian-yellow);
   }
 }
