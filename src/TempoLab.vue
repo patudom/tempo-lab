@@ -553,6 +553,7 @@ body .shepherd-element {
   border-radius: 8px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
   font-family: "Lexend", sans-serif;
+  max-width: 500px !important;
 }
 
 body .shepherd-element .shepherd-arrow::before {
@@ -582,6 +583,11 @@ body .shepherd-element[data-popper-placement^="right"] .shepherd-arrow::before {
 
 .shepherd-element .shepherd-text {
   color: #eaeaea;
+}
+
+body .shepherd-element .shepherd-text p {
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
 }
 
 body .shepherd-has-title .shepherd-content .shepherd-header {

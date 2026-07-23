@@ -118,45 +118,51 @@ export function getIntroTour(store: TempoStore): Tour {
 
   const map = document.querySelector(".map-contents") as HTMLElement;
   tour.addStep({
-    title: "The Map",
+    title: "Map",
     attachTo: { element: map, on: "bottom" },
-    text: "This is where TEMPO and other spatial datasets are displayed. The default dataset displays TEMPO's NO₂ (nitrogen dioxide) measurements.",
+    text: "<p>TEMPO and other spatial datasets are displayed here. By default, you see TEMPO's NO₂ (nitrogen dioxide) data.</p><p>Pan around the map and zoom to specific locations, or use the location search box to go directly to a place of your choice.</p>",
     buttons: [nextButton],
   });
 
   const timeSlider = document.querySelector(".slider-row") as HTMLElement;
   tour.addStep({
-    title: "Time Slider",
+    title: "Time Controls",
     attachTo: { element: timeSlider, on: "top" },
-    text: "Control the time for the currently displayed day using the slider",
+    text: "<p>Use the slider or play / pause button to control time.</p><p>The TEMPO data files are large, so you might notice a lag in the displayed data if you advance time before a timestep has fully loaded.</p>",
   });
 
-  const mapControls = document.querySelector(".map-view") as HTMLElement;
+  const mapControls = document.querySelector(".date-view-controls") as HTMLElement;
   tour.addStep({
-    title: "Date & Timezone",
+    title: "Date",
     attachTo: { element: mapControls, on: "top" },
-    text: "Adjust the date and timezone of the map display",
+    text: "<p>Use the calendar picker to choose a specific date or the double blue arrows to advance to the previous or next available date.</p>",
   });
 
-  const layersPanel = document.querySelector("#layers-panel") as HTMLElement;
+  const timeZone = document.querySelector(".timezone-dropdown") as HTMLElement;
+  tour.addStep({
+    title: "Timezone",
+    attachTo: { element: timeZone, on: "top" },
+    text: "<p>Use the dropdown to change the timezone displayed on the time controls. It helps to match the timezone to the region being viewed.</p>",
+  });
+
+  const layersPanelWrapper = document.querySelector("#layers-panel") as HTMLElement;
+  // The panel's content (".comparison-data-controls") only exists in the DOM while the
+  // panel is open (it's behind a v-if), so it may not be there yet if the user starts the
+  // tour with the panel collapsed. Fall back to the always-present wrapper in that case.
+  const layersPanel = (document.querySelector(".comparison-data-controls") as HTMLElement | null) ?? layersPanelWrapper;
   tour.addStep({
     title: "Layers Panel",
     attachTo: { element: layersPanel, on: "right" },
-    text: "This is the layers panel!",
+    text: "<p>Each card in this panel shows a different data layer.</p><p><strong>Checkbox:</strong> controls whether a layer is being displayed on the map.</p><p><strong>Legend:</strong> shows the numerical values or categories represented by each color (if layer is visible).</p><p><strong>i:</strong> tells you more about the layer.</p><p><strong>Hamburger</strong> (3 lines) icon: drag the layers into a new order. The layer at the top of the list will be visible on top of layers lower down in the list.</p><p><strong>Slider:</strong> controls the opacity of the displayed layer.</p><p><strong>SHOW ME MORE/LESS:</strong> display or hide additional layers.</p>",
     when: {
       show: () => {
         defaultStepShow(tour.currentStep);
         layerControlsOpen.value = true;
       },
     },
-    floatingUIOptions: {
-      middleware: [
-        offset({crossAxis: 75 - 0.5 * layersPanel.getBoundingClientRect().height}),
-      ],
-    },
   });
 
-  const openCloseLayers = layersPanel.querySelector(".open-close-container") as HTMLElement;
+  const openCloseLayers = layersPanelWrapper.querySelector(".open-close-container") as HTMLElement;
   tour.addStep({
     title: "Collapse & Expand",
     attachTo: { element: openCloseLayers, on: "right" },
@@ -173,7 +179,7 @@ export function getIntroTour(store: TempoStore): Tour {
   tour.addStep({
     title: "Datasets Panel",
     attachTo: { element: datasetsPanel, on: "left" },
-    text: "This is the datasets panel! From this panel you can create and view graphs that look like this:",
+    text: "<p>From this panel you can create and view graphs that look like this.</p><p>(A more detailed tour of this section will be available soon)</p>",
     when: {
       show: () => {
         addImage(tour.currentStep, new URL("@/assets/example_graph.png", import.meta.url));
