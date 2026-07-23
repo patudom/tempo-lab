@@ -67,26 +67,33 @@
         <v-icon>mdi-creation</v-icon>
       </v-btn>
 
-    <v-btn
-      @click="() => {
-        getIntroTour(store).start();
-      }"
-      id="tour-button"
-      class="intro-tour-button"
-      aria-label="Start intro tour"
-      variant="outlined"
-      rounded="lg"
-      density="default"
-      :color="accentColor2"
-      elevation="0"
-      size="lg"
-    >
-      <v-tooltip location="bottom" activator="parent" :disabled="mobile" text="Start intro tour"></v-tooltip>
-        <font-awesome-icon
-          icon="fa-signs-post"
-          size="lg"
-        />
-    </v-btn>
+    <div class="tour-button-wrapper">
+      <v-btn
+        @click="() => {
+          getIntroTour(store).start();
+        }"
+        id="tour-button"
+        class="intro-tour-button"
+        aria-label="Start intro tour"
+        variant="outlined"
+        rounded="lg"
+        density="default"
+        :color="accentColor2"
+        elevation="0"
+        size="lg"
+      >
+        <v-tooltip location="bottom" activator="parent" :disabled="mobile" text="Start intro tour"></v-tooltip>
+          <font-awesome-icon
+            icon="fa-signs-post"
+            size="lg"
+          />
+      </v-btn>
+      <transition name="tour-hint-fade">
+        <div v-if="showTourHintVisible" class="tour-hint-bubble">
+          Open tour here any time
+        </div>
+      </transition>
+    </div>
 
      <v-btn
        @click="showSaveDialog = !showSaveDialog"
@@ -192,7 +199,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { storeToRefs } from "pinia";
 import { useDisplay } from "vuetify";
 import { supportsTouchscreen } from "@cosmicds/vue-toolkit";
@@ -215,6 +222,7 @@ const emit = defineEmits<{
 const store = useTempoStore();
 const {
   accentColor2,
+  showTourHint,
 } = storeToRefs(store);
 
 const display = useDisplay();
@@ -225,6 +233,26 @@ const showCredits = ref(false);
 const showSaveDialog = ref(false);
 const showErrorSnackbar = ref(false);
 const ioErrorMessage = ref("");
+
+const showTourHintVisible = ref(false);
+const tourHintAlreadyShown = ref(false);
+let tourHintTimeout: ReturnType<typeof setTimeout> | undefined;
+
+watch(showTourHint, (visible) => {
+  if (!visible) {
+    return;
+  }
+  store.showTourHint = false;
+  if (tourHintAlreadyShown.value) {
+    return;
+  }
+  tourHintAlreadyShown.value = true;
+  showTourHintVisible.value = true;
+  clearTimeout(tourHintTimeout);
+  tourHintTimeout = setTimeout(() => {
+    showTourHintVisible.value = false;
+  }, 5000);
+});
 
 const touchscreen = supportsTouchscreen();
 
@@ -294,6 +322,48 @@ a[href="https://tempo.si.edu"]>img {
   }
 }
 
+.tour-button-wrapper {
+  position: relative;
+}
 
+.tour-hint-bubble {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 100;
+  padding: 10px 14px;
+  background: #1a1a2e;
+  border: 1px solid var(--smithsonian-yellow);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  color: #eaeaea;
+  font-family: "Lexend", sans-serif;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.tour-hint-bubble::before {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  right: 16px;
+  width: 12px;
+  height: 12px;
+  margin-bottom: -6px;
+  background: #1a1a2e;
+  border-top: 1px solid var(--smithsonian-yellow);
+  border-left: 1px solid var(--smithsonian-yellow);
+  transform: rotate(45deg);
+}
+
+.tour-hint-fade-enter-active,
+.tour-hint-fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.tour-hint-fade-enter-from,
+.tour-hint-fade-leave-to {
+  opacity: 0;
+}
 
 </style>

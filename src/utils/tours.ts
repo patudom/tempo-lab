@@ -110,7 +110,7 @@ export function getIntroTour(store: TempoStore): Tour {
   tour.addStep({
     title: "The Map",
     attachTo: { element: map, on: "bottom" },
-    text: "The map displays TEMPO data and other layers!",
+    text: "This is where TEMPO and other spatial datasets are displayed. The default dataset displays TEMPO's NO₂ (nitrogen dioxide) measurements.",
     buttons: [nextButton],
   });
 
@@ -178,6 +178,7 @@ export function getIntroTour(store: TempoStore): Tour {
     title: "Collapse & Expand",
     attachTo: { element: openCloseDatasets, on: "left" },
     text: "The datasets panel can also be opened and closed",
+    buttons: [backButton, endButton],
     when: {
       show: () => {
         defaultStepShow(tour.currentStep);
@@ -186,12 +187,12 @@ export function getIntroTour(store: TempoStore): Tour {
     },
   });
 
-  const tourButton = document.querySelector("#tour-button") as HTMLElement;
-  tour.addStep({
-    title: "Restart the Tour",
-    attachTo: { element: tourButton, on: "left" },
-    text: "Click here to (re)open tour",
-    buttons: [backButton, endButton],
+  tour.on("cancel", () => {
+    store.showTourHint = true;
+  });
+
+  tour.on("complete", () => {
+    store.showTourHint = true;
   });
 
   return tour;

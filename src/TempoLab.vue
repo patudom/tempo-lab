@@ -57,8 +57,17 @@
         width="50%"
       >
         <intro-tour-choice
-          @close="() => showPopup = false"
-          @tour="() => getIntroTour(store).start()"
+          @close="() => {
+            showPopup = false;
+            if (!tourStartedFromPopup) {
+              store.showTourHint = true;
+            }
+            tourStartedFromPopup = false;
+          }"
+          @tour="() => {
+            tourStartedFromPopup = true;
+            getIntroTour(store).start();
+          }"
           @dont-show="(value: boolean) => dontShowPopupAgain = value"
         ></intro-tour-choice>
       </v-dialog>
@@ -131,6 +140,7 @@ import { getIntroTour } from "@/utils/tours";
 const root = useTemplateRef<HTMLDivElement>("root");
 const leftHandle = useTemplateRef<HTMLDivElement>("left-handle");
 const rightHandle = useTemplateRef<HTMLDivElement>("right-handle");
+const tourStartedFromPopup = ref(false);
 // const layersPanel = useTemplateRef<HTMLElement>("layers-panel");
 // const datasetsPanel = useTemplateRef<HTMLElement>("datasets-panel");
 // const mapsPanel = useTemplateRef<HTMLElement>("maps-panel");
