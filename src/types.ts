@@ -26,6 +26,18 @@ export type LngLatPair = LocationOrderedPair<'(Lng,Lat)'>;
 export type MappingBackends = 'maplibre';
 
 
+export type LayerErrorType = 'ready' | 'loading' | 'error' | 'warning';
+
+export interface LayerStatus {
+  status: LayerErrorType;
+  statusMsg?: string[];
+}
+
+export interface LayerReadiness extends LayerStatus {
+  ready: boolean[];
+}
+
+
 export interface InitMapOptions {
   loc: LatLngPair,
   zoom: number,

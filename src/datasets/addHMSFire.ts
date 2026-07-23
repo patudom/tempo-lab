@@ -1,11 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { ref, shallowRef, watch, computed, type Ref, onBeforeUnmount } from 'vue';
+import { ref, shallowRef, watch, computed, type Ref, type ComputedRef, onBeforeUnmount } from 'vue';
 import M from 'maplibre-gl';
 import { Popup } from 'maplibre-gl';
 import type { SymbolLayerSpecification, CircleLayerSpecification, LayerSpecification, DistributiveOmit, DataDrivenPropertyValueSpecification } from 'maplibre-gl';
 import { useKML } from '@/composables/useKML';
 import { useGeoJsonLayer } from '@/composables/useGeoJsonLayer';
 import { syncLayerOpacity, syncLayerVisibility } from '@/composables/useSyncedVisibilityAndOpacity';
+import { fireStatus } from '@/datasets/layerStatus';
+import type { LayerStatus } from '@/types';
 
 /**
  * We select only VIIRS data from SUOMI and NOAA - 375 m resolution
@@ -80,8 +82,10 @@ export interface HMSLayer {
   geoJsonData: Ref<GeoJSON.FeatureCollection | null>
   loading: Ref<boolean>
   error: Ref<Error | null>
+  status: ComputedRef<LayerStatus>
   toggleHMSVisibility: (vis?: boolean | undefined) => void
   setUrl: (newUrl: string) => Promise<void>
+  retry: () => Promise<void>
 }
 
 // Optional settings for labels
@@ -493,7 +497,7 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
 
   // Change URL and refresh layer
   const setUrl = async (newUrl: string): Promise<void> => {
-    
+
     internalSetUrl(newUrl)
       .then(() => {
         if (lastKnownVisible.value) {
@@ -503,6 +507,14 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
       .catch((err) => {
         console.error('HMS: Error setting new KML URL:', err);
       });
+  };
+
+  // Force a fresh request (e.g. "try again" after an error): clear the loaded-URL
+  // guard, wait a beat, then reload the same URL.
+  const retry = async (): Promise<void> => {
+    await internalSetUrl(url.value);
+    await new Promise(resolve => setTimeout(resolve, 500));
+    await loadKML();
   };
 
   // Remove from map
@@ -545,6 +557,8 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
     console.log(`HMS: loading state changed to ${newLoading}`);
   });
 
+  const status = computed<LayerStatus>(() => fireStatus(loading.value, error.value));
+
   return {
     addToMap,
     layerId,
@@ -552,6 +566,8 @@ export function addHMSFire(date: Ref<Date>, options: UseKMLOptions = {layerName:
     geoJsonData,
     loading,
     error,
-    setUrl
+    status,
+    setUrl,
+    retry
   };
 }
