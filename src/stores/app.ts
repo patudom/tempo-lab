@@ -52,6 +52,7 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
   const showRGBMode = ref(false);
 
   const globalWarning = ref("");
+  const showTourHint = ref(false);
 
   const showAggregationControls = ref(false);
 
@@ -90,7 +91,6 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
   const accentColor = ref("#068ede");
   const accentColor2 = ref("#ffcc33");
   const tempoRed = ref("#b60e32");
-
 
   function getTempoDataService(molecule: MoleculeType): TempoDataService {
     if (molecule in tempoDataServices) {
@@ -381,7 +381,8 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
   return {
     debugMode,
     globalWarning,
-    
+    showTourHint,
+
     accentColor,
     accentColor2,
     tempoRed,
@@ -512,7 +513,7 @@ export function deserializeTempoStore(value: string): StateTree {
   return parsed;
 }
 
-const OMIT = new Set(["debugMode", "selectionActive", "maps", "layersReady", "globalWarning", "layerAction"]);
+const OMIT = new Set(["debugMode", "selectionActive", "maps", "layersReady", "globalWarning", "layerAction", "showTourHint"]);
 export function serializeTempoStore(store: TempoStore): string {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const state: Record<string, any> = {};
