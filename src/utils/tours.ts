@@ -1,6 +1,5 @@
 import { useShepherd } from "vue-shepherd";
 import type { Step, StepOptionsButton, Tour } from "shepherd.js";
-import { offset } from "@floating-ui/dom";
 
 import type { TempoStore } from "@/stores/app";
 import { storeToRefs } from "pinia";

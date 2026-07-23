@@ -594,6 +594,7 @@ body .shepherd-has-title .shepherd-content .shepherd-header {
   background: transparent;
   padding-right: 2.5rem;
   padding-bottom: 0rem !important;
+  padding-left: 12px;
 }
 
 .shepherd-element .shepherd-title {
