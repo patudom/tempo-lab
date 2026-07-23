@@ -5,7 +5,7 @@ import type { Map } from "maplibre-gl";
 import { isComputedRef } from "@/utils/vue";
 import { parse, stringify } from "zipson";
 
-import type { AggValue, InitMapOptions, LatLngPair, MappingBackends, SelectionType, TimeRange, UnifiedRegion, UserDataset } from "@/types";
+import type { AggValue, InitMapOptions, LatLngPair, LayerReadiness, LayerStatus, MappingBackends, SelectionType, TimeRange, UnifiedRegion, UserDataset } from "@/types";
 import { ESRI_URLS_V03, ESRI_URLS_V04, MoleculeType } from "@/esri/utils";
 import { TempoDataService, FetchOptions } from "@/esri/services/TempoDataService";
 import { useUniqueTimeSelection } from "@/composables/useUniqueTimeSelection";
@@ -62,7 +62,10 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
   const timezoneOptions = computed(() => tzOptions(singleDateSelected.value));
   
   const shownLayers = ref<string[]>([]);
-  const layersReady = ref<globalThis.Map<string, boolean[]>>(new globalThis.Map<string, boolean[]>());
+  const layersReady = ref<globalThis.Map<string, LayerReadiness>>(new globalThis.Map<string, LayerReadiness>());
+
+  // probably should be a map of some sort, but for now it is only used with hms-fire layer which is prone to breaking
+  const layerAction = ref<{ layerId: string; action: string } | null>(null);
 
   // This part is still assuming that multiple maps will be temporally linked
   // If/when we want to make that not the case, we'll need to rethink this
@@ -224,10 +227,18 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
     }
   }
 
-  function setLayerReady(layerName: string, serviceReady: boolean[]) {
+  function setLayerReady(layerName: string, serviceReady: boolean[], status?: LayerStatus) {
     const next = new globalThis.Map(layersReady.value);
-    next.set(layerName, [...serviceReady]);
+    next.set(layerName, {
+      status: status?.status ?? 'ready',
+      statusMsg: status?.statusMsg ?? [],
+      ready: [...serviceReady],
+    });
     layersReady.value = next;
+  }
+
+  function doLayerAction(layerId: string, action: string) {
+    layerAction.value = { layerId, action };
   }
 
   function clearLayerReady(layerName: string) {
@@ -455,6 +466,8 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
     layersReady,
     setLayerReady,
     clearLayerReady,
+    layerAction,
+    doLayerAction,
 
     reset,
   };
@@ -499,7 +512,7 @@ export function deserializeTempoStore(value: string): StateTree {
   return parsed;
 }
 
-const OMIT = new Set(["debugMode", "selectionActive", "maps", "layersReady", "globalWarning"]);
+const OMIT = new Set(["debugMode", "selectionActive", "maps", "layersReady", "globalWarning", "layerAction"]);
 export function serializeTempoStore(store: TempoStore): string {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const state: Record<string, any> = {};

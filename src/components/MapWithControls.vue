@@ -111,7 +111,8 @@ import { Map, GeoJSONSource, type StyleLayer } from "maplibre-gl";
 import { getTimezoneOffset } from "date-fns-tz";
 import { v4 } from "uuid";
 
-import type { LatLngPair, PointSelectionInfo, RectangleSelectionInfo, SelectionType } from "@/types";
+import type { LatLngPair, LayerStatus, PointSelectionInfo, RectangleSelectionInfo, SelectionType } from "@/types";
+import { featureStatus } from "@/datasets/layerStatus";
 import { type MoleculeType, MOLECULE_OPTIONS } from "@/esri/utils";
 import { colorbarOptions } from "@/esri/ImageLayerConfig";
 import { useTempoStore } from "@/stores/app";
@@ -239,11 +240,7 @@ const asthmaCounties = addAsthmaLayer('places-asthma-counties', 2);
 
 function syncAsthmaStatus(layer: ReturnType<typeof addAsthmaLayer>) {
   watch(() => layer.status.value, (s) => {
-    if (s === 'zoom-in') {
-      store.setLayerReady(layer.layerId, [false]);
-      return;
-    }
-    store.setLayerReady(layer.layerId, [true]);
+    store.setLayerReady(layer.layerId, [s !== 'zoom-in'], featureStatus(s));
   }, { immediate: true });
 }
 syncAsthmaStatus(asthmaCounties);
@@ -256,6 +253,13 @@ const hmsFire = addHMSFire(singleDateSelected, {
   showLabel: false,
   showClusters: true,
 });
+
+// for now we only handle the hms-fire actions
+watch(() => store.layerAction, (action) => {
+  if (action?.layerId === 'hms-fire' && action.action === 'retry') {
+    hmsFire.retry();
+  }
+}, { deep: true });
 
 import { type UseEsriTempoLayer, useTempoLayer } from "@/esri/maplibre/useTempoImageLayer";
 // just use the hcho layer for now
@@ -282,12 +286,12 @@ const no2Layer = ref<UseEsriTempoLayer | null>(null);
 import { useTempoLiteImages } from "@/composables/tempo-lite/TempoLite";
 const tempoLite = useTempoLiteImages();
 
-function syncLayerReady(layerName: string, serviceReady: boolean[] | undefined) {
+function syncLayerReady(layerName: string, serviceReady: boolean[] | undefined, status?: LayerStatus) {
   if (!serviceReady || serviceReady.length === 0) {
     store.clearLayerReady(layerName);
     return;
   }
-  store.setLayerReady(layerName, serviceReady);
+  store.setLayerReady(layerName, serviceReady, status);
 }
 
 function addAdvancedLayers(m: Map | null) {
@@ -313,11 +317,11 @@ function addAdvancedLayers(m: Map | null) {
   tryCatch('hms-fire', () => hmsFire.addToMap(m));
   tryCatch('tempo-hcho', () => hchoLayer.addEsriSource(m));
   tryCatch('tempo-o3', () => ozoneLayer.addEsriSource(m));
-  syncLayerReady('tempo-hcho', hchoLayer.serviceReady.value);
-  syncLayerReady('tempo-o3', ozoneLayer.serviceReady.value);
-  syncLayerReady('pop-dens', popLayer.serviceReady.value);
-  syncLayerReady('land-use', sentinalLandUseLayer.serviceReady.value);
-  syncLayerReady('hms-fire', [hmsFire.loading.value]);
+  syncLayerReady('tempo-hcho', hchoLayer.serviceReady.value, hchoLayer.status.value);
+  syncLayerReady('tempo-o3', ozoneLayer.serviceReady.value, ozoneLayer.status.value);
+  syncLayerReady('pop-dens', popLayer.serviceReady.value, popLayer.status.value);
+  syncLayerReady('land-use', sentinalLandUseLayer.serviceReady.value, sentinalLandUseLayer.status.value);
+  syncLayerReady('hms-fire', [hmsFire.loading.value], hmsFire.status.value);
   
   tryCatch('power-plants-layer', () => pp.addLayer());
   // pp.togglePowerPlants(false);
@@ -352,7 +356,7 @@ function removeAdvancedLayers(m: Map | null) {
 
 const onMapReady = (m: Map) => {
   map.value = m; // ESRI source already added by EsriMap
-  syncLayerReady('tempo-no2', no2Layer.value?.serviceReady); // needs to be done early
+  syncLayerReady('tempo-no2', no2Layer.value?.serviceReady, no2Layer.value?.status); // needs to be done early
   tempoLite.addTo(m);
   tempoLite.setVisibility(false);
   if (showAdvancedLayers.value) addAdvancedLayers(m);
@@ -395,30 +399,30 @@ watch(() => [
   popLayer.serviceReady.value,
   sentinalLandUseLayer.serviceReady.value,
   [hmsFire.loading.value],
-], ([no2Ready, hchoReady, ozoneReady, popReady, landUseReady, hmsReady]) => {
-  syncLayerReady('tempo-no2', no2Ready);
-  
-  
+], ([no2Ready, hchoReady, ozoneReady, popReady, landUseReady]) => {
+  syncLayerReady('tempo-no2', no2Ready, no2Layer.value?.status);
+
+
   // Only take over with tempo-lite once the no2 service has actually failed
   if (serviceFailed(no2Ready)) {
     tempoLite.setVisibility(true);
     tempoLite.forceLiteTimestamps();
     no2Layer.value?.setVisibility(false);
   }
-  
+
   const no2Working = Array.isArray(no2Ready) && no2Ready.some(x => x);
   if (no2Working) {
     tempoLite.removeFromMap();
   }
 
-  
+
 
   if (showAdvancedLayers.value) {
-    syncLayerReady('tempo-hcho', hchoReady);
-    syncLayerReady('tempo-o3', ozoneReady);
-    syncLayerReady('pop-dens', popReady);
-    syncLayerReady('land-use', landUseReady);
-    syncLayerReady('hms-fire', hmsReady);
+    syncLayerReady('tempo-hcho', hchoReady, hchoLayer.status.value);
+    syncLayerReady('tempo-o3', ozoneReady, ozoneLayer.status.value);
+    syncLayerReady('pop-dens', popReady, popLayer.status.value);
+    syncLayerReady('land-use', landUseReady, sentinalLandUseLayer.status.value);
+    syncLayerReady('hms-fire', [hmsFire.loading.value], hmsFire.status.value);
     return;
   }
 

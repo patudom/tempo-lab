@@ -17,11 +17,12 @@
           :synced-items="getConnectedItems(element)"
         >
           <template #warning
-            v-if="warningMessage(element)"
+            v-if="layerMessage(element)"
           >
-            <v-tooltip :text="warningMessage(element)!">
+            <v-tooltip :text="layerMessage(element)!">
               <template #activator="{ props }">
-                <v-icon v-bind="props" color="red">mdi-alert</v-icon>
+                <v-icon v-if="layerErrorType(element) === 'error'" v-bind="props" color="red">mdi-alert-octagon</v-icon>
+                <v-icon v-else v-bind="props" color="yellow">mdi-alert</v-icon>
               </template>
             </v-tooltip>
           </template>
@@ -58,9 +59,34 @@
                 </colorbar-horizontal>
               </template>
             </local-scope>
-            
+            <colorbar-horizontal
+              v-else-if="element.includes('asthma')"
+              v-show="visible"
+              :cmap-name="asthmaColorbar.colormap"
+              :cmap="colormapFunction(asthmaColorbar.colormap)"
+              background-color="transparent"
+              height="15px"
+              font-size="9pt"
+              :nsteps="255"
+              :start-value="String(asthmaColorbar.min)"
+              :end-value="String(asthmaColorbar.max)"
+              :extend="true"
+            >
+              <template #label>{{ asthmaColorbar.label }}</template>
+            </colorbar-horizontal>
+
             <!-- Loading bar -->
-             <v-progress-linear v-if="(element === 'hms-fire') && firstOrFalse(layersReady.get('hms-fire'))" indeterminate />
+             <v-progress-linear v-if="layerErrorType(element) === 'loading'" indeterminate />
+
+            <!-- Retry but only for hms-fire right now -->
+            <v-btn
+              v-if="layerErrorType(element) === 'error' && element === 'hms-fire'"
+              size="x-small"
+              variant="tonal"
+              color="red"
+              prepend-icon="mdi-refresh"
+              @click="store.doLayerAction(element, 'retry')"
+            >Try again</v-btn>
             <!-- Legend -->
 
             <NarrowExpansionPanel v-show="visible" :item="element" v-if="hasLegend.includes(element)" :label="element==='power-plants-layer' ? 'Show Filter' : 'Show Legend'">
@@ -89,7 +115,9 @@ import { capitalizeWords } from "@/utils/names";
 import { colorbarOptions } from "@/esri/ImageLayerConfig";
 import { colormapFunction } from "@/colormaps/utils";
 import { useTempoStore } from "@/stores/app";
+import type { LayerErrorType } from "@/types";
 import { layerNames, layerInfo } from "@/datasets/layerData";
+import { asthmaColorbar } from "@/datasets/addAsthma";
 import NarrowExpansionPanel from './NarrowExpansionPanel.vue';
 import LandUseLegend from './LandUseLegend.vue';
 import AQILegend from './AQILegend.vue';
@@ -127,16 +155,9 @@ const getConnectedItems = (layer: string): string[] => {
 };
 
 
-function firstOrFalse(arr: boolean[] | undefined) {
-  if (arr === undefined || arr.length === 0) {
-    return false;
-  }
-  return arr[0];
-}
-
-const { 
-  currentOrder, 
-  controller 
+const {
+  currentOrder,
+  controller
 } = useMaplibreLayerOrderControl(
   mapRef, 
   toValue(props.order),
@@ -151,8 +172,8 @@ const displayOrder = computed({
   get(): string[] {
     const reversed = currentOrder.value.slice().reverse();
     // Push not ready layers to the bottom, still in order though
-    const ready = reversed.filter(id => isLayerReady(id, false));
-    const notReady = reversed.filter(id => !isLayerReady(id, false));
+    const ready = reversed.filter(id => layerErrorType(id) !== 'error');
+    const notReady = reversed.filter(id => layerErrorType(id) === 'error');
     return [...ready, ...notReady];
   },
   set(value: string[]) {
@@ -162,32 +183,26 @@ const displayOrder = computed({
 
 
 const hasLegend = ['land-use', 'aqi-layer-aqi', 'power-plants-layer', 'pop-dens'];
-const serviceWarning = "The service supporting this layer is down, all or some data may be unavailable.";
-// create custom warning for pop-dense, land-use, tempo data. still short but blames the provider
-const customServiceWarning = {
-  'tempo': "NASA's Earthdata GIS service for this layer is down. See https://gis.earthdata.nasa.gov/ for more information.",
-  'pop': "NASA's Earthdata GIS service for this layer is down. See https://gis.earthdata.nasa.gov/ for more information.",
-  'land': "ESRI's service for this layer is down. See https://livingatlas.arcgis.com/landcoverexplorer/ for more information.",
-};
-
-const _partialServiceWarning = "The service supporting this layer is down, all or some data may be unavailable.";
-// create custom warning for pop-dense, land-use, tempo data. still short but blames the provider
-const partialCustomServiceWarning = {
-  'tempo': "Due to a disruption of NASA's Earthdata GIS service some data may be unavailable. ",
-  'pop': "Due to a disruption of NASA's Earthdata GIS service some data may be unavailable. ",
-  'land': "Due to a disruption ESRI's service for this layer is down. See https://livingatlas.arcgis.com/landcoverexplorer/ for more information.",
-};
 
 function displayNameTransform(layerId: string): string {
   return layerNames[layerId] ?? capitalizeWords(layerId.replace(/-/g, " "));
 }
 
+function layerErrorType(layerId: string): LayerErrorType {
+  return layersReady.value.get(layerId)?.status ?? 'ready';
+}
+
+function layerMessage(layerId: string): string | null {
+  const msgs = layersReady.value.get(layerId)?.statusMsg;
+  return msgs && msgs.length > 0 ? msgs.join(' ') : null;
+}
+
 watch(layersReady, () => {
-  const notReadyTempoLayers = Array.from(layersReady.value).map(([layerId, ready]) => {
-    if (layerId.startsWith('tempo') && (!ready || ready.length === 0 || ready.every(ready => !ready))) {
+  const notReadyTempoLayers = Array.from(layersReady.value).map(([layerId, entry]) => {
+    if (layerId.startsWith('tempo') && entry.status === 'error') {
       return true;
     }
-    return false;  
+    return false;
   });
   if (notReadyTempoLayers.some(e => e)) {
     globalWarning.value = `The NASA Earthdata GIS service that this app relies on (at <a style="color:currentColor;" href="https://gis.earthdata.nasa.gov/" target="_blank">https://gis.earthdata.nasa.gov/</a>) is currently down. Certain TEMPO and Population Density data may not be available.<br/><br/>
@@ -196,55 +211,6 @@ watch(layersReady, () => {
     globalWarning.value = '';
   }
 }, { deep: true });
-
-// use function overrirde to enforce what can be returned
-function isLayerReady(layerId: string, includePartial: true): true | {ready: boolean, partial: boolean};
-// eslint-disable-next-line no-redeclare
-function isLayerReady(layerId: string, includePartial: false): boolean;
-// eslint-disable-next-line no-redeclare
-function isLayerReady(layerId: string, includePartial = false) {
-  // tract layers use [false] to signal zoom-in, not a service outage — always treat as positioned-ready
-  if (layerId.includes('tracts')) return true;
-  const readiness = layersReady.value.get(layerId);
-  if (!readiness || readiness.length === 0) {
-    return true; // was null, no warning message, so true
-  }
-  if (includePartial) {
-    return {
-      ready: readiness.every(ready => ready),
-      partial: readiness.some(ready => ready) && !readiness.every(ready => ready)
-    };
-  }
-  return readiness.every(ready => ready); // actually have to check
-}
-
-
-function warningMessage(layerId: string): string | null {
-  // [false] for tracts means zoom-in required, not a service failure — check before isLayerReady
-  if (layerId === 'hms-fire') {
-    return 'Fire layer is large and may take a few seconds to fully load';
-  }
-  if (layerId.includes('tracts')) {
-    const readiness = layersReady.value.get(layerId);
-    return (readiness && !readiness.every(r => r)) ? 'Zoom in to see census tract data' : null;
-  }
-  const ready = isLayerReady(layerId, true);
-  // if ready is truthy, no error message
-  if (ready === true || ready.ready === true) {
-    return null;
-  }
-
-  // return serviceWarning;
-  if (layerId.startsWith('tempo')) {
-    return ready.partial ? partialCustomServiceWarning['tempo'] : customServiceWarning['tempo'];
-  } else if (layerId.startsWith('pop')) {
-    return ready.partial ? partialCustomServiceWarning['pop'] : customServiceWarning['pop'];
-  } else if (layerId.startsWith('land')) {
-    return ready.partial ? partialCustomServiceWarning['land'] : customServiceWarning['land'];
-  } else {
-    return ready.partial ? _partialServiceWarning : serviceWarning;
-  }
-}
 
 
 function cbarLabel(cbarScale: number, unit: string) {
