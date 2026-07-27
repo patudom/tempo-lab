@@ -6,7 +6,7 @@ import { isComputedRef } from "@/utils/vue";
 import { parse, stringify } from "zipson";
 
 import type { AggValue, InitMapOptions, LatLngPair, LayerReadiness, LayerStatus, MappingBackends, SelectionType, TimeRange, UnifiedRegion, UserDataset } from "@/types";
-import { ESRI_URLS_V03, ESRI_URLS_V04, MoleculeType } from "@/esri/utils";
+import { moleculeServiceConfigs, MoleculeType } from "@/esri/utils";
 import { TempoDataService, FetchOptions } from "@/esri/services/TempoDataService";
 import { useUniqueTimeSelection } from "@/composables/useUniqueTimeSelection";
 import { useTimezone, type Timezone } from "@/composables/useTimezone";
@@ -96,9 +96,9 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
     if (molecule in tempoDataServices) {
       return tempoDataServices[molecule];
     }
-    const v03 = ESRI_URLS_V03[molecule];
-    const v04 = ESRI_URLS_V04[molecule];
-    const tds = new TempoDataService([v03.url, v04.url], v03.variable);
+    // get urls for for this molecule
+    const configs = moleculeServiceConfigs(molecule);
+    const tds = new TempoDataService(configs.map(c => c.url), configs[configs.length - 1].variable);
     tempoDataServices[molecule] = tds;
     return tds;
   }
@@ -304,7 +304,9 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
     
     try {
       const tds = getTempoDataService(dataset.molecule);
-      tds.setAvailableTimestamps(timestamps.value);
+      // Use this service's own timesteps rather than the app-wide timestamps.value. Not every
+      // tempo molecule covers the whole timeline (o3trop is V04-only), and we don't want to send bogus requests
+      tds.setAvailableTimestamps(await tds.getMergedTimesteps());
       const data = await tds.fetchTimeseriesData(dataset.region.geometryInfo, timeRanges, {onProgress});
       dataset.samples = data.values;
       dataset.errors = data.errors;
@@ -328,6 +330,7 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
 
     
     try {
+      tds.setAvailableTimestamps(await tds.getMergedTimesteps());
       const data = await tds.fetchCenterPointData(
         dataset.region.geometryInfo,
         timeRanges,

@@ -10,7 +10,8 @@ export const layerNames: Record<string, string | undefined> = {
   "land-use": "Land Use",
   "hms-fire": "Fire Detections",
   'tempo-hcho': "TEMPO HCHO",
-  'tempo-o3': "TEMPO Ozone",
+  'tempo-o3': "TEMPO Ozone, Total Column",
+  'tempo-o3trop': "TEMPO Ozone, 0–2 km (BETA)",
   "places-asthma-counties": "Asthma Prevalence (Counties)",
   "places-asthma-tracts": "Asthma Prevalence (Tracts)",
 };
@@ -80,7 +81,7 @@ export const layerInfo: Record<string, {title: string, description: string, sour
     da: `Data available at NASA Earthdata GIS: <a href="https://gis.earthdata.nasa.gov/portal/home/item.html?id=474a1016d4d54f97b99e6926328e01c1" target="_blank" rel="noopener noreferrer">V03 (Aug 2023–Sep 2025)</a>, <a href="https://gis.earthdata.nasa.gov/portal/home/item.html?id=cae8430051bf4213adb14783c5cbf000" target="_blank" rel="noopener noreferrer">V04 (Sep 2025–present)</a>`,
   },
   "tempo-o3": {
-    title: `TEMPO Ozone (O3) Data Layer`,
+    title: `TEMPO Ozone (O3), Total Column Data Layer`,
     description: 
       `This layer shows the total amount of ozone in a vertical column of Earth's atmosphere, measured in Dobson Units (DU).
       In the upper atmosphere, ozone plays an important role in protecting life on Earth by absorbing harmful ultraviolet radiation, but in the troposphere ozone is an air pollutant that can affect plant, animal, and human health.
@@ -95,6 +96,27 @@ export const layerInfo: Record<string, {title: string, description: string, sour
       Data is available from NASA Earthdata GIS with an approximately 24 hour delay.`,
     source: `Source: <a href="https://tempo.si.edu" target="_blank" rel="noopener noreferrer">NASA TEMPO</a>.`,
     da: `Data available at NASA Earthdata GIS: <a href="https://gis.earthdata.nasa.gov/portal/home/item.html?id=6a70c1e857cf43b1a28ab8738fe47519" target="_blank" rel="noopener noreferrer">V03 (Aug 2023–Sep 2025)</a>, <a href="https://gis.earthdata.nasa.gov/portal/home/item.html?id=69379d4b54364969b8538ea72276dcfb" target="_blank" rel="noopener noreferrer">V04 (Sep 2025–present)</a>`,
+  },
+  "tempo-o3trop": {
+    title: `TEMPO Ozone (O3), 0–2 km Data Layer (BETA)`,
+    description:
+      `
+      <span style="color:red"><strong>Note:</strong> This layer is in beta testing and is not recommended for scientific research.</span>
+      <br/><br/>
+      This layer shows the amount of ozone in the lowest 0–2 km of Earth's atmosphere — the part of the troposphere closest to the ground — measured in Dobson Units (DU).
+      In the upper atmosphere, ozone plays an important role in protecting life on Earth by absorbing harmful ultraviolet radiation, but in the troposphere ozone is an air pollutant that can affect plant, animal, and human health.
+      Ozone in the troposphere is produced when NO<sub>2</sub> and volatile organic compounds, like HCHO interact in sunlight.
+      <br/><br/>
+      TEMPO collects ozone measurements at about 2 km by 4.75 km near the center of its viewing area.
+      The data is processed into a Level 3 product with a resolution of 0.02 by 0.02 degrees, and the imagery you see is displayed at about 2 km resolution.
+      To ensure accuracy, the layer only includes high-quality data points, filtered using sunlight conditions (solar zenith angles less than 80°).
+      `,
+    timescale: `
+      The entire US is covered approximately once per hour, and covers September 2025 to present.
+      There a periods where focused observations over a small area may be taken with a higher time resolution.
+      Data is available from NASA Earthdata GIS with an approximately 24 hour delay.`,
+    source: `Source: <a href="https://tempo.si.edu" target="_blank" rel="noopener noreferrer">NASA TEMPO</a>.`,
+    da: `Data available at NASA Earthdata GIS: V04 (Sep 2025–present)`,
   },
   "hms-fire": {
     title: `NOAA Hazard Mapping System Fire And Smoke Product`,

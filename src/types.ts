@@ -177,7 +177,7 @@ export interface TimeRange {
   source?: TimeRange
 }
 
-export type MoleculeType = 'no2' | 'o3' | 'hcho';
+export type MoleculeType = 'no2' | 'o3' | 'o3trop' | 'hcho';
 
 export type TimeBinOptions = 'none' | 'hour' | 'day' | 'week' | 'month';
 export type FoldingPeriodOptions = 'none' | 'day' | 'week' | 'month' | 'year' | 'weekdayWeekend';
