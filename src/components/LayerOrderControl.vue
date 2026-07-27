@@ -89,7 +89,7 @@
             >Try again</v-btn>
             <!-- Legend -->
 
-            <NarrowExpansionPanel v-show="visible" :item="element" v-if="hasLegend.includes(element)" :label="element==='power-plants-layer' ? 'Show Filter' : 'Show Legend'">
+            <NarrowExpansionPanel v-show="visible" :item="element" v-if="hasLegend.includes(element)" :label="element==='power-plants-layer' ? `${visible ? 'Hide' : 'Show'} Filter` : `${visible ? 'Hide' : 'Show'} Legend`">
               <land-use-legend  v-if="element === 'land-use'"  />
               <AQILegend v-if="element === 'aqi-layer-aqi'" />
               <power-plants-filter-control :map="mapRef" v-if="element === 'power-plants-layer'"/>
