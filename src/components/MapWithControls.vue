@@ -113,7 +113,7 @@ import { v4 } from "uuid";
 
 import type { LatLngPair, LayerStatus, PointSelectionInfo, RectangleSelectionInfo, SelectionType } from "@/types";
 import { featureStatus } from "@/datasets/layerStatus";
-import { type MoleculeType, MOLECULE_OPTIONS } from "@/esri/utils";
+import { type MoleculeType, MOLECULE_OPTIONS, moleculeVariable } from "@/esri/utils";
 import { colorbarOptions } from "@/esri/ImageLayerConfig";
 import { useTempoStore } from "@/stores/app";
 import { useLocationMarker } from "@/composables/maplibre/useMarker";
@@ -281,6 +281,15 @@ const ozoneLayer = useTempoLayer({
   initVisible: false,
   initRGB: showRGBMode.value,
 });
+const o3tropLayer = useTempoLayer({
+  initialMolecule: "o3trop",
+  timestamp,
+  opacity: 1,
+  fetchOnMount: true,
+  layerName: "tempo-o3trop",
+  initVisible: false,
+  initRGB: showRGBMode.value,
+});
 const no2Layer = ref<UseEsriTempoLayer | null>(null);
   
 import { useTempoLiteImages } from "@/composables/tempo-lite/TempoLite";
@@ -317,8 +326,10 @@ function addAdvancedLayers(m: Map | null) {
   tryCatch('hms-fire', () => hmsFire.addToMap(m));
   tryCatch('tempo-hcho', () => hchoLayer.addEsriSource(m));
   tryCatch('tempo-o3', () => ozoneLayer.addEsriSource(m));
+  tryCatch('tempo-o3trop', () => o3tropLayer.addEsriSource(m));
   syncLayerReady('tempo-hcho', hchoLayer.serviceReady.value, hchoLayer.status.value);
   syncLayerReady('tempo-o3', ozoneLayer.serviceReady.value, ozoneLayer.status.value);
+  syncLayerReady('tempo-o3trop', o3tropLayer.serviceReady.value, o3tropLayer.status.value);
   syncLayerReady('pop-dens', popLayer.serviceReady.value, popLayer.status.value);
   syncLayerReady('land-use', sentinalLandUseLayer.serviceReady.value, sentinalLandUseLayer.status.value);
   syncLayerReady('hms-fire', [hmsFire.loading.value], hmsFire.status.value);
@@ -342,12 +353,14 @@ function removeAdvancedLayers(m: Map | null) {
   hmsFire.removeFromMap(m);
   hchoLayer.removeEsriSource();
   ozoneLayer.removeEsriSource();
+  o3tropLayer.removeEsriSource();
   pp.removeLayer();
   asthmaCounties.removeFromMap(m);
   // asthma tracts disabled
   // asthmaTracts.removeFromMap(m);
   store.clearLayerReady('tempo-hcho');
   store.clearLayerReady('tempo-o3');
+  store.clearLayerReady('tempo-o3trop');
   store.clearLayerReady('pop-dens');
   store.clearLayerReady('land-use');
   store.clearLayerReady('places-asthma-counties');
@@ -378,6 +391,7 @@ watch(molecule, (newMolecule) => {
   if (map.value) {
     hchoLayer.setVisibility(newMolecule === 'hcho');
     ozoneLayer.setVisibility(newMolecule === 'o3');
+    o3tropLayer.setVisibility(newMolecule === 'o3trop');
     no2Layer.value?.setVisibility(newMolecule === 'no2');
     // map.value.moveLayer(`tempo-${newMolecule}`, 'tempo-no2');
   }
@@ -396,10 +410,11 @@ watch(() => [
   no2Layer.value?.serviceReady,
   hchoLayer.serviceReady.value,
   ozoneLayer.serviceReady.value,
+  o3tropLayer.serviceReady.value,
   popLayer.serviceReady.value,
   sentinalLandUseLayer.serviceReady.value,
   [hmsFire.loading.value],
-], ([no2Ready, hchoReady, ozoneReady, popReady, landUseReady]) => {
+], ([no2Ready, hchoReady, ozoneReady, o3tropReady, popReady, landUseReady]) => {
   syncLayerReady('tempo-no2', no2Ready, no2Layer.value?.status);
 
 
@@ -420,6 +435,7 @@ watch(() => [
   if (showAdvancedLayers.value) {
     syncLayerReady('tempo-hcho', hchoReady, hchoLayer.status.value);
     syncLayerReady('tempo-o3', ozoneReady, ozoneLayer.status.value);
+    syncLayerReady('tempo-o3trop', o3tropReady, o3tropLayer.status.value);
     syncLayerReady('pop-dens', popReady, popLayer.status.value);
     syncLayerReady('land-use', landUseReady, sentinalLandUseLayer.status.value);
     syncLayerReady('hms-fire', [hmsFire.loading.value], hmsFire.status.value);
@@ -428,6 +444,7 @@ watch(() => [
 
   store.clearLayerReady('tempo-hcho');
   store.clearLayerReady('tempo-o3');
+  store.clearLayerReady('tempo-o3trop');
   store.clearLayerReady('pop-dens');
   store.clearLayerReady('land-use');
   store.clearLayerReady('hms-fire');
@@ -440,6 +457,7 @@ watch(showRGBMode, (cMode) => {
   const colormapsToUse = cMode ? rgbcolorramps : colorramps;
   hchoLayer.renderOptions.value.colormap = colormapsToUse['HCHO'];
   ozoneLayer.renderOptions.value.colormap = colormapsToUse['Ozone_Column_Amount'];
+  o3tropLayer.renderOptions.value.colormap = colormapsToUse['0-2_km_Column_Ozone'];
   if (no2Layer.value) {
     no2Layer.value.renderOptions.colormap = colormapsToUse['NO2_Troposphere'];
   }
@@ -447,6 +465,7 @@ watch(showRGBMode, (cMode) => {
   const stretchesToUse = cMode ? rgbstretches : stretches;
   hchoLayer.renderOptions.value.range = stretchesToUse['HCHO'];
   ozoneLayer.renderOptions.value.range = stretchesToUse['Ozone_Column_Amount'];
+  o3tropLayer.renderOptions.value.range = stretchesToUse['0-2_km_Column_Ozone'];
   if (no2Layer.value) {
     no2Layer.value.renderOptions.range = stretchesToUse['NO2_Troposphere'];
   }
@@ -479,17 +498,13 @@ const regionLayers: Record<string, GeoJSONSource> = {};
 
 // const colorMap = computed(() => colorbarOptions[molecule.value].colormap.toLowerCase());
 const colorMap = computed(() => {
-  const mol = molecule.value == 'no2' 
-    ? 'NO2_Troposphere' : molecule.value == 'hcho' 
-      ? 'HCHO' : 'Ozone_Column_Amount';
+  const mol = moleculeVariable(molecule.value);
   return showRGBMode.value ? rgbcolorramps[mol].toLowerCase() : colorramps[mol].toLowerCase();
 });
 
 type ColorbarOptionsKey = keyof typeof colorbarOptions;
 const currentColorbarOptions = computed<typeof colorbarOptions[ColorbarOptionsKey]>(() => {
-  const mol = molecule.value == 'no2' 
-    ? 'NO2_Troposphere' : molecule.value == 'hcho' 
-      ? 'HCHO' : 'Ozone_Column_Amount';
+  const mol = moleculeVariable(molecule.value);
   return {
     ...colorbarOptions[molecule.value],
     colormap: showRGBMode.value ? rgbcolorramps[mol] : colorramps[mol],
