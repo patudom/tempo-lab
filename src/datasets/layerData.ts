@@ -10,8 +10,8 @@ export const layerNames: Record<string, string | undefined> = {
   "land-use": "Land Use",
   "hms-fire": "Fire Detections",
   'tempo-hcho': "TEMPO HCHO",
-  'tempo-o3': "TEMPO Ozone",
-  'tempo-o3trop': "TEMPO Tropospheric Ozone",
+  'tempo-o3': "TEMPO Ozone, Total Column",
+  'tempo-o3trop': "TEMPO Ozone, 0–2 km (BETA)",
   "places-asthma-counties": "Asthma Prevalence (Counties)",
   "places-asthma-tracts": "Asthma Prevalence (Tracts)",
 };
@@ -81,7 +81,7 @@ export const layerInfo: Record<string, {title: string, description: string, sour
     da: `Data available at NASA Earthdata GIS: <a href="https://gis.earthdata.nasa.gov/portal/home/item.html?id=474a1016d4d54f97b99e6926328e01c1" target="_blank" rel="noopener noreferrer">V03 (Aug 2023–Sep 2025)</a>, <a href="https://gis.earthdata.nasa.gov/portal/home/item.html?id=cae8430051bf4213adb14783c5cbf000" target="_blank" rel="noopener noreferrer">V04 (Sep 2025–present)</a>`,
   },
   "tempo-o3": {
-    title: `TEMPO Ozone (O3) Data Layer`,
+    title: `TEMPO Ozone (O3), Total Column Data Layer`,
     description: 
       `This layer shows the total amount of ozone in a vertical column of Earth's atmosphere, measured in Dobson Units (DU).
       In the upper atmosphere, ozone plays an important role in protecting life on Earth by absorbing harmful ultraviolet radiation, but in the troposphere ozone is an air pollutant that can affect plant, animal, and human health.
@@ -98,12 +98,12 @@ export const layerInfo: Record<string, {title: string, description: string, sour
     da: `Data available at NASA Earthdata GIS: <a href="https://gis.earthdata.nasa.gov/portal/home/item.html?id=6a70c1e857cf43b1a28ab8738fe47519" target="_blank" rel="noopener noreferrer">V03 (Aug 2023–Sep 2025)</a>, <a href="https://gis.earthdata.nasa.gov/portal/home/item.html?id=69379d4b54364969b8538ea72276dcfb" target="_blank" rel="noopener noreferrer">V04 (Sep 2025–present)</a>`,
   },
   "tempo-o3trop": {
-    title: `TEMPO Tropospheric Ozone (O3) Data Layer (BETA)`,
+    title: `TEMPO Ozone (O3), 0–2 km Data Layer (BETA)`,
     description:
       `
       <span style="color:red"><strong>Note:</strong> This layer is in beta testing and is not recommended for scientific research.</span>
       <br/><br/>
-      This layer shows the amount of ozone in the lowest 0-2 km of Earth's atmosphere — the part of the troposphere closest to the ground — measured in Dobson Units (DU).
+      This layer shows the amount of ozone in the lowest 0–2 km of Earth's atmosphere — the part of the troposphere closest to the ground — measured in Dobson Units (DU).
       In the upper atmosphere, ozone plays an important role in protecting life on Earth by absorbing harmful ultraviolet radiation, but in the troposphere ozone is an air pollutant that can affect plant, animal, and human health.
       Ozone in the troposphere is produced when NO<sub>2</sub> and volatile organic compounds, like HCHO interact in sunlight.
       <br/><br/>
