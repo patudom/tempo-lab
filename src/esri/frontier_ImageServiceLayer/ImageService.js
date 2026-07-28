@@ -61,6 +61,7 @@ export class ImageService {
 
     // These are optional params
     if (this._time) params.append('time', this._time);
+    if (this.options.interpolation) params.append('interpolation', this.options.interpolation);
     if (this.options.mosaicRule) params.append('mosaicRule', JSON.stringify(this.options.mosaicRule));
     if (this.options.renderingRule) params.append('renderingRule', JSON.stringify(this.options.renderingRule));
 
