@@ -1,5 +1,13 @@
 <template>
-  <div class="slider-row mx-16 mt-12">
+  <div class="slider-row mt-12">
+      <div class="ml-8 mr-4 align-self-center">
+        <icon-button
+          class="play-pause"
+          :fa-icon="playing ? 'pause' : 'play'"
+          fa-size="sm"
+          @activate="playing = !playing"
+        ></icon-button>
+      </div>
       <v-slider
         :class='[
           "time-slider",
@@ -29,12 +37,7 @@
           </div>
         </template>
       </v-slider>
-      <icon-button
-        class="play-pause"
-        :fa-icon="playing ? 'pause' : 'play'"
-        fa-size="sm"
-        @activate="playing = !playing"
-      ></icon-button>
+      
       <div class="playback-rate-control ml-4">
         <select
           id="playback-rate-select"
