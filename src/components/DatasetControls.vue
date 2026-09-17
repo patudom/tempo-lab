@@ -309,7 +309,7 @@
     </v-expansion-panels>
   </div>
   
-  <div class="d-flex flex-wrap flex-row align-center justify-center ga-1">
+  <div class="d-flex flex-column justify-center ga-1">
     
     
     
@@ -318,7 +318,9 @@
     <v-btn
     v-if="regions.length > 0 || timeRanges.length > 1"
       color="#a63a3f"
+      class="mx-2"
       @click.stop="showConfirmReset = true"
+      size="small"
       >
       Delete ALL selections
     </v-btn>
