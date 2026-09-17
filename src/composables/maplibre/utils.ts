@@ -1,7 +1,8 @@
 import { GeoJSONSource, LngLatBoundsLike, Map } from "maplibre-gl";
 import { v4 } from "uuid";
-
+import { watch } from "vue";
 import { syncLayerVisibility } from "@/composables/useSyncedVisibilityAndOpacity";
+import { useMaplibreLayerOpacity } from '@/composables/useMaplibreLayerOpacity';
 
 import { RectangleSelectionInfo, PointSelectionInfo, UnifiedRegion } from "../../types";
 
@@ -96,7 +97,14 @@ export function addRectangleLayer(
   //   }
   // });
   syncLayerVisibility(map, uuid, outlineId);
-  // syncLayerVisibilityAndOpacity(map, uuid, outlineId);
+  const { opacity: mainOpacity } = useMaplibreLayerOpacity(map, uuid);
+  watch(() => mainOpacity.value === 0, (isZero) => {
+    if (map.getLayer(outlineId)) {
+      // set opacity to 0 if main layer is invisible, otherwise set to 1
+      map.setPaintProperty(outlineId, "line-opacity", isZero ? 0 : 1);
+    }
+  }, { immediate: true });
+  
 
   return { layer: source, layerIds: [uuid, outlineId] };
 }
