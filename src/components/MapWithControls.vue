@@ -1,6 +1,6 @@
 <template>
   <div class="map-container">
-    <v-card class="map-contents">
+    <v-card class="map-contents flex-shrink-0">
       <v-toolbar
         density="compact"
         color="var(--info-background)"
@@ -71,19 +71,21 @@
           ></div>
         </template>
       </v-tooltip>
-    
-    <TimeSlider />
-    
-    <div class="d-flex flex-row">
-      <map-controls
-        class="flex-grow-1"
-        @molecule="(mol: MoleculeType) => {
-          molecule = mol;
-          // if (map) {
-          //   setLayerVisibility(map as Map, activeLayer, true);
-          // }
-        }"
-      />
+    <!-- the flex-shrink:1 is what lets it scroll. this turns off the flex-shrink: 0 being applied by .map-container > div -->
+    <div class="scroll-y d-flex flex-column flex-shrink-1">
+      <TimeSlider />
+      
+      <div class="d-flex flex-row">
+        <map-controls
+          class="flex-grow-1"
+          @molecule="(mol: MoleculeType) => {
+            molecule = mol;
+            // if (map) {
+            //   setLayerVisibility(map as Map, activeLayer, true);
+            // }
+          }"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -940,9 +942,6 @@ onMounted(() => {
   flex-direction: column;
   padding-inline: 8px;
 
-  > div {
-    flex-shrink: 0;
-  }
   .map-contents {
     flex-basis: 50%;
   }

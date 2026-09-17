@@ -100,7 +100,7 @@
         </template>
       </v-tooltip>
 
-      <map-with-controls id="map-panel" class="scroll-y" />
+      <map-with-controls id="map-panel" />
 
       <v-tooltip
         text="Change panel width"
