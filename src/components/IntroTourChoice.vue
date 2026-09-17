@@ -29,12 +29,15 @@
         <v-btn
           :color="accentColor2"
           class="intro-tour-btn"
+          :style="{border: `1px solid ${accentColor2}aa`}"
+          variant="tonal"
+          elevation="4"
           @click="() => emit('close')"
         >
         I want to dive right in!
         <template #prepend>
           <font-awesome-icon
-              icon="fa-circle-xmark"
+              icon="fa-rocket"
               size="lg"
             />
         </template>
@@ -115,6 +118,7 @@ const { accentColor2 } = storeToRefs(store);
   align-items: center;
   justify-content: center;
   align-self: center;
+  align-items: stretch;
   gap: 20px;
 }
 
@@ -123,7 +127,6 @@ const { accentColor2 } = storeToRefs(store);
 }
 
 .intro-tour-btn {
-  color: #1a1a2e !important;
   font-family: "Lexend", sans-serif;
   font-weight: 600;
   font-size: 13px;
