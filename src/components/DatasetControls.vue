@@ -345,7 +345,7 @@
   </v-dialog>
       
     <v-dialog
-      :model-value="sampleErrorID !== null"
+      v-model="showSampleErrorDialog"
       max-width="50%"
     >
       <v-card class="popup-card--outline">
@@ -540,6 +540,15 @@ const createTimeRangeActive = ref(false);
 const createDatasetActive = ref(false);
 const sampleErrorID = ref<string | null>(null);
 const sampleErrorMessage = computed(() => sampleErrorID.value ? store.sampleErrors[sampleErrorID.value] : null);
+
+const showSampleErrorDialog = computed({
+  get: () => sampleErrorID.value !== null,
+  set: (val: boolean) => {
+    if (!val) {
+      sampleErrorID.value = null;
+    }
+  }
+});
 
 const showEditRegionNameDialog = ref(false);
 const regionBeingEdited = shallowRef<UnifiedRegionType | null>(null);
