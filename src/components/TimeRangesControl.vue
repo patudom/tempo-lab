@@ -20,6 +20,7 @@
             {{ timeRange.name === 'Displayed Day' ? `Displayed Day: ${ formatTimeRange(timeRange.range) }` : (timeRange.name ?? formatTimeRange(timeRange.range)) }}
           </span>
           <v-btn
+            v-if="hasDetails(timeRange)"
             class="float-right"
             :icon="showDetails[index] ? 'mdi-chevron-up' : 'mdi-chevron-down'"
             variant="text"
@@ -97,6 +98,14 @@ const emit = defineEmits<{
 
 function hasDatasets(timeRange: TimeRange): boolean {
   return props.datasets.some(d => areEquivalentTimeRanges(d.timeRange, timeRange));
+}
+
+// show card details?
+function hasDetails(timeRange: TimeRange): boolean {
+  if (timeRange.config && timeRange.config.type === 'multiple') return true;
+  // the description is the default, the name is what is customized
+  if (timeRange.config && timeRange.config.type === 'single') return timeRange.name !== timeRange.description;
+  return false;
 }
 
 const showDetails = ref(props.datasets.map(() => false));

@@ -9,11 +9,13 @@
       
         
       <!-- Single Date -->
-      <div class="time-range-single" v-if="timeRange.config && timeRange.config.type==='single'">
-        <div class="time-range-config-name">
-          {{ (new Date(timeRange.config.singleDate)).toLocaleDateString(undefined, { timeZone: 'UTC'})}}
+      <v-expand-transition>
+        <div class="time-range-single" v-if="timeRange.config && timeRange.config.type==='single' && showDetails">
+          <div class="time-range-config-item">
+            {{ (new Date(timeRange.config.singleDate)).toLocaleDateString(undefined, { timeZone: 'UTC'})}}
+          </div>
         </div>
-      </div>
+      </v-expand-transition>
       
       
       <!-- Multiple Date -->
