@@ -1041,7 +1041,7 @@ onMounted(() => {
   flex: 0 0 var(--handle-size);
   width: 100%;
   margin-top: calc(var(--handle-size) + 6px); // 6px from box shadow
-  cursor: col-resize;
+  cursor: row-resize;
   background: var(--handle-color);
   position: relative;
   touch-action: none;
