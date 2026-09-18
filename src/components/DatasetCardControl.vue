@@ -135,12 +135,12 @@
             </v-tooltip>
             <v-spacer ></v-spacer>
             <v-tooltip
+              v-if="datasetFailed(dataset)"
               text="Try loading this data again"
               location="top"
             >
               <template #activator="{ props }">
                 <v-btn
-                  v-if="datasetFailed(dataset)"
                   v-bind="props"
                   size="x-small"
                   icon="mdi-refresh"
