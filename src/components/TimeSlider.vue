@@ -52,7 +52,7 @@
         <!-- visually hidden prefix so the accessible name reads
              "Playback rate, sec/frame" while the visible text stays compact -->
         <label class="playback-rate-label" for="playback-rate-select">
-          <span class="visually-hidden">Playback rate, </span>sec/frame
+          <span class="visually-hidden">Playback rate, </span>x
         </label>
       </div>
     </div>
@@ -111,7 +111,7 @@ type Timeout = ReturnType<typeof setTimeout>;
 
 const playing = ref(false);
 const playInterval = ref<Timeout | null>(null);
-const playRateOptions = [0.5, 1, 1.5, 2, 2.5, 5] as const;
+const playRateOptions = [2, 1, .75, .5, .25] as const;
 const playingRate = ref(1);
   
   
@@ -136,7 +136,7 @@ function play() {
     } else {
       timeIndex.value += 1;
     }
-  }, 1000 * playingRate.value);
+  }, 1000 / playingRate.value);
 }
 
 
@@ -182,8 +182,8 @@ watch(playingRate, () => {
 .playback-rate-select {
   border: 1px solid #fff;
   border-radius: 4px;
-  padding: 0.25rem;
   text-align: center;
+  margin-right: 4px;
 }
 
 .playback-rate-control {
@@ -192,12 +192,7 @@ watch(playingRate, () => {
 }
 
 .playback-rate-label {
-  position: absolute;
-  top: 110%;
-  left: 50%;
-  transform: translateX(-50%);
   color: #f2f2f2;
-  font-size: 0.7rem;
   line-height: 1;
   white-space: nowrap;
   cursor: pointer;
