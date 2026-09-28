@@ -236,7 +236,7 @@ export function getIntroTour(store: TempoStore): Tour {
 
   const openCloseLayers = layersPanelWrapper.querySelector(".open-close-container") as HTMLElement;
   tour.addStep({
-    title: "Collapse & Expand",
+    title: "Collapse & Expand Layers",
     attachTo: { element: openCloseLayers, on: "right" },
     text: "The layers panel can be opened and closed",
     when: {
@@ -263,7 +263,7 @@ export function getIntroTour(store: TempoStore): Tour {
 
   const openCloseDatasets = datasetsPanel.querySelector(".open-close-container") as HTMLElement;
   tour.addStep({
-    title: "Collapse & Expand",
+    title: "Collapse & Expand Datasets",
     attachTo: { element: openCloseDatasets, on: "left" },
     text: "The datasets panel can also be opened and closed",
     buttons: [backButton, endButton],
