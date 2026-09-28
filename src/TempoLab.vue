@@ -413,6 +413,20 @@ onMounted(() => {
     }
   });
 
+  // Browsers match :focus-visible on text fields even for a plain click, so the
+  // focus ring needs this class to stay keyboard-only there (see the
+  // body.keyboard-focus-only rules in the style block below). Only Tab counts as
+  // moving focus by keyboard - typing in an already-focused field shouldn't
+  // retroactively give it a ring.
+  document.addEventListener("keydown", (event: KeyboardEvent) => {
+    if (event.key === "Tab") {
+      document.body.classList.add("keyboard-focus-only");
+    }
+  });
+  const clearKeyboardFocusOnly = () => document.body.classList.remove("keyboard-focus-only");
+  document.addEventListener("mousedown", clearKeyboardFocusOnly);
+  document.addEventListener("touchstart", clearKeyboardFocusOnly);
+
   _saveStateInterval = setInterval(() => {
     if (!useLocalStorage.value || ignoreCache) {
       return;
@@ -483,6 +497,38 @@ html, body {
 
 body {
   font-family: Verdana, Arial, Helvetica, sans-serif;
+}
+
+// "Oreo" focus indicator: a white double outline sandwiched against a black
+// shadow so it stays visible over any background.
+// From Sara Soueidan (https://www.sarasoueidan.com/blog/focus-indicators/)
+// & Erik Kroes (https://www.erikkroes.nl/blog/the-universal-focus-state/).
+// Vuetify hides a checkbox's real <input>, so the ring has to go on the
+// wrapper that is actually visible.
+// .v-overlay__content is excluded: VDialog focuses that element itself on open
+// (tabindex="-1" + contentEl.focus()), and a programmatic focus matches
+// :focus-visible, so the ring would be drawn around the overlay box rather than
+// the card inside it -- for `<v-dialog width="50%">` that's half the viewport.
+// Same exclusion as tempo-lite and planet-parade.
+:focus-visible:not(.v-overlay__content),
+.v-checkbox .v-selection-control__input:has(:focus-visible) {
+  outline: 9px double white !important;
+  box-shadow: 0 0 0 6px black !important;
+  border-radius: .125rem;
+}
+
+// :focus-visible's browser heuristic carves out text inputs: unlike buttons,
+// they match even when focused by a plain click or tap (you need to see where
+// you're typing). Chrome extends that to <select> and to focusable divs like
+// Vuetify's slider thumb. .keyboard-focus-only (toggled in onMounted above,
+// tracking Tab presses vs mouse/touch) undoes those carve-outs so these ring on
+// keyboard focus only, like everything else.
+body:not(.keyboard-focus-only) input:focus-visible,
+body:not(.keyboard-focus-only) textarea:focus-visible,
+body:not(.keyboard-focus-only) select:focus-visible,
+body:not(.keyboard-focus-only) .v-slider-thumb:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 #app {
