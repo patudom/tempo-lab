@@ -18,6 +18,7 @@
                 }
               }"
               :allowed-dates="uniqueDays"
+              :teleport="true"
               :input-atters="{clearable: false}"
               :time-config="{ enableTimePicker: false }"
               :multi-dates="false"
