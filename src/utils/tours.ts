@@ -55,7 +55,18 @@ export function addProgressDots(step: Step) {
     });
     dotsContainer.appendChild(dot);
   });
-  footer.appendChild(dotsContainer);
+
+  // Shepherd snapshots the step's focusable elements while it builds the element
+  // (_setupElements runs before the "show" event that calls this function), so the
+  // dots are never in that list. Its Tab handler preventDefaults once focus reaches
+  // the last element it knows about -- the Next button -- and wraps back to the
+  // start, so anything appended after the buttons can't be tabbed to at all.
+  // Inserting before Next puts the dots inside the range Shepherd tabs through.
+  // The footer is a grid and .progress-dots is positioned by grid-column, so this
+  // changes tab order without moving them on screen. insertBefore(node, null) is
+  // just appendChild, which covers the first step (no Back button) fine.
+  const nextButton = footer.querySelector(".shepherd-button-next");
+  footer.insertBefore(dotsContainer, nextButton);
 }
 
 function useMdiCloseIcon(step: Step) {
