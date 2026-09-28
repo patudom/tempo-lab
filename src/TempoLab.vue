@@ -513,7 +513,7 @@ body {
 :focus-visible:not(.v-overlay__content),
 .v-checkbox .v-selection-control__input:has(:focus-visible) {
   outline: 9px double white !important;
-  box-shadow: 0 0 0 6px black !important;
+  box-shadow: 0 0 0 8px #0b5cb3 !important;
   border-radius: .125rem;
 }
 
