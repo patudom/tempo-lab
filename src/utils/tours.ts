@@ -69,6 +69,67 @@ export function addProgressDots(step: Step) {
   footer.insertBefore(dotsContainer, nextButton);
 }
 
+// NOTE: do not set tabindex="-1" on a step's target to skip past it.
+// The tabindex="0" Shepherd puts there looks like a pointless extra tab stop,
+// but it is the backward boundary of Shepherd's focus trap. Its Tab handler
+// only intercepts Shift+Tab when focus is on the target itself:
+//     else if (document.activeElement === f) { preventDefault(); v.focus(); }
+// (f = the target, v = the last control in the popup). Take the target out of
+// the tab order and that branch can never fire, so Shift+Tab from a control
+// inside the target falls through to the browser and walks out of the tour
+// into the page behind it, with nothing to bring focus back.
+// Measured, Shift+Tab from inside the time-slider on step 2:
+//   tabindex="0"  -> ... icon-wrapper -> slider-row  (boundary, bounces to popup)
+//   tabindex="-1" -> ... icon-wrapper -> OUTSIDE the tour, stuck in the map
+//
+// So the stop stays. What we can do is make it say something: the targets are
+// layout wrappers with no role and no accessible name, so landing on one
+// announces nothing. labelTarget below borrows the step's own title, turning a
+// silent stop into "Time Controls, group".
+
+// Only one step is on screen at a time, so only one target is ever labelled.
+// Holding the previous values here means the app's own markup is put back
+// exactly as it was, rather than left with tour attributes after the tour ends.
+let labelledTarget: {
+  element: HTMLElement;
+  role: string | null;
+  label: string | null;
+} | null = null;
+
+function restoreTargetLabel() {
+  if (!labelledTarget) {
+    return;
+  }
+  const { element, role, label } = labelledTarget;
+  if (role === null) {
+    element.removeAttribute("role");
+  } else {
+    element.setAttribute("role", role);
+  }
+  if (label === null) {
+    element.removeAttribute("aria-label");
+  } else {
+    element.setAttribute("aria-label", label);
+  }
+  labelledTarget = null;
+}
+
+function labelTarget(step: Step) {
+  restoreTargetLabel();
+  const target = step.getTarget();
+  const title = step.options.title;
+  if (!target || typeof title !== "string") {
+    return;
+  }
+  labelledTarget = {
+    element: target,
+    role: target.getAttribute("role"),
+    label: target.getAttribute("aria-label"),
+  };
+  target.setAttribute("role", "group");
+  target.setAttribute("aria-label", title);
+}
+
 function useMdiCloseIcon(step: Step) {
   const stepElement = step.getElement();
   const cancelIcon = stepElement?.querySelector(".shepherd-cancel-icon");
@@ -108,6 +169,7 @@ export function getIntroTour(store: TempoStore): Tour {
 
   function defaultStepShow(step: Step) {
     addProgressDots(step);
+    labelTarget(step);
     useMdiCloseIcon(step);
   }
 
@@ -213,11 +275,15 @@ export function getIntroTour(store: TempoStore): Tour {
     },
   });
 
+  // Both endings have to put the last step's target back: "complete" for
+  // Finish, "cancel" for the X, Esc, or clicking away.
   tour.on("cancel", () => {
+    restoreTargetLabel();
     store.showTourHint = true;
   });
 
   tour.on("complete", () => {
+    restoreTargetLabel();
     store.showTourHint = true;
   });
 

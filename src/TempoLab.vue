@@ -505,16 +505,37 @@ body {
 // & Erik Kroes (https://www.erikkroes.nl/blog/the-universal-focus-state/).
 // Vuetify hides a checkbox's real <input>, so the ring has to go on the
 // wrapper that is actually visible.
-// .v-overlay__content is excluded: VDialog focuses that element itself on open
-// (tabindex="-1" + contentEl.focus()), and a programmatic focus matches
-// :focus-visible, so the ring would be drawn around the overlay box rather than
-// the card inside it -- for `<v-dialog width="50%">` that's half the viewport.
-// Same exclusion as tempo-lite and planet-parade.
-:focus-visible:not(.v-overlay__content),
+// Two containers are excluded because their framework focuses them itself on
+// open, and a programmatic focus matches :focus-visible -- so the ring lands on
+// a box you can't actually operate:
+//   .v-overlay__content  VDialog does tabindex="-1" + contentEl.focus(); for
+//                        `<v-dialog width="50%">` that box is half the viewport.
+//   .shepherd-element    Shepherd focuses the step <dialog>, which carries the
+//                        step's aria-labelledby/aria-describedby. Keeping that
+//                        focus is what makes a screen reader read the step text
+//                        out on arrival, so only the ring is suppressed.
+// .v-overlay__content matches tempo-lite and planet-parade.
+// .v-btn is listed on its own because Vuetify's elevation-N utilities set
+// box-shadow with !important too, and at equal specificity they'd win the halo.
+:focus-visible:not(.v-overlay__content, .shepherd-element),
+.v-btn:focus-visible,
 .v-checkbox .v-selection-control__input:has(:focus-visible) {
   outline: 9px double white !important;
   box-shadow: 0 0 0 8px #0b5cb3 !important;
   border-radius: .125rem;
+}
+
+// Vuetify animates box-shadow on .v-btn:
+//   transition-property: box-shadow, transform, opacity, background;  .28s
+// The focus ring above IS a box-shadow, so on blur it doesn't disappear -- it
+// interpolates to the button's elevation shadow over 280ms, shrinking and
+// darkening on the way out (measured: 8px #0b5cb3 -> 7px -> 1.5px -> settled).
+// That's the halo left behind on the button you just tabbed away from. Plain
+// <button>s and links have transition-duration 0s, which is why it only shows
+// on v-btns. Taking box-shadow out of the list makes the ring vanish on blur.
+// Cost: elevation changes on hover/press are now instant instead of eased.
+.v-btn {
+  transition-property: transform, opacity, background;
 }
 
 // :focus-visible's browser heuristic carves out text inputs: unlike buttons,
@@ -686,11 +707,6 @@ body:not(.keyboard-focus-only) .v-slider-thumb:focus-visible {
 
   .progress-dot:hover {
     background-color: rgba(255, 255, 255, 0.5);
-  }
-
-  .progress-dot:focus-visible {
-    outline: 1px solid var(--smithsonian-yellow);
-    outline-offset: 2px;
   }
 
   .progress-dot.active {
