@@ -165,8 +165,45 @@ const calendar = ref<typeof VueDatePicker | null>(null);
 // input when it closes keeps the reader's place in the page.
 // Only one picker menu can be open at a time, so the open one is unambiguous;
 // vue-datepicker exposes no per-instance handle on the teleported node.
+//
+// This also fixes the calendar being unreachable during a tour. Teleporting puts
+// the menu outside both the tour popup and the tour's highlighted target, and
+// Shepherd's Tab handler wraps focus between those two ranges -- so with a tour
+// step up, every Tab stayed in the tour. Once focus is inside the menu Shepherd
+// has no listener there and Tab moves through the calendar normally.
+//
+// Two things make this awkward. `open` fires before the teleported menu is in
+// the DOM, so a plain nextTick focused nothing at all. And once the menu is
+// there, the picker re-renders the grid a moment later, which destroys whatever
+// cell was focused -- focus then falls out of the menu entirely, to <body>
+// normally and to the tour dialog while a tour is up. So: wait for the menu,
+// focus it, then check on the following frame and take focus back if that
+// re-render stole it. Bounded, so it cannot spin.
+//
+// The selected day is the target, which is also what the picker's own arrow
+// navigation focuses, so the two agree rather than fight.
 function focusCalendarMenu() {
-  nextTick(() => document.querySelector<HTMLElement>(".dp__menu")?.focus());
+  let attemptsLeft = 20;
+  const claimFocus = () => {
+    if (attemptsLeft-- <= 0) {
+      return;
+    }
+    const menu = document.querySelector<HTMLElement>(".dp__menu");
+    const cell = menu?.querySelector<HTMLElement>(".dp__cell_inner.dp__active_date")
+      ?.closest<HTMLElement>(".dp__calendar_item")
+      ?? menu?.querySelector<HTMLElement>(".dp__calendar_item");
+    if (!menu || !cell) {
+      requestAnimationFrame(claimFocus);
+      return;
+    }
+    cell.focus();
+    requestAnimationFrame(() => {
+      if (!menu.contains(document.activeElement)) {
+        claimFocus();
+      }
+    });
+  };
+  requestAnimationFrame(claimFocus);
 }
 
 // Closing has to wait for the picker to finish reacting to the new date.
