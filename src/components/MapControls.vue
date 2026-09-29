@@ -21,6 +21,7 @@
               :teleport="true"
               :arrow-navigation="true"
               @open="focusCalendarMenu"
+              @update-month-year="onCalendarMonthChange"
               @closed="returnFocusToInput"
               :input-atters="{clearable: false}"
               :time-config="{ enableTimePicker: false }"
@@ -172,6 +173,21 @@ const calendar = ref<typeof VueDatePicker | null>(null);
 // step up, every Tab stayed in the tour. Once focus is inside the menu Shepherd
 // has no listener there and Tab moves through the calendar normally.
 //
+// Days outside `allowed-dates` render greyed out, but vue-datepicker still puts
+// tabindex="0" on every cell, so Tab walks all 42 of them including days with no
+// data. -1 leaves Tab on the days you can actually pick.
+//
+// This does NOT change the arrow keys. The picker's arrow navigation focuses
+// cells from a grid of refs it registers while rendering and never consults
+// tabindex or the disabled state, so arrows still visit unavailable days;
+// changing that would mean reimplementing its navigation.
+function markUnavailableDates(menu: HTMLElement) {
+  menu.querySelectorAll<HTMLElement>(".dp__calendar_item").forEach((item) => {
+    const cell = item.querySelector(".dp__cell_inner");
+    item.tabIndex = cell?.classList.contains("dp__cell_disabled") ? -1 : 0;
+  });
+}
+
 // Two things make this awkward. `open` fires before the teleported menu is in
 // the DOM, so a plain nextTick focused nothing at all. And once the menu is
 // there, the picker re-renders the grid a moment later, which destroys whatever
@@ -196,6 +212,10 @@ function focusCalendarMenu() {
       requestAnimationFrame(claimFocus);
       return;
     }
+    // Reapplied alongside the focus claim rather than once on open: the same
+    // re-render that steals focus also rebuilds the cells with tabindex="0",
+    // which is what wiped this pass when it was hung off `open` on its own.
+    markUnavailableDates(menu);
     cell.focus();
     requestAnimationFrame(() => {
       if (!menu.contains(document.activeElement)) {
@@ -204,6 +224,18 @@ function focusCalendarMenu() {
     });
   };
   requestAnimationFrame(claimFocus);
+}
+
+// Paging to another month rebuilds the grid, so the tab order has to be redone.
+// Focus is left alone here -- the user is already inside the calendar and
+// moving it would fight whatever they are doing.
+function onCalendarMonthChange() {
+  requestAnimationFrame(() => {
+    const menu = document.querySelector<HTMLElement>(".dp__menu");
+    if (menu) {
+      markUnavailableDates(menu);
+    }
+  });
 }
 
 // Closing has to wait for the picker to finish reacting to the new date.
