@@ -504,7 +504,9 @@ body {
 // From Sara Soueidan (https://www.sarasoueidan.com/blog/focus-indicators/)
 // & Erik Kroes (https://www.erikkroes.nl/blog/the-universal-focus-state/).
 // Vuetify hides a checkbox's real <input>, so the ring has to go on the
-// wrapper that is actually visible.
+// wrapper that is actually visible. A v-select does the same thing: tabbing to
+// the timezone dropdown focuses an input sitting at opacity 0, so a ring drawn
+// on it is invisible however it is styled. .v-field is the box you can see.
 // Two containers are excluded because their framework focuses them itself on
 // open, and a programmatic focus matches :focus-visible -- so the ring lands on
 // a box you can't actually operate:
@@ -519,7 +521,8 @@ body {
 // box-shadow with !important too, and at equal specificity they'd win the halo.
 :focus-visible:not(.v-overlay__content, .shepherd-element),
 .v-btn:focus-visible,
-.v-checkbox .v-selection-control__input:has(:focus-visible) {
+.v-checkbox .v-selection-control__input:has(:focus-visible),
+.v-select .v-field:has(input:focus-visible) {
   outline: 9px double white !important;
   box-shadow: 0 0 0 8px #0b5cb3 !important;
   border-radius: .125rem;
@@ -547,6 +550,7 @@ body {
 body:not(.keyboard-focus-only) input:focus-visible,
 body:not(.keyboard-focus-only) textarea:focus-visible,
 body:not(.keyboard-focus-only) select:focus-visible,
+body:not(.keyboard-focus-only) .v-select .v-field:has(input:focus-visible),
 body:not(.keyboard-focus-only) .v-slider-thumb:focus-visible {
   outline: none !important;
   box-shadow: none !important;
