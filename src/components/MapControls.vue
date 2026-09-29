@@ -34,7 +34,22 @@
               :year-range="[uniqueDays[0]?.getFullYear(), uniqueDays[uniqueDays.length - 1]?.getFullYear()]"
               six-weeks
             >
+              <!--
+                This slot REPLACES vue-datepicker's own action buttons, and its
+                Cancel button lives in there -- so overriding it to add Latest
+                quietly left Escape as the only way out of the calendar, with
+                nothing on screen to say so. Cancel goes back first, which is
+                where the picker puts it by default.
+              -->
               <template #action-buttons>
+                <button
+                  class="dp__action_button dp__action-cancel"
+                  type="button"
+                  @click="() => calendar?.closeMenu()"
+                  @keyup.enter="() => calendar?.closeMenu()"
+                >
+                  Cancel
+                </button>
                 <button
                   class="dp__action_button dp__action-latest"
                   @click="() => singleDateSelected = uniqueDays[uniqueDays.length - 1]"
