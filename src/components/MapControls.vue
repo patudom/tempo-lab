@@ -14,11 +14,14 @@
                 if (value != null && value.getTime() != singleDateSelected.getTime()) {
                   radio = null;
                   singleDateSelected = value;
-                  calendar?.closeMenu();
+                  closeCalendarAfterSelection();
                 }
               }"
               :allowed-dates="uniqueDays"
               :teleport="true"
+              :arrow-navigation="true"
+              @open="focusCalendarMenu"
+              @closed="returnFocusToInput"
               :input-atters="{clearable: false}"
               :time-config="{ enableTimePicker: false }"
               :multi-dates="false"
@@ -124,7 +127,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { nextTick, ref, watch } from "vue";
 import { storeToRefs } from "pinia";
 import { VueDatePicker } from "@vuepic/vue-datepicker";
 import { supportsTouchscreen } from "@cosmicds/vue-toolkit";
@@ -153,6 +156,40 @@ const radio = ref<number | null>(null);
 const touchscreen = supportsTouchscreen();
 
 const calendar = ref<typeof VueDatePicker | null>(null);
+
+// The menu is teleported to <body> so the scrolling controls panel can't clip it,
+// but that also drops it at the end of the document's tab order: measured 8 Tab
+// presses from the input to reach the calendar, against 2 when it renders in
+// place. Moving focus into the menu as it opens fixes that and beats both -- the
+// keyboard is on the calendar straight away -- and putting focus back on the
+// input when it closes keeps the reader's place in the page.
+// Only one picker menu can be open at a time, so the open one is unambiguous;
+// vue-datepicker exposes no per-instance handle on the teleported node.
+function focusCalendarMenu() {
+  nextTick(() => document.querySelector<HTMLElement>(".dp__menu")?.focus());
+}
+
+// Closing has to wait for the picker to finish reacting to the new date.
+// Setting singleDateSelected changes :model-value, which makes the component
+// re-initialise; with arrow-navigation on, that remount re-focuses the active
+// cell via a double requestAnimationFrame and leaves the menu standing. A close
+// issued before that -- directly in the emit, or on nextTick, which is only a
+// microtask -- gets undone by it: on the keyboard path the date applied and the
+// map updated while the calendar stayed open, with the focus ring flicking
+// across the menu and settling on the day just chosen. Two frames puts the
+// close after the library's own frames. A mouse click never triggered this
+// because it does not go through the arrow-navigation remount.
+function closeCalendarAfterSelection() {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => calendar.value?.closeMenu());
+  });
+}
+
+function returnFocusToInput() {
+  nextTick(() => {
+    document.querySelector<HTMLElement>(".cds__date-picker input")?.focus();
+  });
+}
 
 
 watch(molecule, (newMol: MoleculeType) => {
