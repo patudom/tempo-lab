@@ -52,11 +52,10 @@
                 </button>
                 <button
                   class="dp__action_button dp__action-latest"
-                  @click="() => singleDateSelected = uniqueDays[uniqueDays.length - 1]"
-                  @keyup.enter="() => singleDateSelected = uniqueDays[uniqueDays.length - 1]"
+                  type="button"
+                  @click="selectLatestDate"
+                  @keyup.enter="selectLatestDate"
                   :disabled="singleDateSelected === uniqueDays[uniqueDays.length - 1]"
-                  elevation="0"
-                  size="sm"
                 >
                   Latest
               </button>
@@ -267,6 +266,27 @@ function closeCalendarAfterSelection() {
   requestAnimationFrame(() => {
     requestAnimationFrame(() => calendar.value?.closeMenu());
   });
+}
+
+// "Latest" is a shortcut for picking the last available day, so it ends the same
+// way choosing that day in the grid does. It sets singleDateSelected directly
+// rather than going through the picker, so it never reached the
+// internal-model-change handler where the close lives -- which left the calendar
+// open afterwards with focus nowhere, a dead end for anyone on a keyboard.
+// Closing before setting the date, rather than after: changing the date makes
+// the picker re-initialise, and that re-render puts the menu back up over a
+// close issued alongside it. Selecting a day in the grid gets away with a
+// deferred close because it runs inside the picker's own handling; this button
+// runs outside it, and from keyup the frames do not line up -- the date applied
+// and the calendar stayed open. Closing first has no race to lose.
+function selectLatestDate() {
+  const latest = uniqueDays.value[uniqueDays.value.length - 1];
+  if (latest == null) {
+    return;
+  }
+  calendar.value?.closeMenu();
+  radio.value = null;
+  singleDateSelected.value = latest;
 }
 
 function returnFocusToInput() {
