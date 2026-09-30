@@ -110,7 +110,14 @@
                 hide-details
               >
               </v-checkbox>
-              <v-list>
+              <!--
+                v-list would give this role="list", but the cards inside it are
+                buttons rather than list items (see below), and a list whose
+                children are not listitems announces as empty. role="group"
+                with a name keeps the cards bracketed as one thing without
+                claiming they are a list.
+              -->
+              <v-list role="group" aria-label="My regions">
                 <!--
                   Inside a v-list, Vuetify gives every clickable v-list-item
                   tabindex="-2" and expects the list to move focus around with
@@ -119,13 +126,21 @@
                   trash buttons of every card in turn, skipping all the other
                   card bodies. tabindex="0" makes each card its own tab stop;
                   Enter and Space already work, because VListItem turns them
-                  into a click itself.
+                  into a click itself. role="button" replaces the listitem role
+                  Vuetify would otherwise apply, which said nothing about the
+                  card being activatable.
+
+                  Keyed by region.id, not by index: the ids are uuids from
+                  createRegion, so deleting a region from the middle of the
+                  list no longer makes Vue reuse one card's DOM for the next
+                  region along.
                 -->
                 <v-list-item
                   v-for="(region, index) in regions"
                   :class="` my-2 rounded-lg region-list-item region-list-item-${index}`"
-                  :key="index"
+                  :key="region.id"
                   tabindex="0"
+                  role="button"
                   :title="region.name"
                   :style="{ 'background-color': region.color, color: contrastingColor(region.color) }"
                   @click.stop="() => focusRegion = region"
