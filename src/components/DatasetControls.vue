@@ -313,14 +313,17 @@
                   Uncheck All
                 </v-btn>
               </div>
-              <div class="d-flex flex-column align-items-center justify-space-between ga-2" :class="{'flex-column-reverse': allDatasetSelection }">
-                <v-btn 
-                v-if="datasets.length > 1"
-                :disabled="datasets.length === 0 || !datasets.every(d => d.samples || d.plotlyDatasets)"
-                :color="allDatasetSelection ? '#333': '#ffcc33'" size="small" :block="false" @click.stop="allDatasetSelection = !allDatasetSelection">
-                {{ allDatasetSelection ? 'Cancel Selection' : 'Select Datasets to Graph' }}
-              </v-btn>
-              <v-btn 
+              <!--
+                These two used to sit in the DOM in the other order, with
+                flex-column-reverse flipping them once a selection was under
+                way. That put "Graph Selected Datasets" on top on screen while
+                Tab still reached it second, so the DOM order is now the
+                displayed order and the reverse is gone. "Graph Selected
+                Datasets" only renders during a selection, so nothing changes
+                when it is the other button on its own.
+              -->
+              <div class="d-flex flex-column align-items-center justify-space-between ga-2">
+              <v-btn
               v-if="datasets.length > 1 && allDatasetSelection"
               :color="accentColor2"
               :disabled="selectedDatasets.length == 0"
@@ -329,6 +332,12 @@
               @click.stop="showMultiPlot = true">
               Graph Selected Datasets
             </v-btn>
+                <v-btn
+                v-if="datasets.length > 1"
+                :disabled="datasets.length === 0 || !datasets.every(d => d.samples || d.plotlyDatasets)"
+                :color="allDatasetSelection ? '#333': '#ffcc33'" size="small" :block="false" @click.stop="allDatasetSelection = !allDatasetSelection">
+                {{ allDatasetSelection ? 'Cancel Selection' : 'Select Datasets to Graph' }}
+              </v-btn>
           </div>
         </template>
       </v-expansion-panel>
