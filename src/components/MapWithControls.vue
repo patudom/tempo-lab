@@ -944,6 +944,44 @@ onMounted(() => {
 
   .map-contents {
     flex-basis: 50%;
+
+    // The map was sized to the full height of the card while also sitting below
+    // the 48px toolbar, so the card's contents ran exactly one toolbar past its
+    // own box -- measured: client 458, scroll 506. A v-card's overflow: hidden
+    // hid that, at the cost of leaving the card scrollable: tabbing to the map
+    // canvas made the browser scroll the card to bring it into view, which was
+    // what pushed the toolbar out of sight. Laying the card out as a column and
+    // giving the map whatever is left removes the overflow, so nothing needs to
+    // scroll and nothing gets cut off. `clip` then keeps it that way, since it
+    // clips like `hidden` but creates no scroll container.
+    display: flex;
+    flex-direction: column;
+    overflow: clip;
+
+    .tempo-map {
+      flex: 1 1 auto;
+      min-height: 0;
+      height: auto;
+    }
+  }
+
+  // MapLibre keeps tabindex="0" on its canvas so the arrow keys can pan the
+  // map. Its own focus ring is no use though: the canvas fills the card, so the
+  // ring lands on edges that are clipped and it reads as nothing happening.
+  // This draws the indicator just inside the map, where nothing can clip it, and
+  // reads as "the map itself is focused". :has() rather than :focus-within
+  // because the zoom and home buttons live inside .maplibregl-map too and
+  // should keep their own rings.
+  .maplibregl-map:has(canvas:focus-visible)::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+    box-shadow:
+      inset 0 0 0 4px white,
+      inset 0 0 0 12px #0b5cb3,
+      inset 0 0 0 16px white;
   }
 
   .location-and-sharing {
