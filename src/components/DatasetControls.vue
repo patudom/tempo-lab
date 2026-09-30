@@ -69,7 +69,7 @@
                 {{ selectionActive === 'rectangle' ? "Cancel" : "New Region" }}
               </v-btn>
               <popup-info-button
-                info-text="To select a region, click and drag a rectangle across the map. "
+                info-html="<p>To select a region, click and drag a rectangle across the map.</p><p class='mt-2'>From the keyboard: this button moves focus to the map, where the arrow keys pan and the <kbd>+</kbd> and <kbd>-</kbd> keys zoom. Press <kbd>Enter</kbd> to make a region of the area shown on the map, or <kbd>Esc</kbd> to stop selecting.</p>"
                 :width="popupCardWidth"
               >
               </popup-info-button>
