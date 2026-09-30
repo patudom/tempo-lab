@@ -55,6 +55,16 @@
           :text="hasDatasets(timeRange) ? 'Cannot delete if used in a dataset' : 'Delete'"
           location="left"
         >
+          <!--
+            The wrapper div is here because a disabled button fires no mouse
+            events, so the tooltip explaining why it is disabled would never
+            show on hover. But Vuetify binds the activator's focus handler as a
+            plain focus listener, which does not bubble, so focusing the button
+            inside the wrapper never opened the tooltip and a keyboard user got
+            nothing. Forwarding focus and blur to the handlers on the wrapper's
+            props fixes that, and passing aria-describedby down puts the
+            description on the thing a screen reader actually lands on.
+          -->
           <template #activator="{ props }">
             <div class="d-flex" v-bind="props">
               <v-btn
@@ -64,6 +74,9 @@
                 size="small"
                 density="compact"
                 :disabled="hasDatasets(timeRange)"
+                :aria-describedby="props['aria-describedby']"
+                @focus="props.onFocus?.($event)"
+                @blur="props.onBlur?.($event)"
                 @click.stop="() => emit('delete-time-range', timeRange)"
               ></v-btn>
             </div>
