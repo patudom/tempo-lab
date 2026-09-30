@@ -68,6 +68,7 @@
             ref="middle-handle"
             aria-label="Resize map"
             role="separator"
+            tabindex="0"
           ></div>
         </template>
       </v-tooltip>
@@ -888,6 +889,12 @@ function updateSizes(panelDefault: boolean = false, datasetsDefault: boolean = f
   setBasis(layers, layersWidth);
 }
 
+// Shared by the drag and keyboard paths so they cannot drift apart.
+const MIN_MAP_HEIGHT_PX = 250;
+// How far one arrow press moves the handle: enough to make progress without
+// holding the key, small enough to land on a height you wanted.
+const KEYBOARD_RESIZE_STEP_PX = 24;
+
 const handle = useTemplateRef<HTMLElement>("middle-handle");
 
 onMounted(() => {
@@ -900,8 +907,7 @@ onMounted(() => {
 
     const onLeftMove = (event: PointerEvent) => {
       const dx = event.clientY - startMousePos;
-      const minSize = 250; // Minimum width for the left panel
-      const newSize = Math.max(minSize, startPanelSize + dx);
+      const newSize = Math.max(MIN_MAP_HEIGHT_PX, startPanelSize + dx);
       setBasis(panel, newSize);
     };
 
@@ -914,6 +920,30 @@ onMounted(() => {
       handle: handleValue,
       onMove: onLeftMove,
       initialEventHandler: initialLeftHandler,
+    });
+
+    // This handle is role="separator" with tabindex="0", i.e. a splitter, so it
+    // needs the arrow keys: dragging is otherwise the only way to use it. Down
+    // grows the map, matching the drag, and Home restores the starting height.
+    // preventDefault stops the page scrolling instead.
+    handleValue.addEventListener("keydown", (event: KeyboardEvent) => {
+      let size: number | null = null;
+      if (event.key === "ArrowDown") {
+        size = getBasis(panel) + KEYBOARD_RESIZE_STEP_PX;
+      } else if (event.key === "ArrowUp") {
+        size = getBasis(panel) - KEYBOARD_RESIZE_STEP_PX;
+      } else if (event.key === "Home") {
+        // Clearing the inline basis hands the height back to the stylesheet's
+        // flex-basis: 50%, rather than guessing a pixel equivalent for it.
+        event.preventDefault();
+        panel.style.flexBasis = "";
+        return;
+      }
+      if (size === null) {
+        return;
+      }
+      event.preventDefault();
+      setBasis(panel, Math.max(MIN_MAP_HEIGHT_PX, size));
     });
 
   }

@@ -96,6 +96,7 @@
             ref="left-handle"
             aria-label="Resize left/middle"
             role="separator"
+            tabindex="0"
           ></div>
         </template>
       </v-tooltip>
@@ -114,6 +115,7 @@
             ref="right-handle"
             aria-label="Resize middle/right"
             role="separator"
+            tabindex="0"
           ></div>
         </template>
       </v-tooltip>
@@ -235,6 +237,9 @@ const HANDLE_SIZE_PX = 4;
 const DEFAULT_PANEL_WIDTH_PX = 300;
 const MIN_PANEL_WIDTH_PX = 250;
 const PLACEHOLDER_WIDTH_PX = 40;
+// How far one arrow press moves a resize handle. Big enough to make progress
+// without holding the key down, small enough to land on a size you wanted.
+const KEYBOARD_RESIZE_STEP_PX = 24;
 const cssVars = computed(() => {
   return {
     "--accent-color": accentColor.value,
@@ -375,6 +380,27 @@ onMounted(() => {
       initialEventHandler: initialLeftHandler,
     });
 
+    // The handles are role="separator" with tabindex="0", i.e. splitters, so
+    // the arrow keys have to resize: dragging is the only way to work them
+    // otherwise. Left/Right match the drag direction, and Home snaps back to
+    // the default width. preventDefault stops the page scrolling instead.
+    left.addEventListener("keydown", (event: KeyboardEvent) => {
+      const minLeft = layerControlsOpen.value ? DEFAULT_PANEL_WIDTH_PX : PLACEHOLDER_WIDTH_PX;
+      let size: number | null = null;
+      if (event.key === "ArrowRight") {
+        size = getBasis(leftPanel) + KEYBOARD_RESIZE_STEP_PX;
+      } else if (event.key === "ArrowLeft") {
+        size = getBasis(leftPanel) - KEYBOARD_RESIZE_STEP_PX;
+      } else if (event.key === "Home") {
+        size = DEFAULT_PANEL_WIDTH_PX;
+      }
+      if (size === null) {
+        return;
+      }
+      event.preventDefault();
+      setBasis(leftPanel, Math.max(minLeft, size));
+    });
+
   }
 
   const right = rightHandle.value;
@@ -399,6 +425,25 @@ onMounted(() => {
       handle: right,
       onMove: onRightMove,
       initialEventHandler: initialRightHandler,
+    });
+
+    // Mirrored: this panel grows leftwards, so ArrowLeft widens it, matching
+    // what dragging the same handle does.
+    right.addEventListener("keydown", (event: KeyboardEvent) => {
+      const minRight = datasetControlsOpen.value ? DEFAULT_PANEL_WIDTH_PX : PLACEHOLDER_WIDTH_PX;
+      let size: number | null = null;
+      if (event.key === "ArrowLeft") {
+        size = getBasis(rightPanel) + KEYBOARD_RESIZE_STEP_PX;
+      } else if (event.key === "ArrowRight") {
+        size = getBasis(rightPanel) - KEYBOARD_RESIZE_STEP_PX;
+      } else if (event.key === "Home") {
+        size = DEFAULT_PANEL_WIDTH_PX;
+      }
+      if (size === null) {
+        return;
+      }
+      event.preventDefault();
+      setBasis(rightPanel, Math.max(minRight, size));
     });
   }
 
