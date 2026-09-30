@@ -111,10 +111,21 @@
               >
               </v-checkbox>
               <v-list>
+                <!--
+                  Inside a v-list, Vuetify gives every clickable v-list-item
+                  tabindex="-2" and expects the list to move focus around with
+                  the arrow keys. That left only the first card reachable: Tab
+                  landed on card 1's body, then went straight to the pencil and
+                  trash buttons of every card in turn, skipping all the other
+                  card bodies. tabindex="0" makes each card its own tab stop;
+                  Enter and Space already work, because VListItem turns them
+                  into a click itself.
+                -->
                 <v-list-item
                   v-for="(region, index) in regions"
                   :class="` my-2 rounded-lg region-list-item region-list-item-${index}`"
                   :key="index"
+                  tabindex="0"
                   :title="region.name"
                   :style="{ 'background-color': region.color, color: contrastingColor(region.color) }"
                   @click.stop="() => focusRegion = region"
