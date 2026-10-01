@@ -520,7 +520,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, shallowRef, watch } from "vue";
+import { computed, nextTick, ref, shallowRef, watch, type Ref } from "vue";
 import { storeToRefs } from "pinia";
 import { v4 } from "uuid";
 
@@ -558,7 +558,7 @@ const {
   uniqueDays,
   selectionActive,
   focusRegion,
-  newCardId,
+  focusCardId,
   showSamplingPreviewMarkers,
   regionOpacity,
   regionVisibility,
@@ -617,6 +617,7 @@ const showAggregationDialog = ref(false);
 function openAggregationDialog(selection: UserDataset) {
   aggregationDataset.value = selection;
   showAggregationDialog.value = true;
+  aggregationReturnCardId.value = selection.id;
 }
 function handleAggregationSaved(aggregatedSelection: UserDataset) {
   const n = datasets.value
@@ -637,8 +638,10 @@ function handleAggregationSaved(aggregatedSelection: UserDataset) {
     }
   }
   store.addDataset(aggregatedSelection, false); // no need to fetch anything
-  showAggregationDialog.value = false;
-  aggregationDataset.value = null;
+  // Saving deliberately leaves the dialog open, so the aggregation that was
+  // just made stays on screen and another can be made without reopening it.
+  // It is closed by its own title bar X or by Cancel. The other half of this is
+  // in DataFoldingAndBinning's saveFolding, which also used to close it.
 }
 
 import { RequestStats, FetchOptions } from "@/esri/services/TempoDataService";
@@ -651,7 +654,7 @@ function progressLogger(dataset: UserDataset): FetchOptions["onProgress"] {
 function handleDatasetCreated(dataset: UserDataset) {
   dataset.name = `Dataset ${datasets.value.length + 1}`; // give it a default name
   store.addDataset(dataset, true, progressLogger(dataset));
-  newCardId.value = dataset.id;
+  focusCardId.value = dataset.id;
   createDatasetActive.value = false;
 }
 
@@ -674,15 +677,45 @@ const regionsNewestFirst = computed(() => regions.value.slice().reverse());
 // The card is found by attribute rather than by ref because the three card
 // types live in three different components. If it is not there - the panel is
 // closed, say - focus is left alone rather than thrown somewhere arbitrary.
-watch(newCardId, (id: string | null) => {
+watch(focusCardId, (id: string | null) => {
   if (id === null) {
     return;
   }
-  newCardId.value = null;
+  focusCardId.value = null;
   nextTick(() => {
     document.querySelector<HTMLElement>(`[data-card-id="${id}"]`)?.focus();
   });
 });
+
+// These dialogs are opened from a button on a card, and that button goes away
+// with the card's row while the dialog is up, so closing the dialog left focus
+// at the very top of the page. Each one remembers which card opened it and
+// hands focus back through focusCardId above.
+//
+// This watches the dialog's own open flag rather than hooking its save and
+// cancel handlers, because that is the one thing every way out has in common -
+// saving, cancelling, Escape, and clicking the backdrop all end with the flag
+// false.
+//
+// The three rename dialogs are modal and so mutually exclusive, and share one
+// ref. The table and aggregation dialogs are not: both are persistent with no
+// scrim, which leaves the panel behind them usable, so a rename can be started
+// while one of them is up. They get their own refs so the two cannot overwrite
+// each other.
+const dialogReturnCardId = ref<string | null>(null);
+const tableReturnCardId = ref<string | null>(null);
+const aggregationReturnCardId = ref<string | null>(null);
+
+function returnFocusWhenClosed(isOpen: Ref<boolean>, returnTo: Ref<string | null>) {
+  watch(isOpen, (open: boolean, wasOpen: boolean) => {
+    if (wasOpen && !open) {
+      focusCardId.value = returnTo.value;
+      returnTo.value = null;
+    }
+  });
+}
+
+// (the calls are below, once all the flags have been declared)
 
 function retryDataset(dataset: UserDataset) {
   store.fetchDataForDataset(dataset, progressLogger(dataset));
@@ -693,10 +726,16 @@ import { contrastingColor } from "@/utils/color";
 import RegionEditor from "./RegionEditor.vue";
 const showDatasetEditor = ref(false);
 const datasetEditorNameOnly = ref(false);
+returnFocusWhenClosed(showEditRegionNameDialog, dialogReturnCardId);
+returnFocusWhenClosed(showEditTimeRangeNameDialog, dialogReturnCardId);
+returnFocusWhenClosed(showDatasetEditor, dialogReturnCardId);
+returnFocusWhenClosed(showAggregationDialog, aggregationReturnCardId);
+
 function handleEditDataset(dataset: UserDataset, nameOnly = false) {
   datasetEditorNameOnly.value = nameOnly;
   currentlyEditingDataset.value = dataset;
   showDatasetEditor.value = true;
+  dialogReturnCardId.value = dataset.id;
 }
 
 function removeDataset(dataset: UserDataset) {
@@ -730,7 +769,7 @@ function handleDateTimeRangeSelectionChange(
     config: config,
   };
   store.addTimeRange(tr);
-  newCardId.value = tr.id;
+  focusCardId.value = tr.id;
 
   createTimeRangeActive.value = false;
   // console.log(`Registered ${tr.name}: ${tr.description}`);
@@ -750,6 +789,7 @@ function editRegionName(region: UnifiedRegionType) {
   regionBeingEdited.value = region;
   // Open dialog for renaming
   showEditRegionNameDialog.value = true;
+  dialogReturnCardId.value = region.id;
 }
 
 function editTimeRangeName(timeRange: TimeRange) {
@@ -763,6 +803,7 @@ function editTimeRangeName(timeRange: TimeRange) {
   timeRangeBeingEdited.value = timeRange;
   // Open dialog for renaming
   showEditTimeRangeNameDialog.value = true;
+  dialogReturnCardId.value = timeRange.id;
 }
 
 function _graphTitle(dataset: UserDataset): string {
@@ -803,8 +844,13 @@ const showUserDatasetTable = ref(false);
 watch(tableSelection, (newVal) => {
   if (newVal) {
     showUserDatasetTable.value = true;
+    // Remember the card to go back to. It has to be captured here rather than
+    // read on close, because closing the table nulls tableSelection.
+    tableReturnCardId.value = newVal.id;
   }
 });
+
+returnFocusWhenClosed(showUserDatasetTable, tableReturnCardId);
 
 
 /** handle plot click should set the time and molecule and zoom into the region */
