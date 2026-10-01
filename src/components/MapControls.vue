@@ -142,13 +142,14 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, ref, watch } from "vue";
+import { ref, watch } from "vue";
 import { storeToRefs } from "pinia";
 import { VueDatePicker } from "@vuepic/vue-datepicker";
 import { supportsTouchscreen } from "@cosmicds/vue-toolkit";
 
 import { type MoleculeType } from "@/esri/utils";
 import { useTempoStore } from "@/stores/app";
+import { useDatePickerKeyboard } from "@/composables/useDatePickerKeyboard";
 // import { useEsriTimesteps } from "@/composables/useEsriTimesteps";
 
 // import TimeChips from "@/components/TimeChips.vue";
@@ -187,86 +188,16 @@ const calendar = ref<typeof VueDatePicker | null>(null);
 // step up, every Tab stayed in the tour. Once focus is inside the menu Shepherd
 // has no listener there and Tab moves through the calendar normally.
 //
-// Days outside `allowed-dates` render greyed out, but vue-datepicker still puts
-// tabindex="0" on every cell, so Tab walks all 42 of them including days with no
-// data. -1 leaves Tab on the days you can actually pick.
-//
-// This does NOT change the arrow keys. The picker's arrow navigation focuses
-// cells from a grid of refs it registers while rendering and never consults
-// tabindex or the disabled state, so arrows still visit unavailable days;
-// changing that would mean reimplementing its navigation.
-function markUnavailableDates(menu: HTMLElement) {
-  menu.querySelectorAll<HTMLElement>(".dp__calendar_item").forEach((item) => {
-    const cell = item.querySelector(".dp__cell_inner");
-    item.tabIndex = cell?.classList.contains("dp__cell_disabled") ? -1 : 0;
-  });
-}
-
-// Two things make this awkward. `open` fires before the teleported menu is in
-// the DOM, so a plain nextTick focused nothing at all. And once the menu is
-// there, the picker re-renders the grid a moment later, which destroys whatever
-// cell was focused -- focus then falls out of the menu entirely, to <body>
-// normally and to the tour dialog while a tour is up. So: wait for the menu,
-// focus it, then check on the following frame and take focus back if that
-// re-render stole it. Bounded, so it cannot spin.
-//
-// The selected day is the target, which is also what the picker's own arrow
-// navigation focuses, so the two agree rather than fight.
-function focusCalendarMenu() {
-  let attemptsLeft = 20;
-  const claimFocus = () => {
-    if (attemptsLeft-- <= 0) {
-      return;
-    }
-    const menu = document.querySelector<HTMLElement>(".dp__menu");
-    const cell = menu?.querySelector<HTMLElement>(".dp__cell_inner.dp__active_date")
-      ?.closest<HTMLElement>(".dp__calendar_item")
-      ?? menu?.querySelector<HTMLElement>(".dp__calendar_item");
-    if (!menu || !cell) {
-      requestAnimationFrame(claimFocus);
-      return;
-    }
-    // Reapplied alongside the focus claim rather than once on open: the same
-    // re-render that steals focus also rebuilds the cells with tabindex="0",
-    // which is what wiped this pass when it was hung off `open` on its own.
-    markUnavailableDates(menu);
-    cell.focus();
-    requestAnimationFrame(() => {
-      if (!menu.contains(document.activeElement)) {
-        claimFocus();
-      }
-    });
-  };
-  requestAnimationFrame(claimFocus);
-}
-
-// Paging to another month rebuilds the grid, so the tab order has to be redone.
-// Focus is left alone here -- the user is already inside the calendar and
-// moving it would fight whatever they are doing.
-function onCalendarMonthChange() {
-  requestAnimationFrame(() => {
-    const menu = document.querySelector<HTMLElement>(".dp__menu");
-    if (menu) {
-      markUnavailableDates(menu);
-    }
-  });
-}
-
-// Closing has to wait for the picker to finish reacting to the new date.
-// Setting singleDateSelected changes :model-value, which makes the component
-// re-initialise; with arrow-navigation on, that remount re-focuses the active
-// cell via a double requestAnimationFrame and leaves the menu standing. A close
-// issued before that -- directly in the emit, or on nextTick, which is only a
-// microtask -- gets undone by it: on the keyboard path the date applied and the
-// map updated while the calendar stayed open, with the focus ring flicking
-// across the menu and settling on the day just chosen. Two frames puts the
-// close after the library's own frames. A mouse click never triggered this
-// because it does not go through the arrow-navigation remount.
-function closeCalendarAfterSelection() {
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => calendar.value?.closeMenu());
-  });
-}
+// The calendar's keyboard handling - moving focus into the menu on open,
+// keeping days with no data out of the tab order, putting focus back on close,
+// and closing after a date is picked - is shared with the three pickers in the
+// date range creator. See useDatePickerKeyboard for why each piece is needed.
+const {
+  onOpen: focusCalendarMenu,
+  onMonthChange: onCalendarMonthChange,
+  onClosed: returnFocusToInput,
+  closeAfterSelection: closeCalendarAfterSelection,
+} = useDatePickerKeyboard(calendar);
 
 // "Latest" is a shortcut for picking the last available day, so it ends the same
 // way choosing that day in the grid does. It sets singleDateSelected directly
@@ -287,12 +218,6 @@ function selectLatestDate() {
   calendar.value?.closeMenu();
   radio.value = null;
   singleDateSelected.value = latest;
-}
-
-function returnFocusToInput() {
-  nextTick(() => {
-    document.querySelector<HTMLElement>(".cds__date-picker input")?.focus();
-  });
 }
 
 

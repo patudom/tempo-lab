@@ -13,6 +13,10 @@
         :input-atters="{ clearable }"
         :text-input="textInput"
         :teleport="true"
+        :arrow-navigation="true"
+        @open="startKeyboard.onOpen"
+        @update-month-year="startKeyboard.onMonthChange"
+        @closed="startKeyboard.onClosed"
         :dark="dark"
         :year-range="yearRange"
         :time-config="{ enableTimePicker: false }"
@@ -21,7 +25,21 @@
         prevent-min-max-navigation
         six-weeks
       >
+        <!--
+          This slot REPLACES the picker's own action buttons, Cancel included,
+          so overriding it to add Latest left Escape as the only way out with
+          nothing on screen saying so. Cancel goes first, where the picker puts
+          it by default.
+        -->
         <template #action-buttons>
+          <button
+            class="dp__action_button dp__action-cancel"
+            type="button"
+            @click="() => startDateCalendar?.closeMenu()"
+            @keyup.enter="() => startDateCalendar?.closeMenu()"
+          >
+            Cancel
+          </button>
           <button
             class="dp__action_button dp__action-latest"
             @click="() => allowedDates ? handleStartDateChange(allowedDates[allowedDates.length - 1]) : null"
@@ -47,6 +65,10 @@
         :formats="{input: format, preview: format}"
         :input-atters="{ clearable }"
         :teleport="true"
+        :arrow-navigation="true"
+        @open="endKeyboard.onOpen"
+        @update-month-year="endKeyboard.onMonthChange"
+        @closed="endKeyboard.onClosed"
         :dark="dark"
         :year-range="yearRange"
         :time-config="{ enableTimePicker: false }"
@@ -56,6 +78,14 @@
         six-weeks
       >
         <template #action-buttons>
+          <button
+            class="dp__action_button dp__action-cancel"
+            type="button"
+            @click="() => endDateCalendar?.closeMenu()"
+            @keyup.enter="() => endDateCalendar?.closeMenu()"
+          >
+            Cancel
+          </button>
           <button
             class="dp__action_button dp__action-latest"
             @click="() => allowedDates ? handleEndDateChange(allowedDates[allowedDates.length - 1]) : null"
@@ -75,6 +105,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue';
+import { useDatePickerKeyboard } from '@/composables/useDatePickerKeyboard';
 
 
 const props = defineProps<{
@@ -107,6 +138,11 @@ const emit = defineEmits<{
 
 const startDateCalendar = ref();
 const endDateCalendar = ref();
+
+// One instance per picker: each has to hand focus back to its own input, and
+// each closes its own menu after a date is chosen.
+const startKeyboard = useDatePickerKeyboard(startDateCalendar);
+const endKeyboard = useDatePickerKeyboard(endDateCalendar);
 const startDateObj = ref<Date | null>(props.startDate ?? null);
 const endDateObj = ref<Date | null>(props.endDate ?? null);
 const errMessage = ref<string>('');
@@ -121,7 +157,7 @@ function handleStartDateChange(value: Date | null) {
     }
     startDateObj.value = value;
     emit('update:startDate', value);
-    startDateCalendar.value?.closeMenu();
+    startKeyboard.closeAfterSelection();
   }
 }
 
@@ -135,7 +171,7 @@ function handleEndDateChange(value: Date | null) {
     
     endDateObj.value = value;
     emit('update:endDate', value);
-    endDateCalendar.value?.closeMenu();
+    endKeyboard.closeAfterSelection();
   }
 }
 

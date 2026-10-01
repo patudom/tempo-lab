@@ -549,7 +549,9 @@ body {
 // From Sara Soueidan (https://www.sarasoueidan.com/blog/focus-indicators/)
 // & Erik Kroes (https://www.erikkroes.nl/blog/the-universal-focus-state/).
 // Vuetify hides a checkbox's real <input>, so the ring has to go on the
-// wrapper that is actually visible. A v-select does the same thing: tabbing to
+// wrapper that is actually visible. A radio does the same (measured: the
+// focused <input type="radio"> is 36x36 at opacity 0, absolutely positioned
+// over a visible wrapper of the same size), and so does a v-select: tabbing to
 // the timezone dropdown focuses an input sitting at opacity 0, so a ring drawn
 // on it is invisible however it is styled. .v-field is the box you can see.
 // Two containers are excluded because their framework focuses them itself on
@@ -567,6 +569,7 @@ body {
 :focus-visible:not(.v-overlay__content, .shepherd-element),
 .v-btn:focus-visible,
 .v-checkbox .v-selection-control__input:has(:focus-visible),
+.v-radio .v-selection-control__input:has(:focus-visible),
 .v-select .v-field:has(input:focus-visible) {
   outline: 9px double white !important;
   box-shadow: 0 0 0 8px #0b5cb3 !important;
