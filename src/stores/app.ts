@@ -41,6 +41,12 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
 
   const selectionActive = ref<SelectionType>(null);
   const focusRegion = ref<UnifiedRegion | null>(null);
+  // The id of a region, time range or dataset the user has just created, so the
+  // card for it can take focus. Regions are created over in MapWithControls but
+  // their cards live under DatasetControls, so the id has to travel through the
+  // store; this works the same way focusRegion does, and whoever acts on it
+  // sets it back to null.
+  const newCardId = ref<string | null>(null);
   const regionOpacity = ref(0.7);
   const regionVisibility = ref(true);
 
@@ -432,6 +438,7 @@ const createTempoStore = (backend: MappingBackends) => defineStore("tempods", ()
 
     selectionActive,
     focusRegion,
+    newCardId,
     regionOpacity,
     regionVisibility,
 

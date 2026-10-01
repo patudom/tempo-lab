@@ -136,9 +136,10 @@
                   region along.
                 -->
                 <v-list-item
-                  v-for="(region, index) in regions"
+                  v-for="(region, index) in regionsNewestFirst"
                   :class="` my-2 rounded-lg region-list-item region-list-item-${index}`"
                   :key="region.id"
+                  :data-card-id="region.id"
                   tabindex="0"
                   role="button"
                   :title="region.name"
@@ -519,7 +520,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, shallowRef, watch } from "vue";
+import { computed, nextTick, ref, shallowRef, watch } from "vue";
 import { storeToRefs } from "pinia";
 import { v4 } from "uuid";
 
@@ -557,6 +558,7 @@ const {
   uniqueDays,
   selectionActive,
   focusRegion,
+  newCardId,
   showSamplingPreviewMarkers,
   regionOpacity,
   regionVisibility,
@@ -649,8 +651,38 @@ function progressLogger(dataset: UserDataset): FetchOptions["onProgress"] {
 function handleDatasetCreated(dataset: UserDataset) {
   dataset.name = `Dataset ${datasets.value.length + 1}`; // give it a default name
   store.addDataset(dataset, true, progressLogger(dataset));
+  newCardId.value = dataset.id;
   createDatasetActive.value = false;
 }
+
+// Newest first, so a card you have just made sits next to the button that made
+// it instead of at the far end of the list. With the cards appended, the newest
+// region and the "New Region" button were 43 tab stops apart - three per card -
+// and the panel scrolled the button out of sight when the new card took focus.
+//
+// This reverses a copy. The store's own order is what drives the map layers, so
+// it is left alone.
+const regionsNewestFirst = computed(() => regions.value.slice().reverse());
+
+// Creating a region, time range or dataset used to leave focus nowhere useful:
+// on the map for a region, and on a form that was then collapsed for the other
+// two, which drops focus to <body>. Moving it to the card that was just made
+// says what happened - a screen reader reads out the new card's name - and puts
+// the rename button one Tab away, which matters because the app asks people to
+// rename their cards.
+//
+// The card is found by attribute rather than by ref because the three card
+// types live in three different components. If it is not there - the panel is
+// closed, say - focus is left alone rather than thrown somewhere arbitrary.
+watch(newCardId, (id: string | null) => {
+  if (id === null) {
+    return;
+  }
+  newCardId.value = null;
+  nextTick(() => {
+    document.querySelector<HTMLElement>(`[data-card-id="${id}"]`)?.focus();
+  });
+});
 
 function retryDataset(dataset: UserDataset) {
   store.fetchDataForDataset(dataset, progressLogger(dataset));
@@ -698,6 +730,7 @@ function handleDateTimeRangeSelectionChange(
     config: config,
   };
   store.addTimeRange(tr);
+  newCardId.value = tr.id;
 
   createTimeRangeActive.value = false;
   // console.log(`Registered ${tr.name}: ${tr.description}`);

@@ -150,6 +150,7 @@ const {
   regionsCreatedCount,
   maxSampleCount,
   focusRegion,
+  newCardId,
   initState,
   homeState,
   showFieldOfRegard,
@@ -740,6 +741,10 @@ watch(rectangleInfo, (info: RectangleSelectionInfo | null) => {
   const newRegion = createRegion(info, "rectangle");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   store.addRegion(newRegion as any);
+  // Hand the new region's card the focus. Drawing a region left focus on the
+  // map, a long way in the tab order from the regions panel, with nothing to
+  // say a region had been made; DatasetControls picks this up.
+  newCardId.value = newRegion.id;
   rectangleSelectionActive.value = false;
   
   // do not permit editing a region on a selection
@@ -754,9 +759,10 @@ watch(pointInfo, (info: PointSelectionInfo | null) => {
     pointSelectionActive.value = false;
     return;
   }
-  const newRegion = createRegion(info, "point"); 
+  const newRegion = createRegion(info, "point");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   store.addRegion(newRegion as any);
+  newCardId.value = newRegion.id;
   pointSelectionActive.value = false;
 });
 
