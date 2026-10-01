@@ -7,13 +7,15 @@ module.exports = {
   },
   plugins: [
     '@typescript-eslint',
+    "vuejs-accessibility",
   ],
   extends: [
     'eslint:recommended',
     'plugin:@typescript-eslint/eslint-recommended',
     'plugin:@typescript-eslint/recommended',
     'plugin:vue/essential',
-    '@vue/typescript/recommended'
+    '@vue/typescript/recommended',
+    "plugin:vuejs-accessibility/recommended",
   ],
   rules: {
     "indent": ["error", 2],
