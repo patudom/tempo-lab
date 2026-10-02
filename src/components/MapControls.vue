@@ -23,7 +23,7 @@
               @open="focusCalendarMenu"
               @update-month-year="onCalendarMonthChange"
               @closed="returnFocusToInput"
-              :input-atters="{clearable: false}"
+              :input-attrs="{clearable: false}"
               :time-config="{ enableTimePicker: false }"
               :multi-dates="false"
               :transitions="false"
