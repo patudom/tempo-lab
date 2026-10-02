@@ -50,14 +50,12 @@
                   class="dp__action_button dp__action-cancel"
                   type="button"
                   @click="() => singleDateCalendar?.closeMenu()"
-                  @keyup.enter="() => singleDateCalendar?.closeMenu()"
                 >
                   Cancel
                 </button>
                 <button
                   class="dp__action_button dp__action-latest"
                   @click="() => allowedDates ? handleSingleDateChange(allowedDates[allowedDates.length - 1]) : null"
-                  @keyup.enter="() => allowedDates ? handleSingleDateChange(allowedDates[allowedDates.length - 1]) : null"
                   :disabled="!allowedDates"
                   elevation="0"
                   size="sm"
@@ -100,14 +98,12 @@
                   class="dp__action_button dp__action-cancel"
                   type="button"
                   @click="() => singleDateCalendar?.closeMenu()"
-                  @keyup.enter="() => singleDateCalendar?.closeMenu()"
                 >
                   Cancel
                 </button>
                 <button
                   class="dp__action_button dp__action-latest"
                   @click="() => allowedDates ? handleSingleDateChange(allowedDates[allowedDates.length - 1]) : null"
-                  @keyup.enter="() => allowedDates ? handleSingleDateChange(allowedDates[allowedDates.length - 1]) : null"
                   :disabled="!allowedDates"
                   elevation="0"
                   size="sm"

@@ -55,8 +55,7 @@
         v-if="(new Date('2025-05-7 00:00:00') > new Date())"
         class='whats-new-button pulse' 
         aria-label="What's new" 
-        @click="showChanges = true" 
-        @keyup.enter="showChanges = true" 
+        @click="showChanges = true"
         variant="outlined" 
         rounded="lg" 
         :color="accentColor2" 
@@ -128,7 +127,6 @@
               tabindex="0"
               aria-label="See recent changes"
               @click="showChanges = true"
-              @keyup.enter="showChanges = true"
               >
               What's New
             </v-list-item>
@@ -137,7 +135,6 @@
               tabindex="0" 
               aria-label="Show introduction"
               @click="() => emit('intro-slide', 1)"
-              @keyup.enter="() => emit('intro-slide', 1)"
               disabled
               >
                 Introduction
@@ -147,7 +144,6 @@
               tabindex="0"
               aria-label="Show user guide"
               @click="() => emit('intro-slide', 4)"
-              @keyup.enter="() => emit('intro-slide', 4)"
               disabled
               >
               User Guide
@@ -157,7 +153,6 @@
               tabindex="0"
               aria-label="Show dialog telling about the data"
               @click="showAboutData = true"
-              @keyup.enter="showAboutData = true"
               >
               About the Data
             </v-list-item>
@@ -173,7 +168,6 @@
               tabindex="0" 
               aria-label="Show credits"
               @click="showCredits = true"
-              @keyup.enter="showCredits = true"
               disabled
               >
                 Credits

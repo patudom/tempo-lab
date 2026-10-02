@@ -46,7 +46,6 @@
                   class="dp__action_button dp__action-cancel"
                   type="button"
                   @click="() => calendar?.closeMenu()"
-                  @keyup.enter="() => calendar?.closeMenu()"
                 >
                   Cancel
                 </button>
@@ -54,7 +53,6 @@
                   class="dp__action_button dp__action-latest"
                   type="button"
                   @click="selectLatestDate"
-                  @keyup.enter="selectLatestDate"
                   :disabled="singleDateSelected === uniqueDays[uniqueDays.length - 1]"
                 >
                   Latest
@@ -67,7 +65,17 @@
             <!-- time chips to select time specifically for esri times -->
           </v-radio-group>
         </div>        
-        <!-- add buttons to increment and decrement the singledateselected -->
+        <!--
+          add buttons to increment and decrement the singledateselected
+
+          No @keyup.enter on these: a v-btn renders a real <button>, and the
+          browser already fires a click when Enter is pressed on one. Handling
+          Enter as well ran the step twice, so each press moved two days
+          (measured: Enter -2, Space -1, mouse -1). Space is fine either way,
+          because its native click arrives on keyup and never matched the
+          .enter modifier. Only things that are not real buttons - a v-icon
+          with role="button", say - need Enter wired up by hand.
+        -->
         <div class="d-flex flex-row align-center my-2">
           <v-tooltip :disabled="touchscreen" text="Previous Date">
             <template v-slot:activator="{ props }">
@@ -75,7 +83,6 @@
                 v-bind="props"
                 class="rounded-icon-wrapper"
                 @click="store.moveBackwardOneDay"
-                @keyup.enter="store.moveBackwardOneDay"
                 :disabled="singleDateSelected === uniqueDays[0]"
                 color="#009ade"
                 variant="outlined"
@@ -93,7 +100,6 @@
                 v-bind="props"
                 style="padding-inline: 4px;"
                 @click="() => singleDateSelected = uniqueDays[uniqueDays.length - 1]"
-                @keyup.enter="() => singleDateSelected = uniqueDays[uniqueDays.length - 1]"
                 :disabled="singleDateSelected === uniqueDays[uniqueDays.length - 1]"
                 color="#009ade"
                 variant="outlined"
@@ -111,7 +117,6 @@
                 v-bind="props"
                 class="rounded-icon-wrapper"
                 @click="store.moveForwardOneDay"
-                @keyup.enter="store.moveForwardOneDay"
                 :disabled="singleDateSelected === uniqueDays[uniqueDays.length - 1]"
                 color="#009ade"
                 variant="outlined"

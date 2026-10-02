@@ -16,7 +16,6 @@
       density="compact"
       :disabled="json === undefined || url === ''"
       @click="downloadCsv"
-      @keyup.enter="downloadCsv"
     >
       <v-icon v-if="url!==''" icon="mdi-table-arrow-down" color="#ffcc33" />
       <v-progress-circular
@@ -35,7 +34,6 @@
         density="compact"
         :disabled="!isSupported || json === undefined || clipboardCSV === ''"
         @click="() => copy(clipboardCSV)"
-        @keyup.enter="() => copy(clipboardCSV)"
       >
         <v-icon icon="mdi-clipboard-check-multiple" color="#ffcc33" />
         <span class="save-csv__label">Copy to clipboard</span>

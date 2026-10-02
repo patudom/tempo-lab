@@ -36,14 +36,12 @@
             class="dp__action_button dp__action-cancel"
             type="button"
             @click="() => startDateCalendar?.closeMenu()"
-            @keyup.enter="() => startDateCalendar?.closeMenu()"
           >
             Cancel
           </button>
           <button
             class="dp__action_button dp__action-latest"
             @click="() => allowedDates ? handleStartDateChange(allowedDates[allowedDates.length - 1]) : null"
-            @keyup.enter="() => allowedDates ? handleStartDateChange(allowedDates[allowedDates.length - 1]) : null"
             :disabled="!allowedDates || !!(endDateObj && (allowedDates[allowedDates.length - 1] > endDateObj))"
             elevation="0"
             size="sm"
@@ -82,14 +80,12 @@
             class="dp__action_button dp__action-cancel"
             type="button"
             @click="() => endDateCalendar?.closeMenu()"
-            @keyup.enter="() => endDateCalendar?.closeMenu()"
           >
             Cancel
           </button>
           <button
             class="dp__action_button dp__action-latest"
             @click="() => allowedDates ? handleEndDateChange(allowedDates[allowedDates.length - 1]) : null"
-            @keyup.enter="() => allowedDates ? handleEndDateChange(allowedDates[allowedDates.length - 1]) : null"
             :disabled="!allowedDates"
             elevation="0"
             size="sm"
