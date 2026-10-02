@@ -20,7 +20,7 @@
           :aria-label="`Reorder ${displayNameTransform(element)}`"
           @keydown="onGripKeydown($event, element)"
         >
-          <font-awesome-icon icon="fa-grip" />
+          <font-awesome-icon icon="fa-grip-vertical" />
         </div>
         <layer-control-item
           :map="mapRef"
