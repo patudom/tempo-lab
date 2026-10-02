@@ -36,18 +36,36 @@ export function addProgressDots(step: Step) {
   }
   const dotsContainer = document.createElement("div");
   dotsContainer.classList.add("progress-dots");
+  // The dots are a toolbar, which is the ARIA pattern for a row of buttons that
+  // belong together: the group is a single tab stop and the arrow keys move
+  // between the buttons inside it (roving tabindex, below). With one tab stop
+  // each, tabbing out of the popup to the step's own target took 12 presses
+  // (close, back, 8 dots, next, target) and would grow with every step added;
+  // as a toolbar it is 5, whatever the tour's length.
+  dotsContainer.setAttribute("role", "toolbar");
+  dotsContainer.setAttribute("aria-label", "Tour steps");
   const currentIndex = tour.steps.indexOf(step);
   tour.steps.forEach((_, index) => {
     const dot = document.createElement("div");
     dot.classList.add("progress-dot");
     if (index === currentIndex) {
       dot.classList.add("active");
+      dot.setAttribute("aria-current", "step");
     }
     dot.setAttribute("role", "button");
-    dot.setAttribute("tabindex", "0");
+    // Roving tabindex: the dot for the step you are on is the one tab stop, and
+    // the handler below moves that 0 along as focus moves. The dots are rebuilt
+    // on every step, so the current step is always the right place to start.
+    dot.setAttribute("tabindex", index === currentIndex ? "0" : "-1");
     dot.setAttribute("aria-label", `Go to step ${index + 1}`);
     const goToStep = () => tour.show(index);
     dot.addEventListener("click", goToStep);
+    dot.addEventListener("keydown", (event) => {
+      // Space would scroll the page behind the tour before the keyup fires.
+      if (event.key === " ") {
+        event.preventDefault();
+      }
+    });
     dot.addEventListener("keyup", (event) => {
       if (event.key === "Enter" || event.key === " ") {
         goToStep();
@@ -56,12 +74,54 @@ export function addProgressDots(step: Step) {
     dotsContainer.appendChild(dot);
   });
 
+  // Arrows move focus only; Enter or Space is what jumps to a step. Moving and
+  // activating are kept apart on purpose - arrowing along the dots to look at
+  // where you are should not tear the tour out from under you.
+  //
+  // stopPropagation matters here: Shepherd's keyboardNavigation option (on by
+  // default) puts its own keydown handler on the step dialog and treats Left
+  // and Right as previous/next step. This container sits inside that dialog,
+  // so without stopping the event, arrowing along the dots also walked the
+  // tour and threw focus onto the newly built dialog. Arrows keep their
+  // step-changing meaning everywhere else in the popup - inside the toolbar
+  // they move within it, which is what the toolbar pattern asks for.
+  dotsContainer.addEventListener("keydown", (event) => {
+    const dots = Array.from(dotsContainer.querySelectorAll<HTMLElement>(".progress-dot"));
+    const from = dots.findIndex((dot) => dot === document.activeElement);
+    if (from < 0) {
+      return;
+    }
+    let to: number;
+    switch (event.key) {
+    case "ArrowLeft":
+      to = (from - 1 + dots.length) % dots.length;
+      break;
+    case "ArrowRight":
+      to = (from + 1) % dots.length;
+      break;
+    case "Home":
+      to = 0;
+      break;
+    case "End":
+      to = dots.length - 1;
+      break;
+    default:
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    dots[from].setAttribute("tabindex", "-1");
+    dots[to].setAttribute("tabindex", "0");
+    dots[to].focus();
+  });
+
   // Shepherd snapshots the step's focusable elements while it builds the element
   // (_setupElements runs before the "show" event that calls this function), so the
   // dots are never in that list. Its Tab handler preventDefaults once focus reaches
   // the last element it knows about -- the Next button -- and wraps back to the
   // start, so anything appended after the buttons can't be tabbed to at all.
-  // Inserting before Next puts the dots inside the range Shepherd tabs through.
+  // Inserting before Next puts the dots inside the range Shepherd tabs through,
+  // which is still what gets the toolbar's one tab stop reached at all.
   // The footer is a grid and .progress-dots is positioned by grid-column, so this
   // changes tab order without moving them on screen. insertBefore(node, null) is
   // just appendChild, which covers the first step (no Back button) fine.
@@ -119,6 +179,13 @@ function labelTarget(step: Step) {
   const target = step.getTarget();
   const title = step.options.title;
   if (!target || typeof title !== "string") {
+    return;
+  }
+  // Only name targets that have nothing to say for themselves. A target that
+  // already carries a role is a real control - the Timezone step attaches to a
+  // combobox - and overwriting that with role="group" would take its semantics
+  // away for the length of the step.
+  if (target.getAttribute("role") !== null) {
     return;
   }
   labelledTarget = {
