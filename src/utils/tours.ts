@@ -210,10 +210,24 @@ export function getIntroTour(store: TempoStore): Tour {
     text: "<p>Use the calendar picker to choose a specific date or the double blue arrows to advance to the previous or next available date.</p>",
   });
 
-  const timeZone = document.querySelector(".timezone-dropdown") as HTMLElement;
+  // Attached to the dropdown's own <input>, not the .timezone-dropdown wrapper.
+  // Shepherd puts tabindex="0" on whatever it attaches to (see the NOTE above -
+  // that stop is its focus trap's backward boundary and has to stay). On the
+  // wrapper, which is a plain layout div, that was an extra tab stop in front
+  // of the real control: the first Tab landed on the wrapper, where the arrow
+  // keys do nothing, and it took a second Tab to reach the combobox. Outside
+  // the tour the wrapper has no tabindex and one Tab is enough, which is why
+  // this only happened during the tour.
+  //
+  // The input is already a tab stop, so attaching here adds none, and it is
+  // still the element the trap bounces Shift+Tab off.
+  const timeZone = document.querySelector(".timezone-dropdown input") as HTMLElement;
   tour.addStep({
     title: "Timezone",
-    attachTo: { element: timeZone, on: "top" },
+    attachTo: { element: timeZone, on: "left" },
+    // The cutout is now the input rather than the whole field, so pad it back
+    // out to cover the field's border and label.
+    modalOverlayOpeningPadding: 8,
     text: "<p>Use the dropdown to change the timezone displayed on the time controls. It helps to match the timezone to the region being viewed.</p>",
   });
 
