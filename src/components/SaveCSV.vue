@@ -1,10 +1,5 @@
 <template>
   <div class="save-csv">
-    <a ref="csvDownloadLink"
-      style="display: none;"
-      href="#"
-      :download="datasetName ?? 'download.csv'"
-      ></a>
     <div v-if="isLoading" class="utdc--loading">
       <v-progress-circular indeterminate color="primary" />
       <span class="ml-4">Readying files...</span>
@@ -44,7 +39,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, useTemplateRef, onUnmounted, ref, nextTick, watch} from 'vue';
+import { onMounted, onUnmounted, ref, nextTick, watch} from 'vue';
 import { csv2FixedWidth, json2Csv, type SampleCSVJsonOutput } from '@/utils/data_converters';
 
 const isLoading = ref(true);
@@ -113,7 +108,6 @@ const getclipboardCSV = async () => {
   );
 };
 
-const csvDownloadLink = useTemplateRef<HTMLAnchorElement>('csvDownloadLink');
 const url = ref<string>('');
   
 function setupFileAndUrls() {
@@ -126,13 +120,12 @@ function setupFileAndUrls() {
   getfileCSV().then((csv) => {
     fileCSV.value = csv;
   }).then(() => {
-    if (csvDownloadLink.value && props.json !== undefined) {
+    if (props.json !== undefined) {
       const blob = new Blob([fileCSV.value], { type: 'text/csv;charset=utf-8;' });
       url.value = URL.createObjectURL(blob);
-      csvDownloadLink.value.href = url.value;
       bothReady.value[0] = true;
     } else {
-      console.error(`SaveCSV failed because csvDownloadLink or json is undefined`);
+      console.error(`SaveCSV failed because json is undefined`);
     }
   });
   
@@ -157,10 +150,17 @@ watch(() => props.json, (newVal, oldVal) => {
 });
 
 
+// The download used to run through a permanently hidden <a> in the template.
+// An anchor with no content is not a link anyone can use - it only existed to
+// be click()ed - so it is built here, used, and discarded instead.
 function downloadCsv() {
-  if (csvDownloadLink.value) {
-    csvDownloadLink.value.click();
+  if (url.value === '') {
+    return;
   }
+  const link = document.createElement('a');
+  link.href = url.value;
+  link.download = props.datasetName ?? 'download.csv';
+  link.click();
 }
 
 onUnmounted(() => {

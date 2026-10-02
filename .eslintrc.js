@@ -1,5 +1,10 @@
 module.exports = {
   root: true,
+  // This file, and the other build configs, are CommonJS and run in node.
+  // Without this, eslint lints them as browser scripts and `module` is undefined.
+  env: {
+    node: true,
+  },
   parser: 'vue-eslint-parser',
   parserOptions: {
     parser: '@typescript-eslint/parser',
@@ -61,5 +66,14 @@ module.exports = {
     "@typescript-eslint/semi": "error",
     "vue/multi-word-component-names": "off",
     "vue/no-v-model-argument": "off",
+    // The rule's default is `every: ["nesting", "id"]`, which demands that a
+    // label BOTH wrap its control and carry a `for`. Either one on its own is a
+    // valid association, and this codebase uses explicit for/id in several
+    // places (RegionEditor, UserDatasetEditor, TimeSlider, YearsPicker) and
+    // nesting in others (DaysPicker). `some` accepts either and still catches
+    // a <label> that is attached to nothing at all.
+    "vuejs-accessibility/label-has-for": ["error", {
+      required: { some: ["nesting", "id"] },
+    }],
   }
 };

@@ -2,10 +2,17 @@
   <!-- TODO -- make the date pickers have sharper colors -->
   <div id="dual-date-range-picker">
     <div class="ddrp__picker mb-4">
-      <label class="text-subtitle-2 mb-2 d-block">Start Date</label>
+      <!-- A heading, not a label: vue-datepicker generates its own input, so
+           there is no id to point a `for` at. The input gets its accessible
+           name from the picker's ariaLabels prop below instead. That prop is
+           spelled in camelCase deliberately - written as :aria-labels it looks
+           like an ARIA attribute, which it is not, and the a11y linter rejects
+           it as an invalid one. -->
+      <div class="text-subtitle-2 mb-2 d-block">Start Date</div>
       <date-picker
         class="cds__date-picker"
         ref="startDateCalendar"
+        :ariaLabels="{ input: 'Start Date' }"
         :model-value="startDateObj"
         @internal-model-change="handleStartDateChange"
         :allowed-dates="allowedDates"
@@ -53,10 +60,17 @@
     </div>
     
     <div class="ddrp__picker mb-4">
-      <label class="text-subtitle-2 mb-2 d-block">End Date</label>
+      <!-- A heading, not a label: vue-datepicker generates its own input, so
+           there is no id to point a `for` at. The input gets its accessible
+           name from the picker's ariaLabels prop below instead. That prop is
+           spelled in camelCase deliberately - written as :aria-labels it looks
+           like an ARIA attribute, which it is not, and the a11y linter rejects
+           it as an invalid one. -->
+      <div class="text-subtitle-2 mb-2 d-block">End Date</div>
       <date-picker
         class="cds__date-picker"
         ref="endDateCalendar"
+        :ariaLabels="{ input: 'End Date' }"
         :model-value="endDateObj"
         @internal-model-change="handleEndDateChange"
         :allowed-dates="allowedDates"
