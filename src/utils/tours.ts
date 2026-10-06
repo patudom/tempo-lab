@@ -315,10 +315,19 @@ export function getIntroTour(store: TempoStore): Tour {
     },
   });
 
-  const openCloseLayers = layersPanelWrapper.querySelector(".open-close-container") as HTMLElement;
+  // The toggle itself, not the .open-close-container around it, for the same
+  // reason as the Timezone step: Shepherd gives its target tabindex="0", and
+  // on the container - a layout div holding the icon and an <hr> - that was an
+  // extra tab stop in front of the control. Measured, it took two Tabs to
+  // reach the icon, the first landing on the container where nothing responds.
+  // The icon is a v-icon, which already renders with tabindex="0", so
+  // attaching here adds no stop and it is still the focus trap's boundary.
+  const openCloseLayers = layersPanelWrapper.querySelector(".open-close-icon") as HTMLElement;
   tour.addStep({
     title: "Collapse & Expand Layers",
     attachTo: { element: openCloseLayers, on: "right" },
+    // The cutout is the icon rather than the container, so pad it back out.
+    modalOverlayOpeningPadding: 8,
     text: "The layers panel can be opened and closed",
     when: {
       show: () => {
@@ -342,10 +351,12 @@ export function getIntroTour(store: TempoStore): Tour {
     },
   });
 
-  const openCloseDatasets = datasetsPanel.querySelector(".open-close-container") as HTMLElement;
+  // The toggle itself rather than its container - see the Layers step above.
+  const openCloseDatasets = datasetsPanel.querySelector(".open-close-icon") as HTMLElement;
   tour.addStep({
     title: "Collapse & Expand Datasets",
     attachTo: { element: openCloseDatasets, on: "left" },
+    modalOverlayOpeningPadding: 8,
     text: "The datasets panel can also be opened and closed",
     buttons: [backButton, endButton],
     when: {
