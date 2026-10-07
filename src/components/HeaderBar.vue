@@ -143,13 +143,14 @@
           activator="parent"
           >
           <v-list>
-            <v-list-item 
-              tabindex="0"
-              aria-label="See recent changes"
-              @click="showChanges = true"
-              >
-              What's New
-            </v-list-item>
+            <!--
+              <v-list-item
+                tabindex="0"
+                aria-label="See recent changes"
+                @click="showChanges = true"
+                >
+                What's New
+              </v-list-item>
 
             <v-list-item 
               tabindex="0" 
@@ -168,20 +169,20 @@
               >
               User Guide
             </v-list-item>
-            
+            -->
+            <v-list-item 
+              
+              aria-label="Leave Page to Educator Resources"
+              >
+              <a style="font-weight: normal;" tabindex="0"  href="https://bestaqi.sites.cfa.harvard.edu/resources" target="_blank" rel="noopener">Educator Resources<v-icon>mdi-open-in-new</v-icon></a>
+            </v-list-item>
+
             <v-list-item
               tabindex="0"
               aria-label="Show dialog telling about the data"
               @click="showAboutData = true"
               >
               About the Data
-            </v-list-item>
-            
-            <v-list-item 
-              
-              aria-label="Leave Page to Educator Resources"
-              >
-              <a style="font-weight: normal;" tabindex="0"  href="https://www.cosmicds.cfa.harvard.edu/resources/tempo" target="_blank" rel="noopener">Educator Resources<v-icon>mdi-open-in-new</v-icon></a>
             </v-list-item>
             
             <v-list-item 
