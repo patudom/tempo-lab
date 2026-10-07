@@ -473,14 +473,19 @@
       My Datasets, which is usually behind the dialog. role="status" rather
       than "alert": it is a confirmation of something the user just did, so it
       should be announced politely rather than interrupting.
+
+      It is styled to match a tour step. Those rules sit beside the tour's own
+      in TempoLab's unscoped block, because v-snackbar teleports this markup
+      out of this component, where a scoped rule could not reach it.
     -->
     <v-snackbar
       v-model="showAggregationSaved"
       :timeout="6000"
-      :color="aggregationSavedColor"
       location="bottom center"
       role="status"
       aria-live="polite"
+      class="aggregation-saved-snackbar"
+      :style="{ '--aggregation-saved-accent': aggregationSavedColor }"
     >
       {{ aggregationSavedMessage }}
       <template #actions>
@@ -637,7 +642,12 @@ const aggregationDataset = ref<UserDataset | null>(null);
 const showAggregationDialog = ref(false);
 const showAggregationSaved = ref(false);
 const aggregationSavedMessage = ref("");
-const aggregationSavedColor = "#009ade";
+// The notice's accent: its border, and the Dismiss button's text. Change this
+// one line to recolour it. Any CSS colour works - "var(--smithsonian-yellow)"
+// is the tour's yellow, "var(--smithsonian-blue)" the other house colour.
+// It is no longer v-snackbar's `color` prop, which paints the whole panel and
+// so would fight the dark panel the tour-step look wants.
+const aggregationSavedColor = "var(--smithsonian-yellow)";
 function openAggregationDialog(selection: UserDataset) {
   aggregationDataset.value = selection;
   showAggregationDialog.value = true;
