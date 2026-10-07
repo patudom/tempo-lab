@@ -466,6 +466,27 @@
       @save="handleAggregationSaved"
       @plot-click="handlePlotClick"
     />
+
+    <!--
+      Saving an aggregation leaves the dialog open on purpose, so without this
+      the button gave no sign it had done anything - the new card appears in
+      My Datasets, which is usually behind the dialog. role="status" rather
+      than "alert": it is a confirmation of something the user just did, so it
+      should be announced politely rather than interrupting.
+    -->
+    <v-snackbar
+      v-model="showAggregationSaved"
+      :timeout="6000"
+      :color="aggregationSavedColor"
+      location="bottom center"
+      role="status"
+      aria-live="polite"
+    >
+      {{ aggregationSavedMessage }}
+      <template #actions>
+        <v-btn variant="text" @click="showAggregationSaved = false">Dismiss</v-btn>
+      </template>
+    </v-snackbar>
     
     <v-dialog
       v-model="showUserDatasetTable"
@@ -614,6 +635,9 @@ const popupCardWidth = 300;
 
 const aggregationDataset = ref<UserDataset | null>(null);
 const showAggregationDialog = ref(false);
+const showAggregationSaved = ref(false);
+const aggregationSavedMessage = ref("");
+const aggregationSavedColor = "#009ade";
 function openAggregationDialog(selection: UserDataset) {
   aggregationDataset.value = selection;
   showAggregationDialog.value = true;
@@ -638,6 +662,9 @@ function handleAggregationSaved(aggregatedSelection: UserDataset) {
     }
   }
   store.addDataset(aggregatedSelection, false); // no need to fetch anything
+  aggregationSavedMessage.value =
+    `Success! "${aggregatedSelection.name}" was added to My Datasets.`;
+  showAggregationSaved.value = true;
   // Saving deliberately leaves the dialog open, so the aggregation that was
   // just made stays on screen and another can be made without reopening it.
   // It is closed by its own title bar X or by Cancel. The other half of this is
