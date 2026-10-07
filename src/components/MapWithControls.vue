@@ -102,7 +102,7 @@ import { getTimezoneOffset } from "date-fns-tz";
 import { v4 } from "uuid";
 
 import type { LatLngPair, LayerStatus, PointSelectionInfo, RectangleSelectionInfo, SelectionType } from "@/types";
-import { featureStatus } from "@/datasets/layerStatus";
+// import { featureStatus } from "@/datasets/layerStatus";
 import { type MoleculeType, MOLECULE_OPTIONS, moleculeVariable } from "@/esri/utils";
 import { colorbarOptions } from "@/esri/ImageLayerConfig";
 import { useTempoStore } from "@/stores/app";
@@ -226,6 +226,7 @@ const popLayer = addPopulationDensityLayer();
 import { addLandUseLayer } from "@/datasets/addLandUse";
 const sentinalLandUseLayer = addLandUseLayer();
 
+/*
 import { addAsthmaLayer } from "@/datasets/addAsthma";
 const asthmaCounties = addAsthmaLayer('places-asthma-counties', 2);
 // asthma tracts disabled
@@ -238,6 +239,7 @@ function syncAsthmaStatus(layer: ReturnType<typeof addAsthmaLayer>) {
 }
 syncAsthmaStatus(asthmaCounties);
 // syncAsthmaStatus(asthmaTracts);
+*/
 
 const hmsFire = addHMSFire(singleDateSelected, {
   layerName: 'hms-fire',
@@ -329,7 +331,7 @@ function addAdvancedLayers(m: Map | null) {
   
   tryCatch('power-plants-layer', () => pp.addLayer());
   // pp.togglePowerPlants(false);
-  tryCatch(asthmaCounties.layerId, () => asthmaCounties.addToMap(m));
+  // tryCatch(asthmaCounties.layerId, () => asthmaCounties.addToMap(m));
   // asthma tracts disabled
   // tryCatch(asthmaTracts.layerId, () => asthmaTracts.addToMap(m));
 }
@@ -348,7 +350,7 @@ function removeAdvancedLayers(m: Map | null) {
   ozoneLayer.removeEsriSource();
   o3tropLayer.removeEsriSource();
   pp.removeLayer();
-  asthmaCounties.removeFromMap(m);
+  // asthmaCounties.removeFromMap(m);
   // asthma tracts disabled
   // asthmaTracts.removeFromMap(m);
   store.clearLayerReady('tempo-hcho');
@@ -356,7 +358,7 @@ function removeAdvancedLayers(m: Map | null) {
   store.clearLayerReady('tempo-o3trop');
   store.clearLayerReady('pop-dens');
   store.clearLayerReady('land-use');
-  store.clearLayerReady('places-asthma-counties');
+  // store.clearLayerReady('places-asthma-counties');
   // store.clearLayerReady('places-asthma-tracts');
 }
 
@@ -384,7 +386,7 @@ watch(molecule, (newMolecule) => {
   if (map.value) {
     hchoLayer.setVisibility(newMolecule === 'hcho');
     ozoneLayer.setVisibility(newMolecule === 'o3');
-    o3tropLayer.setVisibility(newMolecule === 'o3trop');
+    o3tropLayer.setVisibility(newMolecule === 'o3trop' && !serviceFailed(o3tropLayer.serviceReady.value));
     no2Layer.value?.setVisibility(newMolecule === 'no2');
     // map.value.moveLayer(`tempo-${newMolecule}`, 'tempo-no2');
   }
@@ -428,7 +430,13 @@ watch(() => [
   if (showAdvancedLayers.value) {
     syncLayerReady('tempo-hcho', hchoReady, hchoLayer.status.value);
     syncLayerReady('tempo-o3', ozoneReady, ozoneLayer.status.value);
+    // LayerOrderControl hides this beta layer (HIDDEN_BAD_LAYERS) when it errors
     syncLayerReady('tempo-o3trop', o3tropReady, o3tropLayer.status.value);
+    if (serviceFailed(o3tropReady)) {
+      o3tropLayer.setVisibility(false);
+    } else {
+      o3tropLayer.setVisibility(molecule.value === 'o3trop');
+    }
     syncLayerReady('pop-dens', popReady, popLayer.status.value);
     syncLayerReady('land-use', landUseReady, sentinalLandUseLayer.status.value);
     syncLayerReady('hms-fire', [hmsFire.loading.value], hmsFire.status.value);
@@ -1140,6 +1148,11 @@ onMounted(() => {
 
 .handle.vertical-handle:hover::after {
   box-shadow: 0 -6px 0 rgba(255,2555,255,0.42), 0 6px 0 rgba(255,255,255,0.42);
+}
+
+
+.panel-size-dragging, .panel-size-dragging .handle.vertical-handle {
+  cursor: row-resize !important;
 }
 
 
