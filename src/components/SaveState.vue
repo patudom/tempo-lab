@@ -1,72 +1,78 @@
 <template>
-  <v-card class="save-state">
-    <v-toolbar
-      density="compact"
-      color="var(--info-background)"
-    >
-      <v-toolbar-title text="Save and Load"></v-toolbar-title>
-    </v-toolbar>
-    <div class="icon-row">
-      <h3>Save to:</h3>
-      <v-tooltip
-        location="top"
-        text="Save to local file"
-      >
-      <template #activator="{ props }">
-          <v-icon
-            v-bind="props"
-            icon="mdi-file"
-            :color="accentColor"
-            @click="() => saveLocal()"
-          />
-        </template>
-      </v-tooltip>
-      <v-tooltip
-        location="top"
-        text="Coming soon!"
-      >
+  <div>
+    <div class="save-state">
+      <div class="icon-row">
+        <h3>Save Data:</h3>
+        <v-tooltip
+          location="top"
+          text="Save to local file"
+        >
         <template #activator="{ props }">
-          <span v-bind="props">
-            <v-icon
-              icon="mdi-google-drive"
+            <font-awesome-icon
+              v-bind="props"
+              icon="fa-download"
               :color="accentColor"
-              disabled
+              size="xl"
+              @click="() => saveLocal()"
             />
-          </span>
-        </template>
-      </v-tooltip>
+          </template>
+        </v-tooltip>
+        <!-- <v-tooltip
+          location="top"
+          text="Coming soon!"
+        >
+          <template #activator="{ props }">
+            <span v-bind="props">
+              <v-icon
+                icon="mdi-google-drive"
+                :color="accentColor"
+                disabled
+              />
+            </span>
+          </template>
+        </v-tooltip> -->
+      </div>
+      <p>
+        Save all your progress (including regions, time ranges, datasets, and aggregated datasets) to a file on your computer.
+      </p>
     </div>
-    <div class="icon-row">
-      <h3>Open saved state:</h3>
-      <v-tooltip
-        location="top"
-        text="Load from local file"
-      >
-        <template #activator="{ props }">
-          <v-icon
-            v-bind="props"
-            icon="mdi-file"
-            :color="accentColor"
-            @click="() => loadLocal()"
-          />
-        </template>
-      </v-tooltip>
-      <v-tooltip
-        location="top"
-        text="Coming soon!"
-      >
-        <template #activator="{ props }">
-          <span v-bind="props">
-            <v-icon
-              icon="mdi-google-drive"
+    <div class="save-state mt-5">
+      <div class="icon-row">
+        <h3>Load Data:</h3>
+        <v-tooltip
+          location="top"
+          text="Load from local file"
+        >
+          <template #activator="{ props }">
+            <font-awesome-icon
+              v-bind="props"
+              icon="fa-upload"
               :color="accentColor"
-              disabled
+              size="xl"
+              @click="() => loadLocal()"
             />
-          </span>
-        </template>
-      </v-tooltip>
+          </template>
+        </v-tooltip>
+        <!-- <v-tooltip
+          location="top"
+          text="Coming soon!"
+        >
+          <template #activator="{ props }">
+            <span v-bind="props">
+              <v-icon
+                icon="mdi-google-drive"
+                :color="accentColor"
+                disabled
+              />
+            </span>
+          </template>
+        </v-tooltip> -->
+      </div>
+      <p>
+        Load your progress and data (including regions, time ranges, datasets, and aggregated datasets) from a file saved on your computer.
+      </p>
     </div>
-  </v-card>
+  </div>
 </template>
 
 
@@ -219,14 +225,13 @@ async function loadLocal() {
 .save-state {
   display: flex;
   flex-direction: column;
-  gap: 15px;
 }
 
 .icon-row {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 5px;
-  padding: 5px;
+  gap: 15px;
+  padding-block: 5px;
 }
 </style>
