@@ -11,7 +11,7 @@
             <font-awesome-icon
               v-bind="props"
               icon="fa-download"
-              :color="accentColor"
+              :color="accentColor2"
               size="xl"
               @click="() => saveLocal()"
             />
@@ -36,7 +36,7 @@
         Save all your progress (including regions, time ranges, datasets, and aggregated datasets) to a file on your computer.
       </p>
     </div>
-    <div class="save-state mt-5">
+    <div class="save-state">
       <div class="icon-row">
         <h3>Load Data:</h3>
         <v-tooltip
@@ -47,7 +47,7 @@
             <font-awesome-icon
               v-bind="props"
               icon="fa-upload"
-              :color="accentColor"
+              :color="accentColor2"
               size="xl"
               @click="() => loadLocal()"
             />
@@ -72,19 +72,79 @@
         Load your progress and data (including regions, time ranges, datasets, and aggregated datasets) from a file saved on your computer.
       </p>
     </div>
+    <!-- The confirmation happens in place rather than in a second dialog
+         stacked on top of this one. -->
+    <div class="save-state danger-zone">
+      <div class="icon-row">
+        <h3>Clear App Data:</h3>
+        <v-tooltip
+            location="top"
+            text="Clear all app data"
+          >
+          <template #activator="{ props }">
+            <v-icon
+              v-bind="props"
+              icon="mdi-broom"
+              :color="accentColor2"
+              :disabled="!hasSelections"
+              @click="confirmingReset = true"
+            />
+          </template>
+        </v-tooltip>
+      </div>
+      <template v-if="!confirmingReset">
+        <p>
+          Remove all regions, time ranges, and datasets from the app. 
+        </p>
+        <p>
+          (Saved files on your computer will not be affected.)
+        </p>
+      </template>
+      <template v-else>
+        <p>
+          Are you sure you want to clear all of your data selections?
+        </p>
+        <p>
+          <strong>Any work you haven’t saved to a file will be lost.</strong> Save your data first to keep your work.
+        </p>
+        <div class="danger-zone-actions mt-2">
+          <v-btn
+            size="small"
+            variant="outlined"
+            @click="confirmingReset = false"
+          >
+            Cancel
+          </v-btn>
+          <v-btn
+            :color="tempoRed"
+            size="small"
+            @click="resetAll"
+          >
+            Yes, clear my data
+          </v-btn>
+        </div>
+      </template>
+    </div>
   </div>
 </template>
 
 
 <script setup lang="ts">
+import { computed, ref } from "vue";
 import { storeToRefs } from "pinia";
 import { type TempoStore, useTempoStore, serializeTempoStore, updateStoreFromJSON } from "@/stores/app";
 
 const store = useTempoStore();
 
 const {
-  accentColor
+  accentColor2,
+  tempoRed,
+  regions,
+  timeRanges,
 } = storeToRefs(store);
+
+const confirmingReset = ref(false);
+const hasSelections = computed(() => regions.value.length > 0 || timeRanges.value.length > 0);
 
 type OpType = "save" | "load";
 type Target = "local" | "google-drive";
@@ -96,6 +156,7 @@ const emit = defineEmits<{
   (event: "save-google-drive"): void;
   (event: "load-google-drive"): void;
   (event: "error", type: EventType, message: string): void;
+  (event: "reset"): void;
 }>();
 
 const DEFAULT_FILENAME = "tempo_lab.json";
@@ -219,9 +280,20 @@ async function loadLocal() {
     loadLocalInput();
   }
 }
+
+function resetAll() {
+  store.reset();
+  confirmingReset.value = false;
+  emit("reset");
+}
 </script>
 
 <style scoped>
+
+p {
+  margin-bottom: 0.5em;
+}
+
 .save-state {
   display: flex;
   flex-direction: column;
@@ -233,5 +305,19 @@ async function loadLocal() {
   align-items: center;
   gap: 15px;
   padding-block: 5px;
+}
+
+.danger-zone {
+  /* v-bind, not var(--tempo-red): the dialog is teleported outside the
+     TempoLab root where that variable is set */
+  border: 2px solid v-bind(tempoRed);
+  border-radius: 8px;
+  margin-top: 1em;
+  padding: 12px;
+}
+
+.danger-zone-actions {
+  display: flex;
+  gap: 8px;
 }
 </style>

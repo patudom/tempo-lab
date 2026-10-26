@@ -113,7 +113,7 @@
             <font-awesome-icon
               icon="fa-circle-xmark"
               size="lg"
-              color="#ffcc33"
+              :color="accentColor2"
             />
           </button>
         </div>
@@ -123,7 +123,7 @@
      <v-btn
        @click="showSaveDialog = !showSaveDialog"
        class="save-button"
-       aria-label="Save or Load Data"
+       aria-label="Save, Load, or Clear Data"
        variant="outlined"
        rounded="lg"
        density="default"
@@ -131,7 +131,7 @@
        elevation="0"
        size="lg"
       >
-        <v-tooltip location="bottom" activator="parent" :disabled="mobile" text="Save or Load Data"></v-tooltip>
+        <v-tooltip location="bottom" activator="parent" :disabled="mobile" text="Save, Load, or Clear Data"></v-tooltip>
         <font-awesome-icon
           icon="fa-floppy-disk"
           size="lg"
@@ -201,7 +201,7 @@
       </v-btn>
 
       <cds-dialog
-        title="Save and Load"
+        title="Manage Data"
         v-model="showSaveDialog"
         :color="accentColor2"
         width="400px"
@@ -209,6 +209,7 @@
         <save-state
           @load-local="showSaveDialog = false"
           @save-local="showSaveDialog = false"
+          @reset="showSaveDialog = false"
           @error="(type: string, message: string) => reportError(type, message)"
         />
       </cds-dialog>
