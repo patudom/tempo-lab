@@ -8,13 +8,16 @@
           text="Save to local file"
         >
         <template #activator="{ props }">
-            <font-awesome-icon
+            <v-btn
               v-bind="props"
-              icon="fa-download"
+              icon
+              variant="tonal"
               :color="accentColor2"
-              size="xl"
+              aria-label="Save to local file"
               @click="() => saveLocal()"
-            />
+            >
+              <font-awesome-icon icon="fa-download" size="xl" />
+            </v-btn>
           </template>
         </v-tooltip>
         <!-- <v-tooltip
@@ -33,7 +36,7 @@
         </v-tooltip> -->
       </div>
       <p>
-        Save all your progress (including regions, time ranges, datasets, and aggregated datasets) to a file on your computer.
+        Save all your progress (including Regions, Time Ranges, Datasets, and Aggregated Datasets) to a file on your computer.
       </p>
     </div>
     <div class="save-state">
@@ -44,13 +47,16 @@
           text="Load from local file"
         >
           <template #activator="{ props }">
-            <font-awesome-icon
+            <v-btn
               v-bind="props"
-              icon="fa-upload"
+              icon
+              variant="tonal"
               :color="accentColor2"
-              size="xl"
-              @click="() => loadLocal()"
-            />
+              aria-label="Load from local file"
+              @click="onLoadClick"
+            >
+              <font-awesome-icon icon="fa-upload" size="xl" />
+            </v-btn>
           </template>
         </v-tooltip>
         <!-- <v-tooltip
@@ -68,9 +74,50 @@
           </template>
         </v-tooltip> -->
       </div>
-      <p>
-        Load your progress and data (including regions, time ranges, datasets, and aggregated datasets) from a file saved on your computer.
+      <p v-if="!choosingLoadMode">
+        Load data (including Regions, Time Ranges, Datasets, and Aggregated Datasets) from a file saved on your computer.
       </p>
+      <template v-else>
+        <p>
+          You already have data in the app. Do you want data from the loaded file to be combined with your existing data, or to replace it?
+        </p>
+        <p>
+          If you choose REPLACE, <strong>any work you haven’t saved to a file will be lost.</strong> Save your data first to keep your work.
+        </p>
+        <div class="action-row mt-2">
+          <v-btn
+            size="small"
+            variant="outlined"
+            @click="choosingLoadMode = false"
+          >
+            Cancel
+          </v-btn>
+          <v-btn
+            :color="accentColor2"
+            size="small"
+            @click="loadLocal('combine')"
+          >
+            Combine
+          </v-btn>
+          <v-btn
+            :color="tempoRed"
+            size="small"
+            @click="loadLocal('replace')"
+          >
+            Replace
+          </v-btn>
+          <info-button>
+            <p>The COMBINE option behaves as follows:</p>
+            <ul class="combine-rules">
+              <li>Unique Regions, Time Ranges, and Datasets from the data file are added to your existing selections.</li>
+              <li>Duplicated Regions, Time Ranges, or Datasets from the data file are NOT added again.</li>
+              <li>If you save a data file and then rename Regions, Time Ranges, or Datasets, the app still considers those to be duplicated content. If you load the saved file and choose COMBINE, the updated names in the app are preserved.</li>
+              <li>Regions that have been moved are not considered duplicates. The COMBINE action re-adds a region with the original location.</li>
+              <li>If different regions in the app and the data file have the same name, such as "Region 1," the combined dataset can have multiple regions with the same name. We recommend renaming them to avoid confusion.</li>
+            </ul>
+          </info-button>
+        </div>
+      </template>
     </div>
     <!-- The confirmation happens in place rather than in a second dialog
          stacked on top of this one. -->
@@ -82,10 +129,12 @@
             text="Clear all app data"
           >
           <template #activator="{ props }">
-            <v-icon
+            <v-btn
               v-bind="props"
               icon="mdi-broom"
+              variant="tonal"
               :color="accentColor2"
+              aria-label="Clear all app data"
               :disabled="!hasSelections"
               @click="confirmingReset = true"
             />
@@ -107,7 +156,7 @@
         <p>
           <strong>Any work you haven’t saved to a file will be lost.</strong> Save your data first to keep your work.
         </p>
-        <div class="danger-zone-actions mt-2">
+        <div class="action-row mt-2">
           <v-btn
             size="small"
             variant="outlined"
@@ -132,7 +181,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { storeToRefs } from "pinia";
-import { type TempoStore, useTempoStore, serializeTempoStore, updateStoreFromJSON } from "@/stores/app";
+import { type TempoStore, useTempoStore, serializeTempoStore, updateStoreFromJSON, mergeStoreFromJSON } from "@/stores/app";
 
 const store = useTempoStore();
 
@@ -144,7 +193,14 @@ const {
 } = storeToRefs(store);
 
 const confirmingReset = ref(false);
+const choosingLoadMode = ref(false);
 const hasSelections = computed(() => regions.value.length > 0 || timeRanges.value.length > 0);
+
+type LoadMode = "replace" | "combine";
+const applyLoadedJSON: Record<LoadMode, typeof updateStoreFromJSON> = {
+  replace: updateStoreFromJSON,
+  combine: mergeStoreFromJSON,
+};
 
 type OpType = "save" | "load";
 type Target = "local" | "google-drive";
@@ -220,7 +276,7 @@ async function saveLocal() {
   }
 }
 
-async function loadLocalFileSystemAPI(): Promise<boolean> {
+async function loadLocalFileSystemAPI(mode: LoadMode): Promise<boolean> {
 
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore window *might* have this, and if we're here it should
@@ -233,7 +289,7 @@ async function loadLocalFileSystemAPI(): Promise<boolean> {
   const file = await handle.getFile();
   const content = await file.text();
 
-  const result = updateStoreFromJSON(store, content, false);
+  const result = applyLoadedJSON[mode](store, content, false);
   if (result) {
     return true;
   } else {
@@ -242,7 +298,7 @@ async function loadLocalFileSystemAPI(): Promise<boolean> {
   }
 }
 
-function loadLocalInput() {
+function loadLocalInput(mode: LoadMode) {
   const input = document.createElement("input");
   input.type = "file";
 
@@ -255,7 +311,7 @@ function loadLocalInput() {
       reader.onload = function (evt) {
         if (!evt || !evt.target) { return; }
         const content = evt.target.result as string;
-        const result = updateStoreFromJSON(store, content, false);
+        const result = applyLoadedJSON[mode](store, content, false);
         if (result) {
           emit("load-local");
         } else {
@@ -269,15 +325,26 @@ function loadLocalInput() {
   input.click();
 }
 
-async function loadLocal() {
+// With nothing in the app yet, replace and combine give the same result, so
+// only ask when there is something to lose.
+function onLoadClick() {
+  if (hasSelections.value) {
+    choosingLoadMode.value = true;
+  } else {
+    loadLocal("replace");
+  }
+}
+
+async function loadLocal(mode: LoadMode) {
+  choosingLoadMode.value = false;
   let result = false;
   if ('showOpenFilePicker' in window) {
-    result = await loadLocalFileSystemAPI();
+    result = await loadLocalFileSystemAPI(mode);
     if (result) {
       emit("load-local");
     }
   } else {
-    loadLocalInput();
+    loadLocalInput(mode);
   }
 }
 
@@ -297,6 +364,7 @@ p {
 .save-state {
   display: flex;
   flex-direction: column;
+  margin-bottom: 1em; 
 }
 
 .icon-row {
@@ -312,12 +380,22 @@ p {
      TempoLab root where that variable is set */
   border: 2px solid v-bind(tempoRed);
   border-radius: 8px;
-  margin-top: 1em;
-  padding: 12px;
+  margin-top: 2em;
+  padding-inline: 1em;
+  padding-top: 0.25em;
+  padding-bottom: 1em;
 }
 
-.danger-zone-actions {
+.action-row {
   display: flex;
   gap: 8px;
+}
+
+.combine-rules {
+  padding-inline-start: 1.5em;
+}
+
+.combine-rules li {
+  margin-bottom: 0.5em;
 }
 </style>
