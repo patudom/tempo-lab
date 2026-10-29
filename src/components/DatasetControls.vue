@@ -322,7 +322,7 @@
                 <v-btn
                 v-if="datasets.length > 1"
                 :disabled="datasets.length === 0 || !datasets.every(d => d.samples || d.plotlyDatasets)"
-                :color="allDatasetSelection ? '#333': 'accentColor2'" size="small" :block="false" @click.stop="allDatasetSelection = !allDatasetSelection">
+                :color="allDatasetSelection ? '#333' : accentColor2" size="small" :block="false" @click.stop="allDatasetSelection = !allDatasetSelection">
                 {{ allDatasetSelection ? 'Cancel Selection' : 'Select Datasets to Graph' }}
               </v-btn>
           </div>
